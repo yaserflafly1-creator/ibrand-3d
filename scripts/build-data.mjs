@@ -29,6 +29,7 @@ const SECTIONS = {
 
 const headers = { 'Store-Identifier': STORE_ID, 'Accept-Language': 'ar', 'Accept': 'application/json', 'User-Agent': 'ibrand-3d-pharmacy/1.0' };
 const sleep = ms => new Promise(r => setTimeout(r, ms));
+const priceOf = p => { const sale = num(p.sale_price), base = num(p.price); const v = p.is_on_sale && sale > 0 ? sale : base; return v > 0 ? v : null; };
 const num = v => typeof v === 'number' ? v : (v && typeof v.amount === 'number' ? v.amount : null);
 
 async function getJSON(url, tries = 3){
@@ -63,7 +64,7 @@ async function listProducts(def){
       seen.add(p.id);
       out.push({
         id: String(p.id), name: p.name, url: p.url, img,
-        price: num(p.sale_price) ?? num(p.price), regular: num(p.regular_price) ?? num(p.price),
+        price: priceOf(p), regular: num(p.regular_price) || num(p.price) || null,
         onSale: !!p.is_on_sale
       });
     }

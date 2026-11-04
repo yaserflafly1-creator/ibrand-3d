@@ -340,7 +340,7 @@ function build(renderer){
     const key = realKey(sec); if (!key) return false;
     const {mat, depth, sd} = realMaterial(key), P = sd.products, C = DATA.cols, Rw = DATA.rows;
     const pos=[], uv=[], nor=[], idx=[], places=[];
-    const base = .2 * Math.min(1.45, Math.max(.8, PACKS[sec.pack].size * .85));
+    const base = .23 * Math.min(1.45, Math.max(.8, PACKS[sec.pack].size * .85));
     let pi = 0;
     function size(p, maxH, k=1){
       const a = p.card ? 1 : (p.aspect || 1); let h = base * k * (p.card ? .8 : 1), w = h * a;
