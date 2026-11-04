@@ -158,7 +158,9 @@ async function main(){
     if (!products.length){ console.warn('no products for', key); continue; }
     await sharp({ create: { width: COLS*TILE, height: ROWS*TILE, channels: 4, background: { r:0, g:0, b:0, alpha:0 } } })
       .composite(comps).webp({ quality: 78, alphaQuality: 85 }).toFile(`atlas/${key}.webp`);
-    result.sections[key] = { atlas: `atlas/${key}.webp`, products };
+    // lighter half-size atlas for phones
+    await sharp(`atlas/${key}.webp`).resize(COLS*TILE/2, ROWS*TILE/2).webp({ quality: 74, alphaQuality: 80 }).toFile(`atlas/${key}-m.webp`);
+    result.sections[key] = { atlas: `atlas/${key}.webp`, atlasM: `atlas/${key}-m.webp`, products };
     console.log(key, products.length, 'products');
   }
   if (!Object.keys(result.sections).length) throw new Error('No products fetched — storefront API unreachable?');

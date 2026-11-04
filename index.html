@@ -1,5 +1,12 @@
+<!doctype html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+<meta name="theme-color" content="#e873a8">
+<meta name="description" content="تجوّل في صيدلية اي براند ثلاثية الأبعاد وتسوّق الأقسام والعروض بمنتجات حقيقية">
+<link rel="icon" href="assets/logo.png">
 <title>صيدلية اي براند 3D</title>
-<meta name="claude:viewport-fit-sides" content="cover">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Almarai:wght@400;700;800&display=swap">
 <style>
@@ -16,7 +23,10 @@
   --font:"Almarai", Tahoma, "Segoe UI", sans-serif;
   color-scheme: light;
 }
-html,body{height:100%}
+html,body{height:100%;margin:0;overscroll-behavior:none;-webkit-tap-highlight-color:transparent}
+[hidden]{display:none!important}
+*{box-sizing:border-box}
+body{-webkit-user-select:none;user-select:none;-webkit-touch-callout:none}
 body{background:var(--ground);color:var(--plum);font-family:var(--font);overflow:hidden;direction:rtl}
 #stage{position:fixed;inset:0}
 #stage canvas{display:block;width:100%;height:100%;touch-action:none;outline:none;cursor:grab}
@@ -64,7 +74,7 @@ body{background:var(--ground);color:var(--plum);font-family:var(--font);overflow
 .tools{pointer-events:auto;display:flex;gap:8px}
 .pano{font-family:var(--font);font-weight:700;font-size:13px;color:var(--plum);background:rgba(255,255,255,.92);border:1px solid var(--line);border-radius:12px;padding:10px 13px;cursor:pointer;white-space:nowrap}
 .pano[aria-pressed="true"]{background:var(--plum);color:#fff;border-color:var(--plum)}
-.joy{position:fixed;z-index:5;left:max(18px, env(safe-area-inset-left,0px));bottom:calc(env(safe-area-inset-bottom,0px) + 82px);width:124px;height:124px;border-radius:50%;
+.joy{position:fixed;z-index:5;pointer-events:auto;left:max(18px, env(safe-area-inset-left,0px));bottom:calc(env(safe-area-inset-bottom,0px) + 82px);width:124px;height:124px;border-radius:50%;
   background:radial-gradient(circle, rgba(255,255,255,.55), rgba(255,255,255,.82));border:1px solid var(--line);backdrop-filter:blur(6px);box-shadow:0 10px 28px rgba(59,29,54,.16);touch-action:none;user-select:none;-webkit-user-select:none}
 .joy::before,.joy::after{content:"";position:absolute;inset:50% auto auto 50%;transform:translate(-50%,-50%);background:var(--line);border-radius:2px}
 .joy::before{width:2px;height:80%}.joy::after{width:80%;height:2px}
@@ -85,13 +95,15 @@ body{background:var(--ground);color:var(--plum);font-family:var(--font);overflow
 @media (max-width:640px){
   .panel{top:auto;bottom:calc(env(safe-area-inset-bottom,0px) + 80px);left:max(12px, env(safe-area-inset-left,0px));right:max(12px, env(safe-area-inset-right,0px));width:auto;max-height:50%}
   .logo small{display:none}
-  .hint{font-size:12px}
+  .hint{font-size:12px;white-space:normal;width:calc(100% - 32px);text-align:center;border-radius:14px}
   .joy{width:112px;height:112px}
   body.sheet .joy{display:none}
   .store-link{padding:10px 12px}
 }
 </style>
 
+</head>
+<body>
 <div id="stage" aria-label="صيدلية اي براند ثلاثية الأبعاد"></div>
 
 <header class="topbar">
@@ -161,7 +173,7 @@ const PACKS = {
 
 const $ = s => document.querySelector(s);
 const reduceMotion = matchMedia('(prefers-reduced-motion: reduce)').matches;
-const isSmall = Math.min(innerWidth, innerHeight) < 700;
+const isSmall = Math.min(innerWidth, innerHeight) < 700 || matchMedia('(pointer: coarse)').matches;
 let DATA = null;
 const OBSTACLES = [];
 
@@ -176,19 +188,19 @@ function showFallback(){
   if (!window.THREE) return showFallback();
   try { await Promise.race([Promise.all([document.fonts.load('800 80px "Almarai"'), document.fonts.load('400 40px "Almarai"')]), new Promise(r=>setTimeout(r,2500))]); } catch(e){}
   let renderer;
-  try { renderer = new THREE.WebGLRenderer({antialias:true, powerPreference:'high-performance'}); } catch(e){ return showFallback(); }
+  try { renderer = new THREE.WebGLRenderer({antialias:!isSmall || devicePixelRatio < 2, powerPreference:'high-performance'}); } catch(e){ return showFallback(); }
   try { const r = await fetch('data/products.json', {cache:'no-cache'}); if (r.ok) DATA = await r.json(); } catch(e){}
   try { build(renderer); } catch(e){ console.error(e); showFallback(); }
 })();
 
 function build(renderer){
   const stage = $('#stage');
-  renderer.setPixelRatio(Math.min(devicePixelRatio, isSmall ? 1.5 : 2));
+  renderer.setPixelRatio(Math.min(devicePixelRatio, isSmall ? 1.25 : 2));
   renderer.setSize(stage.clientWidth, stage.clientHeight);
   renderer.outputEncoding = THREE.sRGBEncoding;
   renderer.toneMapping = THREE.ACESFilmicToneMapping;
   renderer.toneMappingExposure = 0.95;
-  renderer.shadowMap.enabled = true;
+  renderer.shadowMap.enabled = !isSmall;
   renderer.shadowMap.type = THREE.PCFSoftShadowMap;
   stage.appendChild(renderer.domElement);
 
@@ -199,7 +211,8 @@ function build(renderer){
     scene.environment = pm.fromScene(new THREE.RoomEnvironment(), 0.04).texture;
   }
 
-  const camera = new THREE.PerspectiveCamera(58, stage.clientWidth/stage.clientHeight, 0.05, 80);
+  const fovFor = a => a < 1 ? 74 : 58;
+  const camera = new THREE.PerspectiveCamera(fovFor(stage.clientWidth/stage.clientHeight), stage.clientWidth/stage.clientHeight, 0.05, 80);
   const EYE = 1.6;
   const HOME = {pos:new THREE.Vector3(0, EYE, 12.2), target:new THREE.Vector3(0, 1.45, 2)};
   camera.position.copy(HOME.pos);
@@ -407,7 +420,7 @@ function build(renderer){
   const realKey = sec => DATA && DATA.sections && DATA.sections[sec.key] && DATA.sections[sec.key].products.length ? sec.key : null;
   function realMaterial(key){
     if (realMats[key]) return realMats[key];
-    const sd = DATA.sections[key], tex = sRGB(texLoader.load(sd.atlas));
+    const sd = DATA.sections[key], tex = sRGB(texLoader.load(isSmall && sd.atlasM ? sd.atlasM : sd.atlas));
     const mat = new THREE.MeshStandardMaterial({map:tex, alphaTest:.5, roughness:.4, metalness:0, envMapIntensity:.55, vertexColors:true, side:THREE.DoubleSide});
     const depth = new THREE.MeshDepthMaterial({depthPacking:THREE.RGBADepthPacking, map:tex, alphaTest:.5, side:THREE.DoubleSide});
     return realMats[key] = {mat, depth, sd};
@@ -423,8 +436,8 @@ function build(renderer){
     sd.products.forEach(p=>{ if (!byBrand.has(p.brand)) { byBrand.set(p.brand, []); order.push(p.brand); } byBrand.get(p.brand).push(p); });
     const P = order.flatMap(b => byBrand.get(b).slice().sort((a,c)=>(a.aspect||1)-(c.aspect||1)));
     const F = {pos:[], uv:[], nor:[], col:[], idx:[], places:[]}, S = {pos:[], nor:[], col:[], idx:[], places:[]};
-    const base = .25 * Math.min(1.45, Math.max(.8, PACKS[sec.pack].size * .85));
-    const LAYERS = isSmall ? 3 : 4;
+    const base = .3 * Math.min(1.45, Math.max(.8, PACKS[sec.pack].size * .85));
+    const LAYERS = isSmall ? 2 : 4;
     const tmpC = new THREE.Color();
     let pi = 0;
     const isBox = p => p.card || (p.rect || 0) >= .84;
@@ -715,7 +728,7 @@ function build(renderer){
     return {sec:o.userData.sec, prod, point:hit.point, normal: hit.face ? hit.face.normal.clone().transformDirection(o.matrixWorld) : new THREE.Vector3(0,0,1)};
   }
   let down=null, hovered=null; const el = renderer.domElement;
-  el.addEventListener('pointerdown', e=>{ down={x:e.clientX,y:e.clientY}; hideHint(); flight=null; el.style.cursor='grabbing'; });
+  el.addEventListener('pointerdown', e=>{ if (e.__joy) { down = null; return; } down={x:e.clientX,y:e.clientY}; hideHint(); flight=null; el.style.cursor='grabbing'; });
   el.addEventListener('pointerup', e=>{ el.style.cursor = hovered ? 'pointer' : 'grab'; if (!down) return; const moved=Math.hypot(e.clientX-down.x, e.clientY-down.y); down=null; if (moved<7){ const h=pick(e); if (h && h.prod) selectProduct(h); else if (h) select(h.sec); } });
   el.addEventListener('pointermove', e=>{
     if (e.pointerType!=='mouse' || down) return;
@@ -727,7 +740,7 @@ function build(renderer){
       if (s) clickables.find(c=>c.sec===s).sign.scale.setScalar(1.06);
     }
   });
-  addEventListener('resize', ()=>{ camera.aspect = stage.clientWidth/stage.clientHeight; camera.updateProjectionMatrix(); renderer.setSize(stage.clientWidth, stage.clientHeight); });
+  addEventListener('resize', ()=>{ camera.aspect = stage.clientWidth/stage.clientHeight; camera.fov = fovFor(camera.aspect); camera.updateProjectionMatrix(); renderer.setSize(stage.clientWidth, stage.clientHeight); });
 
   // ---------- walking: joystick / WASD + drag to look, with simple collisions ----------
   roots.forEach(r=>{ const b = new THREE.Box3().setFromObject(r); OBSTACLES.push({box:{x0:b.min.x-.35, x1:b.max.x+.35, z0:b.min.z-.35, z1:b.max.z+.35}}); });
@@ -752,12 +765,25 @@ function build(renderer){
   const joyEnd = e=>{ if (e.pointerId !== joyId) return; joyId = null; joy.x = joy.y = 0; knob.style.transform = ''; joyEl.classList.remove('on'); };
   joyEl.addEventListener('pointerup', joyEnd); joyEl.addEventListener('pointercancel', joyEnd); joyEl.addEventListener('lostpointercapture', joyEnd);
 
+  // touch: a thumb on the left of the screen becomes a floating joystick, like mobile games
+  const joyHome = () => { joyEl.style.left = ''; joyEl.style.top = ''; joyEl.style.bottom = ''; };
+  el.addEventListener('pointerdown', e=>{
+    if (e.pointerType !== 'touch' || joyId !== null || e.clientX > innerWidth * .42 || e.clientY < innerHeight * .3) return;
+    const r = joyEl.getBoundingClientRect();
+    joyEl.style.left = (e.clientX - r.width/2) + 'px'; joyEl.style.top = (e.clientY - r.height/2) + 'px'; joyEl.style.bottom = 'auto';
+    joyId = e.pointerId; e.__joy = true; joyEl.classList.add('on'); hideHint(); flight = null; setPano(false);
+    try{ el.setPointerCapture(e.pointerId); }catch(_){}
+  }, true);
+  el.addEventListener('pointermove', e=>{ if (e.pointerId === joyId) joyMove(e); }, true);
+  const floatEnd = e=>{ if (e.pointerId !== joyId) return; joyId = null; joy.x = joy.y = 0; knob.style.transform = ''; joyEl.classList.remove('on'); joyHome(); };
+  el.addEventListener('pointerup', floatEnd, true); el.addEventListener('pointercancel', floatEnd, true);
+
   // drag anywhere on the scene to look around (one finger / mouse)
   const lookers = new Map();
-  el.addEventListener('pointerdown', e=>{ lookers.set(e.pointerId, {x:e.clientX, y:e.clientY}); if (pano) setPano(false); try{ el.setPointerCapture(e.pointerId); }catch(_){} });
+  el.addEventListener('pointerdown', e=>{ if (e.pointerId === joyId) return; lookers.set(e.pointerId, {x:e.clientX, y:e.clientY}); if (pano) setPano(false); try{ el.setPointerCapture(e.pointerId); }catch(_){} });
   el.addEventListener('pointermove', e=>{
-    const L = lookers.get(e.pointerId); if (!L || lookers.size > 1) return;
-    const sens = e.pointerType === 'mouse' ? .0042 : .0058;
+    const L = lookers.get(e.pointerId); if (!L || lookers.size > 1 || e.pointerId === joyId) return;
+    const sens = e.pointerType === 'mouse' ? .0042 : .0068;
     view.yaw += (e.clientX - L.x) * sens; view.pitch = clampPitch(view.pitch + (e.clientY - L.y) * sens * .8);
     L.x = e.clientX; L.y = e.clientY;
   });
@@ -816,3 +842,5 @@ function build(renderer){
   requestAnimationFrame(()=>$('#loading').classList.add('done'));
 }
 </script>
+</body>
+</html>
