@@ -1,0 +1,34 @@
+name: Refresh products
+
+on:
+  workflow_dispatch:
+  push:
+    paths: ['scripts/**', '.github/workflows/refresh.yml']
+  schedule:
+    - cron: '17 0 * * *'   # daily, 03:17 Riyadh
+
+permissions:
+  contents: write
+
+concurrency:
+  group: refresh
+  cancel-in-progress: true
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - run: npm install --no-save sharp@0.33.5
+      - run: node scripts/build-data.mjs
+      - name: Commit refreshed data
+        run: |
+          git config user.name "ibrand-3d-bot"
+          git config user.email "actions@users.noreply.github.com"
+          git add data atlas
+          git diff --cached --quiet && echo "No changes" && exit 0
+          git commit -m "Refresh products $(date -u +%F)"
+          git push
