@@ -64,11 +64,13 @@ body{background:var(--ground);color:var(--plum);font-family:var(--font);overflow
 .tools{pointer-events:auto;display:flex;gap:8px}
 .pano{font-family:var(--font);font-weight:700;font-size:13px;color:var(--plum);background:rgba(255,255,255,.92);border:1px solid var(--line);border-radius:12px;padding:10px 13px;cursor:pointer;white-space:nowrap}
 .pano[aria-pressed="true"]{background:var(--plum);color:#fff;border-color:var(--plum)}
-.pad{position:fixed;z-index:5;right:max(16px, env(safe-area-inset-right,0px));bottom:calc(env(safe-area-inset-bottom,0px) + 84px);
-  display:grid;grid-template-columns:repeat(3,48px);grid-template-rows:repeat(2,48px);gap:6px;direction:ltr;touch-action:none;user-select:none;-webkit-user-select:none}
-.pad button{border:1px solid var(--line);background:rgba(255,255,255,.9);backdrop-filter:blur(6px);border-radius:14px;font-size:18px;color:var(--plum);cursor:pointer;box-shadow:0 6px 16px rgba(59,29,54,.12);touch-action:none}
-.pad button:active,.pad button.on{background:var(--pink);color:#fff;border-color:var(--pink)}
-.pad .f{grid-column:2;grid-row:1}.pad .l{grid-column:1;grid-row:2}.pad .b{grid-column:2;grid-row:2}.pad .r{grid-column:3;grid-row:2}
+.joy{position:fixed;z-index:5;left:max(18px, env(safe-area-inset-left,0px));bottom:calc(env(safe-area-inset-bottom,0px) + 82px);width:124px;height:124px;border-radius:50%;
+  background:radial-gradient(circle, rgba(255,255,255,.55), rgba(255,255,255,.82));border:1px solid var(--line);backdrop-filter:blur(6px);box-shadow:0 10px 28px rgba(59,29,54,.16);touch-action:none;user-select:none;-webkit-user-select:none}
+.joy::before,.joy::after{content:"";position:absolute;inset:50% auto auto 50%;transform:translate(-50%,-50%);background:var(--line);border-radius:2px}
+.joy::before{width:2px;height:80%}.joy::after{width:80%;height:2px}
+.joy .knob{position:absolute;left:50%;top:50%;width:52px;height:52px;margin:-26px 0 0 -26px;border-radius:50%;background:var(--pink);box-shadow:0 6px 16px rgba(232,115,168,.45);z-index:1;transition:transform .12s ease-out}
+.joy.on .knob{transition:none}
+.joy small{position:absolute;inset:auto 0 -22px;text-align:center;font-size:11px;color:var(--muted);font-weight:700}
 .tip{position:fixed;z-index:7;pointer-events:none;max-width:260px;background:rgba(59,29,54,.9);color:#fff;font-size:12.5px;line-height:1.5;border-radius:10px;padding:7px 10px;transform:translate(-50%, calc(-100% - 14px))}
 .tip b{display:block;color:#ffd3e7;font-variant-numeric:tabular-nums}
 .cta{text-align:center;font-weight:700;font-size:15px;color:#fff;background:var(--pink);text-decoration:none;border-radius:12px;padding:14px 16px}
@@ -84,8 +86,8 @@ body{background:var(--ground);color:var(--plum);font-family:var(--font);overflow
   .panel{top:auto;bottom:calc(env(safe-area-inset-bottom,0px) + 80px);left:max(12px, env(safe-area-inset-left,0px));right:max(12px, env(safe-area-inset-right,0px));width:auto;max-height:50%}
   .logo small{display:none}
   .hint{font-size:12px}
-  .pad{grid-template-columns:repeat(3,44px);grid-template-rows:repeat(2,44px)}
-  body.sheet .pad{display:none}
+  .joy{width:112px;height:112px}
+  body.sheet .joy{display:none}
   .store-link{padding:10px 12px}
 }
 </style>
@@ -96,7 +98,7 @@ body{background:var(--ground);color:var(--plum);font-family:var(--font);overflow
   <div class="brand"><img src="assets/logo.png" alt="اي براند" onerror="this.remove()"><div class="logo">صيدلية اي براند<small>جملة الصيدليات • جولة ثلاثية الأبعاد</small></div></div>
   <div class="tools"><button class="pano" id="pano" type="button" aria-pressed="false">جولة 360°</button><a class="store-link" href="https://ibrand.com.sa" target="_blank" rel="noopener">المتجر</a></div>
 </header>
-<div class="hint" id="hint">امشِ بالأزرار أو الأسهم • اسحب للالتفات • العجلة للتقدم • اضغط على أي منتج</div>
+<div class="hint" id="hint">حرّك العصا للمشي • اسحب الشاشة لتلتفت • اضغط على أي منتج</div>
 
 <aside class="panel" id="panel" hidden aria-live="polite">
   <button class="close" id="close" aria-label="إغلاق">×</button>
@@ -110,18 +112,12 @@ body{background:var(--ground);color:var(--plum);font-family:var(--font);overflow
   <a class="sub" id="pSub" target="_blank" rel="noopener" hidden></a>
 </aside>
 <div class="tip" id="tip" hidden></div>
-<div class="pad" id="pad" aria-label="التحرك داخل الصيدلية">
-  <button class="f" data-m="f" type="button" aria-label="للأمام">▲</button>
-  <button class="l" data-m="l" type="button" aria-label="لف يسار">◀</button>
-  <button class="b" data-m="b" type="button" aria-label="للخلف">▼</button>
-  <button class="r" data-m="r" type="button" aria-label="لف يمين">▶</button>
-</div>
+<div class="joy" id="joy" aria-label="عصا التحرك: اسحبها للمشي"><div class="knob"></div><small>تحرّك</small></div>
 
 <nav class="aisles" aria-label="أقسام الصيدلية"><div class="row" id="chips"></div></nav>
 <div class="loading" id="loading">جاري تجهيز الصيدلية…</div>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/environments/RoomEnvironment.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/objects/Reflector.js"></script>
 <script>
@@ -177,7 +173,7 @@ function showFallback(){
 }
 
 (async function boot(){
-  if (!window.THREE || !THREE.OrbitControls) return showFallback();
+  if (!window.THREE) return showFallback();
   try { await Promise.race([Promise.all([document.fonts.load('800 80px "Almarai"'), document.fonts.load('400 40px "Almarai"')]), new Promise(r=>setTimeout(r,2500))]); } catch(e){}
   let renderer;
   try { renderer = new THREE.WebGLRenderer({antialias:true, powerPreference:'high-performance'}); } catch(e){ return showFallback(); }
@@ -204,15 +200,15 @@ function build(renderer){
   }
 
   const camera = new THREE.PerspectiveCamera(58, stage.clientWidth/stage.clientHeight, 0.05, 80);
-  const HOME = {pos:new THREE.Vector3(0, 1.85, 12.4), target:new THREE.Vector3(0, 1.45, 4)};
+  const EYE = 1.6;
+  const HOME = {pos:new THREE.Vector3(0, EYE, 12.2), target:new THREE.Vector3(0, 1.45, 2)};
   camera.position.copy(HOME.pos);
-  const controls = new THREE.OrbitControls(camera, renderer.domElement);
-  controls.target.copy(HOME.target);
-  controls.enableDamping = true; controls.dampingFactor = 0.08;
-  // first-person look: the camera stays where it is and dragging turns your head (no orbiting)
-  Object.assign(controls, {minDistance:.01, maxDistance:.06, minPolarAngle:Math.PI*.22, maxPolarAngle:Math.PI*.78, rotateSpeed:-.3, enableZoom:false, enablePan:false});
-  const anchor = () => { const d = controls.target.clone().sub(camera.position).normalize(); controls.target.copy(camera.position).addScaledVector(d, .05); };
-  anchor();
+  // game-style first-person view: yaw (left/right) and pitch (up/down) at eye height, horizon in the middle
+  const view = {yaw:0, pitch:0};
+  const clampPitch = v => Math.max(-.62, Math.min(.5, v));
+  function aimAt(p, from=camera.position){ const d = p.clone().sub(from); view.yaw = Math.atan2(-d.x, -d.z); view.pitch = clampPitch(Math.atan2(d.y, Math.hypot(d.x, d.z))); }
+  const applyView = () => camera.rotation.set(view.pitch, view.yaw, 0, 'YXZ');
+  aimAt(HOME.target); applyView();
 
   const ROOM = {x:13, zBack:-16, zFront:13.4, h:4.4};
 
@@ -416,39 +412,61 @@ function build(renderer){
     const depth = new THREE.MeshDepthMaterial({depthPacking:THREE.RGBADepthPacking, map:tex, alphaTest:.5, side:THREE.DoubleSide});
     return realMats[key] = {mat, depth, sd};
   }
-  // Each product is a stack of cut-out layers, so it reads as a solid pack/bottle from any angle.
+  // Box-shaped packs become real boxes (photo on the front, pack colour on the sides);
+  // bottles/jars/irregular packs become a thin stack of cut-out layers so the silhouette stays true.
+  const sideMat = new THREE.MeshStandardMaterial({vertexColors:true, roughness:.45, metalness:0, envMapIntensity:.6});
   function realStock(group, surfaces, sec, opts={}){
     const key = realKey(sec); if (!key) return false;
-    const {mat, depth, sd} = realMaterial(key), P = sd.products, C = DATA.cols, Rw = DATA.rows;
-    const pos=[], uv=[], nor=[], col=[], idx=[], places=[];
+    const {mat, depth, sd} = realMaterial(key), C = DATA.cols, Rw = DATA.rows;
+    // keep brand blocks in data order, tidy each block from tall to wide
+    const order = [], byBrand = new Map();
+    sd.products.forEach(p=>{ if (!byBrand.has(p.brand)) { byBrand.set(p.brand, []); order.push(p.brand); } byBrand.get(p.brand).push(p); });
+    const P = order.flatMap(b => byBrand.get(b).slice().sort((a,c)=>(a.aspect||1)-(c.aspect||1)));
+    const F = {pos:[], uv:[], nor:[], col:[], idx:[], places:[]}, S = {pos:[], nor:[], col:[], idx:[], places:[]};
     const base = .25 * Math.min(1.45, Math.max(.8, PACKS[sec.pack].size * .85));
-    const LAYERS = isSmall ? 5 : 8;
+    const LAYERS = isSmall ? 3 : 4;
+    const tmpC = new THREE.Color();
     let pi = 0;
+    const isBox = p => p.card || (p.rect || 0) >= .84;
     function size(p, maxH, k=1){
       const a = p.card ? 1 : (p.aspect || 1); let h = base * k * (p.card ? .8 : 1), w = h * a;
-      if (w > base * 1.4){ w = base * 1.4; h = w / a; }
+      if (w > base * 1.5){ w = base * 1.5; h = w / a; }
       if (h > maxH){ h = maxH; w = h * a; }
-      const d = Math.min(.11, Math.max(.025, (a < .55 ? w * .95 : w * .55)));
+      const d = isBox(p) ? Math.min(.16, Math.max(.035, Math.min(w, h) * .6)) : Math.min(.035, w * .3);
       return [w, h, d];
     }
-    function layer(cx, by, cz, yaw, w, h, p, shade){
-      const n = [Math.sin(yaw), 0, Math.cos(yaw)], rx = Math.cos(yaw), rz = -Math.sin(yaw), v = pos.length / 3, hw = w/2;
-      pos.push(cx-rx*hw, by, cz-rz*hw,  cx+rx*hw, by, cz+rz*hw,  cx+rx*hw, by+h, cz+rz*hw,  cx-rx*hw, by+h, cz-rz*hw);
-      for (let i=0;i<4;i++){ nor.push(...n); col.push(shade, shade, shade); }
+    function tileUV(p){
       const a = p.card ? 1 : (p.aspect || 1), c = p.tile % C, r = Math.floor(p.tile / C);
       const fu0 = a <= 1 ? (1-a)/2 : 0, fu1 = a <= 1 ? (1+a)/2 : 1, fv0 = a > 1 ? (1-1/a)/2 : 0, fv1 = a > 1 ? (1+1/a)/2 : 1;
-      const u0 = (c+fu0)/C, u1 = (c+fu1)/C, vb = 1 - (r+1)/Rw + fv0/Rw, vt = 1 - (r+1)/Rw + fv1/Rw;
-      uv.push(u0,vb, u1,vb, u1,vt, u0,vt);
-      idx.push(v, v+1, v+2, v, v+2, v+3);
-      places.push(p);
+      return [(c+fu0)/C, (c+fu1)/C, 1 - (r+1)/Rw + fv0/Rw, 1 - (r+1)/Rw + fv1/Rw];
+    }
+    // a quad from 4 corners (counter-clockwise seen from its front)
+    function quad(T, v4, n, shade, p, uvs){
+      const v = T.pos.length / 3;
+      v4.forEach(q=>T.pos.push(q[0], q[1], q[2]));
+      for (let i=0;i<4;i++){ T.nor.push(n[0], n[1], n[2]); T.col.push(shade[0], shade[1], shade[2]); }
+      if (uvs) T.uv.push(...uvs);
+      T.idx.push(v, v+1, v+2, v, v+2, v+3); T.places.push(p);
     }
     function product(cx, by, cz, yaw, w, h, d, p){
-      const nx = Math.sin(yaw), nz = Math.cos(yaw);
-      for (let L=0; L<LAYERS; L++){
-        const t = L/(LAYERS-1), shade = L===0 ? 1 : L===LAYERS-1 ? .9 : .74 + .04*Math.sin(t*Math.PI);
-        // round products taper slightly toward the back so the edges look curved
-        const k = p.aspect < .55 ? 1 - .12*Math.sin(t*Math.PI) : 1;
-        layer(cx - nx*d*t, by, cz - nz*d*t, yaw, w*k, h, p, shade);
+      const cy = Math.cos(yaw), sy = Math.sin(yaw);
+      const at = (lx, ly, lz) => [cx + lx*cy + lz*sy, by + ly, cz - lx*sy + lz*cy];
+      const rot = (nx, nz) => [nx*cy + nz*sy, 0, -nx*sy + nz*cy];
+      const [u0,u1,vb,vt] = tileUV(p), hw = w/2;
+      if (isBox(p)){
+        // photo front + coloured body
+        quad(F, [at(-hw,0,0), at(hw,0,0), at(hw,h,0), at(-hw,h,0)], rot(0,1), [1,1,1], p, [u0,vb, u1,vb, u1,vt, u0,vt]);
+        tmpC.set(p.c || '#dddddd'); const c = [tmpC.r, tmpC.g, tmpC.b], dk = k => [c[0]*k, c[1]*k, c[2]*k];
+        const z0 = -.002, z1 = -d;
+        quad(S, [at(hw,0,z0), at(hw,0,z1), at(hw,h,z1), at(hw,h,z0)], rot(1,0), dk(.82), p);      // right
+        quad(S, [at(-hw,0,z1), at(-hw,0,z0), at(-hw,h,z0), at(-hw,h,z1)], rot(-1,0), dk(.82), p); // left
+        quad(S, [at(-hw,h,z0), at(hw,h,z0), at(hw,h,z1), at(-hw,h,z1)], [0,1,0], dk(1.04), p);    // top
+        quad(S, [at(hw,0,z1), at(-hw,0,z1), at(-hw,h,z1), at(hw,h,z1)], rot(0,-1), dk(.7), p);    // back
+      } else {
+        for (let L=0; L<LAYERS; L++){
+          const t = L/(LAYERS-1), z = -d*t, sh = L===0 ? 1 : .8;
+          quad(F, [at(-hw,0,z), at(hw,0,z), at(hw,h,z), at(-hw,h,z)], rot(0,1), [sh,sh,sh], p, [u0,vb, u1,vb, u1,vt, u0,vt]);
+        }
       }
     }
     function fillRun(s, x0, x1){
@@ -456,13 +474,18 @@ function build(renderer){
       while (true){
         const p = P[pi % P.length], [w,h,d] = size(p, s.maxH - .015, s.scale || 1);
         if (x + w > x1) break;
-        let z = s.z;
-        for (let r=0; r < (s.rows||2); r++){
-          if (s.zMin !== undefined && z - d < s.zMin) break;
-          product(x + w/2, s.y, z + (Math.random()-.5)*.006, (Math.random()-.5)*.04, w, h, d, p);
-          z -= d + .012;
+        const facings = w < .09 ? 3 : w < .17 ? 2 : 1;
+        for (let k=0; k<facings && x + w <= x1; k++){
+          let z = s.z;
+          const rows = isBox(p) ? (s.rows || 2) : 1;
+          for (let r=0; r < rows; r++){
+            if (s.zMin !== undefined && z - d < s.zMin) break;
+            product(x + w/2, s.y, z, 0, w, h, d, p);
+            z -= d + .006;
+          }
+          x += w + .004;
         }
-        x += w + .008; pi++;
+        x += .014; pi++;
       }
     }
     if (opts.bays){
@@ -477,15 +500,20 @@ function build(renderer){
         }
       } else fillRun(s, s.x0, s.x1);
     });
-    const geo = new THREE.BufferGeometry();
-    geo.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3));
-    geo.setAttribute('normal', new THREE.Float32BufferAttribute(nor, 3));
-    geo.setAttribute('color', new THREE.Float32BufferAttribute(col, 3));
-    geo.setAttribute('uv', new THREE.Float32BufferAttribute(uv, 2));
-    geo.setIndex(idx);
-    const mesh = new THREE.Mesh(geo, mat); mesh.customDepthMaterial = depth;
-    mesh.userData.places = places; mesh.userData.product = true;
-    group.add(mesh);
+    const build = (T, m, withUV) => {
+      if (!T.idx.length) return;
+      const geo = new THREE.BufferGeometry();
+      geo.setAttribute('position', new THREE.Float32BufferAttribute(T.pos, 3));
+      geo.setAttribute('normal', new THREE.Float32BufferAttribute(T.nor, 3));
+      geo.setAttribute('color', new THREE.Float32BufferAttribute(T.col, 3));
+      if (withUV) geo.setAttribute('uv', new THREE.Float32BufferAttribute(T.uv, 2));
+      geo.setIndex(T.idx);
+      const mesh = new THREE.Mesh(geo, m); if (withUV) mesh.customDepthMaterial = depth;
+      mesh.castShadow = true; mesh.receiveShadow = true;
+      mesh.userData.places = T.places; mesh.userData.product = true;
+      group.add(mesh);
+    };
+    build(F, mat, true); build(S, sideMat, false);
     return true;
   }
 
@@ -656,8 +684,7 @@ function build(renderer){
     panel.hidden = false; panel.scrollTop = 0; document.body.classList.add('sheet');
     Object.entries(chipEls).forEach(([k,el])=>el.setAttribute('aria-pressed', k===sec.key ? 'true':'false'));
     const n = hit.normal.clone(); n.y = 0; n.normalize();
-    const target = hit.point.clone(), pos = target.clone().addScaledVector(n, 1.75);
-    pos.y = Math.min(1.8, Math.max(1.35, target.y + .3));
+    const target = hit.point.clone(), pos = target.clone().addScaledVector(n, 1.6);
     flyTo(pos, target);
   }
   $('#close').addEventListener('click', ()=>{ panel.hidden = true; document.body.classList.remove('sheet'); Object.values(chipEls).forEach(el=>el.setAttribute('aria-pressed','false')); });
@@ -668,8 +695,11 @@ function build(renderer){
   // ---------- camera ----------
   let flight = null;
   function flyTo(pos, target){
-    if (reduceMotion){ camera.position.copy(pos); controls.target.copy(target); return; }
-    flight = {p0:camera.position.clone(), t0:controls.target.clone(), p1:pos.clone(), t1:target.clone(), start:performance.now(), dur:1300};
+    const p1 = pos.clone(); p1.y = EYE;
+    const save = {yaw:view.yaw, pitch:view.pitch}; aimAt(target, p1); const end = {yaw:view.yaw, pitch:view.pitch}; Object.assign(view, save);
+    let dy = ((end.yaw - view.yaw + Math.PI) % (Math.PI*2) + Math.PI*2) % (Math.PI*2) - Math.PI;
+    if (reduceMotion){ camera.position.copy(p1); view.yaw += dy; view.pitch = end.pitch; return; }
+    flight = {p0:camera.position.clone(), p1, y0:view.yaw, dy, pt0:view.pitch, pt1:end.pitch, start:performance.now(), dur:1100};
   }
   const clampV = (v, pad) => { v.x = Math.max(-ROOM.x+pad, Math.min(ROOM.x-pad, v.x)); v.z = Math.max(ROOM.zBack+pad, Math.min(ROOM.zFront-.3, v.z)); v.y = Math.max(.6, Math.min(ROOM.h-.35, v.y)); };
 
@@ -699,42 +729,60 @@ function build(renderer){
   });
   addEventListener('resize', ()=>{ camera.aspect = stage.clientWidth/stage.clientHeight; camera.updateProjectionMatrix(); renderer.setSize(stage.clientWidth, stage.clientHeight); });
 
-  // ---------- walking (keys + on-screen pad) with simple collisions ----------
+  // ---------- walking: joystick / WASD + drag to look, with simple collisions ----------
   roots.forEach(r=>{ const b = new THREE.Box3().setFromObject(r); OBSTACLES.push({box:{x0:b.min.x-.35, x1:b.max.x+.35, z0:b.min.z-.35, z1:b.max.z+.35}}); });
   const blocked = (x, z) => OBSTACLES.some(o => o.box ? (x>o.box.x0 && x<o.box.x1 && z>o.box.z0 && z<o.box.z1) : Math.hypot(x-o.x, z-o.z) < o.r + .3);
-  const move = {f:0, b:0, l:0, r:0, sl:0, sr:0};
-  const KEYS = {ArrowUp:'f', KeyW:'f', ArrowDown:'b', KeyS:'b', ArrowLeft:'l', ArrowRight:'r', KeyA:'sl', KeyD:'sr'};
-  addEventListener('keydown', e=>{ const k = KEYS[e.code]; if (!k || e.altKey || e.metaKey || e.ctrlKey) return; move[k]=1; e.preventDefault(); hideHint(); flight=null; });
-  addEventListener('keyup', e=>{ const k = KEYS[e.code]; if (k) move[k]=0; });
-  addEventListener('blur', ()=>Object.keys(move).forEach(k=>move[k]=0));
-  document.querySelectorAll('#pad button').forEach(b=>{
-    const k = b.dataset.m;
-    const on = e=>{ e.preventDefault(); move[k]=1; b.classList.add('on'); hideHint(); flight=null; try{ b.setPointerCapture(e.pointerId); }catch(_){} };
-    const off = ()=>{ move[k]=0; b.classList.remove('on'); };
-    b.addEventListener('pointerdown', on); b.addEventListener('pointerup', off); b.addEventListener('pointercancel', off); b.addEventListener('lostpointercapture', off);
+  const keys = {f:0, b:0, sl:0, sr:0, tl:0, tr:0}, joy = {x:0, y:0};
+  const KEYS = {ArrowUp:'f', KeyW:'f', ArrowDown:'b', KeyS:'b', ArrowLeft:'sl', KeyA:'sl', ArrowRight:'sr', KeyD:'sr', KeyQ:'tl', KeyE:'tr'};
+  addEventListener('keydown', e=>{ const k = KEYS[e.code]; if (!k || e.altKey || e.metaKey || e.ctrlKey) return; keys[k]=1; e.preventDefault(); hideHint(); flight=null; setPano(false); });
+  addEventListener('keyup', e=>{ const k = KEYS[e.code]; if (k) keys[k]=0; });
+  addEventListener('blur', ()=>{ Object.keys(keys).forEach(k=>keys[k]=0); joy.x = joy.y = 0; });
+
+  // on-screen joystick
+  const joyEl = $('#joy'), knob = joyEl.querySelector('.knob'); let joyId = null;
+  function joyMove(e){
+    const r = joyEl.getBoundingClientRect(), R = r.width/2 - 14;
+    let dx = e.clientX - (r.left + r.width/2), dy = e.clientY - (r.top + r.height/2); const len = Math.hypot(dx, dy);
+    if (len > R){ dx *= R/len; dy *= R/len; }
+    knob.style.transform = `translate(${dx}px, ${dy}px)`;
+    joy.x = dx / R; joy.y = -dy / R;
+  }
+  joyEl.addEventListener('pointerdown', e=>{ e.preventDefault(); e.stopPropagation(); joyId = e.pointerId; try{ joyEl.setPointerCapture(e.pointerId); }catch(_){} joyEl.classList.add('on'); hideHint(); flight=null; setPano(false); joyMove(e); });
+  joyEl.addEventListener('pointermove', e=>{ if (e.pointerId === joyId) joyMove(e); });
+  const joyEnd = e=>{ if (e.pointerId !== joyId) return; joyId = null; joy.x = joy.y = 0; knob.style.transform = ''; joyEl.classList.remove('on'); };
+  joyEl.addEventListener('pointerup', joyEnd); joyEl.addEventListener('pointercancel', joyEnd); joyEl.addEventListener('lostpointercapture', joyEnd);
+
+  // drag anywhere on the scene to look around (one finger / mouse)
+  const lookers = new Map();
+  el.addEventListener('pointerdown', e=>{ lookers.set(e.pointerId, {x:e.clientX, y:e.clientY}); if (pano) setPano(false); try{ el.setPointerCapture(e.pointerId); }catch(_){} });
+  el.addEventListener('pointermove', e=>{
+    const L = lookers.get(e.pointerId); if (!L || lookers.size > 1) return;
+    const sens = e.pointerType === 'mouse' ? .0042 : .0058;
+    view.yaw += (e.clientX - L.x) * sens; view.pitch = clampPitch(view.pitch + (e.clientY - L.y) * sens * .8);
+    L.x = e.clientX; L.y = e.clientY;
   });
-  const fwd = new THREE.Vector3(), side = new THREE.Vector3(), up = new THREE.Vector3(0,1,0);
+  const lookEnd = e=>lookers.delete(e.pointerId);
+  el.addEventListener('pointerup', lookEnd); el.addEventListener('pointercancel', lookEnd);
+
+  const fwd = new THREE.Vector3(), right = new THREE.Vector3();
+  function tryMove(dx, dz){
+    const cx = camera.position.x, cz = camera.position.z, inside = blocked(cx, cz);
+    if (!inside && blocked(cx+dx, cz+dz)){ if (!blocked(cx+dx, cz)) dz = 0; else if (!blocked(cx, cz+dz)) dx = 0; else return; }
+    camera.position.x += dx; camera.position.z += dz;
+  }
   function walk(dt){
-    const go = move.f - move.b, turn = move.l - move.r, strafe = move.sr - move.sl;
-    if (!go && !turn && !strafe) return false;
-    const off = controls.target.clone().sub(camera.position);
-    if (turn){ off.applyAxisAngle(up, turn * 1.5 * dt); controls.target.copy(camera.position).add(off); }
-    fwd.copy(off).setY(0).normalize(); side.crossVectors(fwd, up).normalize();
-    const step = fwd.multiplyScalar(go * 2.4 * dt).add(side.multiplyScalar(strafe * 1.8 * dt));
-    const nx = camera.position.x + step.x, nz = camera.position.z + step.z;
-    let dx = step.x, dz = step.z;
-    if (blocked(nx, nz) && !blocked(camera.position.x, camera.position.z)){ if (!blocked(nx, camera.position.z)) dz = 0; else if (!blocked(camera.position.x, nz)) dx = 0; else { dx = 0; dz = 0; } }
-    camera.position.x += dx; camera.position.z += dz; controls.target.x += dx; controls.target.z += dz;
-    return true;
+    let mv = joy.y + keys.f - keys.b, st = joy.x + keys.sr - keys.sl;
+    const turn = keys.tl - keys.tr;
+    if (turn) view.yaw += turn * 1.6 * dt;
+    const len = Math.hypot(mv, st); if (len < .08) return;
+    if (len > 1){ mv /= len; st /= len; }
+    fwd.set(-Math.sin(view.yaw), 0, -Math.cos(view.yaw)); right.set(Math.cos(view.yaw), 0, -Math.sin(view.yaw));
+    const speed = 2.3 * dt;
+    tryMove((fwd.x*mv + right.x*st*.85) * speed, (fwd.z*mv + right.z*st*.85) * speed);
   }
 
-  // ---------- step forward/back with the mouse wheel or a pinch ----------
-  function stepBy(dist){
-    const d = controls.target.clone().sub(camera.position).setY(0).normalize();
-    const nx = camera.position.x + d.x*dist, nz = camera.position.z + d.z*dist;
-    if (blocked(nx, nz) && !blocked(camera.position.x, camera.position.z)) return;
-    camera.position.x = nx; camera.position.z = nz; flight = null; anchor();
-  }
+  // wheel / pinch: step forward or back
+  function stepBy(dist){ flight = null; tryMove(-Math.sin(view.yaw)*dist, -Math.cos(view.yaw)*dist); }
   el.addEventListener('wheel', e=>{ e.preventDefault(); hideHint(); stepBy(-Math.sign(e.deltaY) * Math.min(.9, Math.abs(e.deltaY) / 120 * .5)); }, {passive:false});
   let pinch = null;
   el.addEventListener('touchstart', e=>{ if (e.touches.length === 2) pinch = Math.hypot(e.touches[0].clientX-e.touches[1].clientX, e.touches[0].clientY-e.touches[1].clientY); }, {passive:true});
@@ -743,9 +791,8 @@ function build(renderer){
 
   // ---------- 360° tour: slow automatic turn on the spot ----------
   const panoBtn = $('#pano'); let pano = false;
-  function setPano(on){ pano = on; panoBtn.setAttribute('aria-pressed', on ? 'true' : 'false'); controls.autoRotate = on && !reduceMotion; controls.autoRotateSpeed = -.7; }
+  function setPano(on){ pano = on && !reduceMotion; panoBtn.setAttribute('aria-pressed', pano ? 'true' : 'false'); if (pano){ view.pitch = 0; } }
   panoBtn.addEventListener('click', ()=>{ hideHint(); flight=null; setPano(!pano); });
-  controls.addEventListener('start', ()=>{ if (pano) setPano(false); });
 
   // ---------- loop ----------
   const spin = clickables.find(c=>c.sec.key==='best').root.userData.spin;
@@ -756,13 +803,14 @@ function build(renderer){
     const dt = Math.min(.05, (now - last)/1000); last = now;
     if (flight){
       const k = Math.min(1, (now-flight.start)/flight.dur), e = ease(k);
-      camera.position.lerpVectors(flight.p0, flight.p1, e); controls.target.lerpVectors(flight.t0, flight.t1, e);
-      if (k>=1){ flight=null; anchor(); }
+      camera.position.lerpVectors(flight.p0, flight.p1, e); view.yaw = flight.y0 + flight.dy*e; view.pitch = flight.pt0 + (flight.pt1 - flight.pt0)*e;
+      if (k>=1) flight=null;
     }
-    if (walk(dt)) anchor();
+    walk(dt);
+    if (pano) view.yaw += dt * .32;
     if (!reduceMotion){ spin.rotation.y = now*0.00035; const g=.82+.18*Math.sin(now*0.0025); cross.color.setRGB(.18*g, .74*g, .70*g); }
-    controls.update();
-    if (!flight){ const bx = camera.position.x, bz = camera.position.z; clampV(camera.position, .45); if (bx !== camera.position.x || bz !== camera.position.z) anchor(); }
+    if (!flight) clampV(camera.position, .45);
+    applyView();
     renderer.render(scene, camera);
   });
   requestAnimationFrame(()=>$('#loading').classList.add('done'));

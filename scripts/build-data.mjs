@@ -117,12 +117,21 @@ async function tileFor(imgUrl){
     // background isn't plain white (or nothing left): use the photo as a flat card
     card = true;
     img = sharp(buf).rotate().flatten({ background:'#ffffff' }).resize(TILE, TILE, { fit:'cover' });
-    return { png: await img.png().toBuffer(), aspect: 1, card };
+    return { png: await img.png().toBuffer(), aspect: 1, card, rect: 1, c: '#eeeeee' };
   }
-  const cropped = sharp(data, { raw: info }).extract(res.box);
-  const aspect = res.box.width / res.box.height;
-  const png = await cropped.resize(TILE, TILE, { fit: 'contain', background: { r:0, g:0, b:0, alpha:0 } }).png().toBuffer();
-  return { png, aspect, card };
+  const b = res.box, aspect = b.width / b.height;
+  // how box-like is the silhouette (1 = perfect rectangle), and the colour of the pack's edge for its sides
+  let opaque = 0, er = 0, eg = 0, eb = 0, en = 0;
+  const band = Math.max(2, Math.round(Math.min(b.width, b.height) * .08));
+  for (let y = b.top; y < b.top + b.height; y++) for (let x = b.left; x < b.left + b.width; x++){
+    const i = (y * info.width + x) * 4; if (data[i+3] === 0) continue; opaque++;
+    if (x - b.left < band || b.left + b.width - x <= band || y - b.top < band || b.top + b.height - y <= band){ er += data[i]; eg += data[i+1]; eb += data[i+2]; en++; }
+  }
+  const rect = opaque / (b.width * b.height);
+  const hex = v => Math.round(v).toString(16).padStart(2, '0');
+  const c = en ? '#' + hex(er/en) + hex(eg/en) + hex(eb/en) : '#dddddd';
+  const png = await sharp(data, { raw: info }).extract(b).resize(TILE, TILE, { fit: 'contain', background: { r:0, g:0, b:0, alpha:0 } }).png().toBuffer();
+  return { png, aspect, card, rect, c };
 }
 
 async function main(){
@@ -142,7 +151,7 @@ async function main(){
         const t = await tileFor(it.img);
         const i = products.length;
         comps.push({ input: t.png, left: (i % COLS) * TILE, top: Math.floor(i / COLS) * TILE });
-        products.push({ ...it, tile: i, aspect: +t.aspect.toFixed(3), card: t.card });
+        products.push({ ...it, tile: i, aspect: +t.aspect.toFixed(3), card: t.card, rect: +t.rect.toFixed(2), c: t.c });
       } catch (e){ console.warn(key, it.id, e.message); }
       await sleep(60);
     }
