@@ -214,7 +214,7 @@ function build(renderer){
   const fovFor = a => a < 1 ? 74 : 58;
   const camera = new THREE.PerspectiveCamera(fovFor(stage.clientWidth/stage.clientHeight), stage.clientWidth/stage.clientHeight, 0.05, 80);
   const EYE = 1.6;
-  const HOME = {pos:new THREE.Vector3(0, EYE, 12.2), target:new THREE.Vector3(0, 1.45, 2)};
+  const HOME = {pos:new THREE.Vector3(0, EYE, 14.4), target:new THREE.Vector3(0, 1.45, 4)};
   camera.position.copy(HOME.pos);
   // game-style first-person view: yaw (left/right) and pitch (up/down) at eye height, horizon in the middle
   const view = {yaw:0, pitch:0};
@@ -223,22 +223,22 @@ function build(renderer){
   const applyView = () => camera.rotation.set(view.pitch, view.yaw, 0, 'YXZ');
   aimAt(HOME.target); applyView();
 
-  const ROOM = {x:13, zBack:-16, zFront:13.4, h:4.4};
+  const ROOM = {x:19, zBack:-24, zFront:16, h:4.6};
 
   // ---------- lights ----------
   scene.add(new THREE.HemisphereLight('#fff3e4', '#d9c7b8', 0.4));
   const key = new THREE.DirectionalLight('#ffe8d0', 0.85);
   key.position.set(5, 14, 6); key.castShadow = true;
   key.shadow.mapSize.set(isSmall?1024:2048, isSmall?1024:2048);
-  Object.assign(key.shadow.camera, {left:-15, right:15, top:17, bottom:-17, near:1, far:40});
+  Object.assign(key.shadow.camera, {left:-21, right:21, top:27, bottom:-27, near:1, far:55});
   key.shadow.bias = -0.0004; key.shadow.normalBias = 0.02; key.shadow.radius = 4;
   scene.add(key);
-  const pinkGlow = new THREE.PointLight(PINK, 0.6, 14, 2); pinkGlow.position.set(0, 3.6, -13.5); scene.add(pinkGlow);
+  const pinkGlow = new THREE.PointLight(PINK, 0.6, 14, 2); pinkGlow.position.set(0, 3.6, -21.5); scene.add(pinkGlow);
   // accent spots over the feature fixtures (fewer on phones)
   const spotAt = (x, z, ty, inten=.9, ang=.55) => { const sp = new THREE.SpotLight('#fff1e6', inten, 9, ang, .6, 1.6); sp.position.set(x, 4.3, z); sp.target.position.set(x, ty, z); scene.add(sp, sp.target); };
-  spotAt(0, 1.6, 0, 1.1, .6);
-  spotAt(-2.6, -12.9, .8, .8); spotAt(2.6, -12.9, .8, .8);
-  if (!isSmall){ [-7.6,-2.9,2.9,7.6].forEach(x=>spotAt(x, 7.4, .7, .7, .5)); spotAt(0, -6.6, .6, .7, .6); }
+  spotAt(0, 1.5, 0, 1.1, .6);
+  spotAt(-4, -20.9, .8, .8); spotAt(4, -20.9, .8, .8);
+  if (!isSmall){ [-12,-6,6,12].forEach(x=>spotAt(x, 8, .7, .7, .5)); spotAt(0, -13, .6, .7, .6); }
 
   // ---------- helpers ----------
   const aniso = renderer.capabilities.getMaxAnisotropy();
@@ -286,8 +286,8 @@ function build(renderer){
   const haloMat = new THREE.MeshBasicMaterial({map:haloTex, transparent:true, depthWrite:false, toneMapped:false});
   const panelGeo = new THREE.PlaneGeometry(1.18,.58), haloGeo = new THREE.PlaneGeometry(2.4,1.4);
   const dlGeo = new THREE.CircleGeometry(.11, 24), dlRim = new THREE.RingGeometry(.11, .14, 24), rimMat = std('#d8d2cf',{metalness:.6, roughness:.3, side:THREE.DoubleSide}), dlHalo = new THREE.PlaneGeometry(.9,.9);
-  for (let x=-10.8; x<=10.8; x+=1.8) for (let z=-14.4; z<=12; z+=1.8){
-    if (Math.hypot(x, z-1.6) < 2.7 || (z < -13 && Math.abs(x) < 6.2)) continue;
+  for (let x=-ROOM.x+1.3; x<=ROOM.x-1.2; x+=1.8) for (let z=ROOM.zBack+1.2; z<=ROOM.zFront-1; z+=1.8){
+    if (Math.hypot(x, z-1.5) < 2.7 || (z < ROOM.zBack+3.4 && Math.abs(x) < 8.3)) continue;
     const panelSpot = (Math.round(x/1.8) % 3 === 0) && (Math.round(z/1.8) % 3 === 0);
     if (panelSpot){
       const p=new THREE.Mesh(panelGeo, panelMat); p.rotation.x=Math.PI/2; p.position.set(x, ROOM.h-.005, z); scene.add(p);
@@ -301,7 +301,7 @@ function build(renderer){
   // ceiling AC cassettes
   const ventTex = canvasTex(256, 256, (x,w,h)=>{ x.fillStyle='#ecebe8'; x.fillRect(0,0,w,h); x.fillStyle='#bdb8b4'; for (let i=0;i<4;i++){ const o=24+i*0; } x.fillRect(28,28,w-56,26); x.fillRect(28,h-54,w-56,26); x.fillRect(28,28,26,h-56); x.fillRect(w-54,28,26,h-56); x.fillStyle='#d9d6d2'; x.fillRect(80,80,w-160,h-160); x.strokeStyle='#c9c5c1'; x.lineWidth=2; for (let y=86;y<h-80;y+=8){ x.beginPath(); x.moveTo(84,y); x.lineTo(w-84,y); x.stroke(); } });
   const acMat = new THREE.MeshStandardMaterial({map:ventTex, roughness:.7});
-  [[-5,-8],[5,-8],[-5,6],[5,6]].forEach(([x,z])=>{ const ac=new THREE.Mesh(new THREE.BoxGeometry(.84,.06,.84), [std('#e4e1dd'),std('#e4e1dd'),std('#e4e1dd'),acMat,std('#e4e1dd'),std('#e4e1dd')]); ac.position.set(x, ROOM.h-.03, z); scene.add(ac); });
+  [[-8.2,-15],[8.2,-15],[-8.2,-1],[8.2,-1],[-8.2,11],[8.2,11]].forEach(([x,z])=>{ const ac=new THREE.Mesh(new THREE.BoxGeometry(.84,.06,.84), [std('#e4e1dd'),std('#e4e1dd'),std('#e4e1dd'),acMat,std('#e4e1dd'),std('#e4e1dd')]); ac.position.set(x, ROOM.h-.03, z); scene.add(ac); });
   // warm wood slat band above the wall shelving (like a real store fit-out)
   const woodTex = canvasTex(512, 128, (x,w,h)=>{ for (let i=0;i<8;i++){ const y=i*16; const g=x.createLinearGradient(0,y,0,y+16); g.addColorStop(0,'#b7875a'); g.addColorStop(.5,'#c89a6b'); g.addColorStop(1,'#9c7048'); x.fillStyle=g; x.fillRect(0,y,w,14); x.fillStyle='#6b4a2e'; x.fillRect(0,y+14,w,2); } for (let i=0;i<300;i++){ x.fillStyle=`rgba(80,50,25,${Math.random()*.12})`; x.fillRect(Math.random()*w, Math.random()*h, 20+Math.random()*60, 1); } });
   woodTex.wrapS = woodTex.wrapT = THREE.RepeatWrapping; woodTex.repeat.set(fl/2, 1);
@@ -309,15 +309,15 @@ function build(renderer){
   [-1,1].forEach(sd=>{ const band=new THREE.Mesh(new THREE.PlaneGeometry(fl, 1.0), woodMat); band.rotation.y = -sd*Math.PI/2; band.position.set(sd*(ROOM.x-.005), 3.25, ROOM.zBack+fl/2); scene.add(band); });
   // feature ring above the best-seller stand
   const ringGlow = new THREE.MeshBasicMaterial({color:'#ff9fca', toneMapped:false});
-  const drop = new THREE.Mesh(new THREE.CylinderGeometry(2.3, 2.3, .28, 64, 1, true), std('#ffffff',{roughness:.6, side:THREE.DoubleSide})); drop.position.set(0, ROOM.h-.14, 1.6); scene.add(drop);
-  const ringLed = new THREE.Mesh(new THREE.TorusGeometry(2.25, .03, 8, 96), ringGlow); ringLed.rotation.x = Math.PI/2; ringLed.position.set(0, ROOM.h-.29, 1.6); scene.add(ringLed);
-  const disc = new THREE.Mesh(new THREE.CircleGeometry(2.28, 64), new THREE.MeshBasicMaterial({color:'#fff6fa', toneMapped:false})); disc.rotation.x = Math.PI/2; disc.position.set(0, ROOM.h-.02, 1.6); scene.add(disc);
+  const drop = new THREE.Mesh(new THREE.CylinderGeometry(2.3, 2.3, .28, 64, 1, true), std('#ffffff',{roughness:.6, side:THREE.DoubleSide})); drop.position.set(0, ROOM.h-.14, 1.5); scene.add(drop);
+  const ringLed = new THREE.Mesh(new THREE.TorusGeometry(2.25, .03, 8, 96), ringGlow); ringLed.rotation.x = Math.PI/2; ringLed.position.set(0, ROOM.h-.29, 1.5); scene.add(ringLed);
+  const disc = new THREE.Mesh(new THREE.CircleGeometry(2.28, 64), new THREE.MeshBasicMaterial({color:'#fff6fa', toneMapped:false})); disc.rotation.x = Math.PI/2; disc.position.set(0, ROOM.h-.02, 1.5); scene.add(disc);
   // bulkhead over the pharmacist counter with a pink LED reveal
-  const bulk = new THREE.Mesh(new THREE.BoxGeometry(12, .45, 2.6), std('#ffffff',{roughness:.7})); bulk.position.set(0, ROOM.h-.225, -14.6); scene.add(bulk);
-  const reveal = new THREE.Mesh(new THREE.BoxGeometry(12, .04, .04), ringGlow); reveal.position.set(0, ROOM.h-.46, -13.3); scene.add(reveal);
+  const bulk = new THREE.Mesh(new THREE.BoxGeometry(16.4, .45, 2.6), std('#ffffff',{roughness:.7})); bulk.position.set(0, ROOM.h-.225, ROOM.zBack+1.3); scene.add(bulk);
+  const reveal = new THREE.Mesh(new THREE.BoxGeometry(16.4, .04, .04), ringGlow); reveal.position.set(0, ROOM.h-.46, ROOM.zBack+2.6); scene.add(reveal);
   // columns with pink capitals
-  [[-6.5,-3.5],[6.5,-3.5]].forEach(([x,z])=>{ const c=new THREE.Mesh(new THREE.BoxGeometry(.55, ROOM.h, .55), std('#f7f2f4',{roughness:.5})); c.position.set(x, ROOM.h/2, z); c.castShadow=c.receiveShadow=true; scene.add(c); const cap=new THREE.Mesh(new THREE.BoxGeometry(.6,.12,.6), pinkMat); cap.position.set(x, 1.0, z); scene.add(cap); });
-  OBSTACLES.push({x:-6.5,z:-3.5,r:.6},{x:6.5,z:-3.5,r:.6});
+  [[-8.25,2],[8.25,2],[-8.25,-17],[8.25,-17]].forEach(([x,z])=>{ const c=new THREE.Mesh(new THREE.BoxGeometry(.55, ROOM.h, .55), std('#f7f2f4',{roughness:.5})); c.position.set(x, ROOM.h/2, z); c.castShadow=c.receiveShadow=true; scene.add(c); const cap=new THREE.Mesh(new THREE.BoxGeometry(.6,.12,.6), pinkMat); cap.position.set(x, 1.0, z); scene.add(cap); });
+  [[-8.25,2],[8.25,2],[-8.25,-17],[8.25,-17]].forEach(([x,z])=>OBSTACLES.push({x, z, r:.6}));
 
   // iBrand logo (downloaded next to the page by the refresh workflow); text until it loads
   function logoPlane(hgt, maxW){
@@ -338,9 +338,9 @@ function build(renderer){
   // logo lightbox over the entrance (seen when turning around) and a logo floor inlay
   const entryBox = new THREE.Mesh(new THREE.CylinderGeometry(.6, .6, .1, 64), std('#ffffff',{roughness:.3})); entryBox.rotation.x = Math.PI/2; entryBox.position.set(0, ROOM.h-1.15, ROOM.zFront-.2); scene.add(entryBox);
   const entryLogo = logoPlane(1.16, 1.16); entryLogo.rotation.y = Math.PI; entryLogo.position.set(0, ROOM.h-1.15, ROOM.zFront-.26); scene.add(entryLogo);
-  const inlay = new THREE.Mesh(new THREE.CircleGeometry(1.1, 64), std('#ffffff',{roughness:.3})); inlay.rotation.x = -Math.PI/2; inlay.position.set(0, .004, 10.6); scene.add(inlay);
-  const inlayRing = new THREE.Mesh(new THREE.RingGeometry(1.1, 1.18, 64), std(TEAL,{roughness:.4})); inlayRing.rotation.x = -Math.PI/2; inlayRing.position.set(0, .005, 10.6); scene.add(inlayRing);
-  const floorLogo = logoPlane(2.1, 2.1); floorLogo.rotation.x = -Math.PI/2; floorLogo.position.set(0, .006, 10.6); scene.add(floorLogo);
+  const inlay = new THREE.Mesh(new THREE.CircleGeometry(1.1, 64), std('#ffffff',{roughness:.3})); inlay.rotation.x = -Math.PI/2; inlay.position.set(0, .004, ROOM.zFront-2.6); scene.add(inlay);
+  const inlayRing = new THREE.Mesh(new THREE.RingGeometry(1.1, 1.18, 64), std(TEAL,{roughness:.4})); inlayRing.rotation.x = -Math.PI/2; inlayRing.position.set(0, .005, ROOM.zFront-2.6); scene.add(inlayRing);
+  const floorLogo = logoPlane(2.1, 2.1); floorLogo.rotation.x = -Math.PI/2; floorLogo.position.set(0, .006, ROOM.zFront-2.6); scene.add(floorLogo);
 
   // ---------- packaging ----------
   const latinFont = '"Arial Black", "Helvetica Neue", Arial, sans-serif';
@@ -430,7 +430,7 @@ function build(renderer){
   const sideMat = new THREE.MeshStandardMaterial({vertexColors:true, roughness:.45, metalness:0, envMapIntensity:.6});
   function realStock(group, surfaces, sec, opts={}){
     const key = realKey(sec); if (!key) return false;
-    const {mat, depth, sd} = realMaterial(key), C = DATA.cols, Rw = DATA.rows;
+    const {mat, depth, sd} = realMaterial(key), C = sd.cols || DATA.cols, Rw = sd.rows || DATA.rows;
     // keep brand blocks in data order, tidy each block from tall to wide
     const order = [], byBrand = new Map();
     sd.products.forEach(p=>{ if (!byBrand.has(p.brand)) { byBrand.set(p.brand, []); order.push(p.brand); } byBrand.get(p.brand).push(p); });
@@ -439,7 +439,7 @@ function build(renderer){
     const base = .3 * Math.min(1.45, Math.max(.8, PACKS[sec.pack].size * .85));
     const LAYERS = isSmall ? 2 : 4;
     const tmpC = new THREE.Color();
-    let pi = 0;
+    let pi = Math.floor((opts.start || 0) * P.length);
     const isBox = p => p.card || (p.rect || 0) >= .84;
     function size(p, maxH, k=1){
       const a = p.card ? 1 : (p.aspect || 1); let h = base * k * (p.card ? .8 : 1), w = h * a;
@@ -554,7 +554,7 @@ function build(renderer){
     return m;
   }
 
-  function gondola(sec, w, h=2.25, d=.55){
+  function gondola(sec, w, h=2.25, d=.55, gopts={}){
     const g = new THREE.Group(), levels = [.14, .58, 1.02, 1.46, 1.9].filter(y=>y < h-.25), surfaces=[], tags=[];
     const plinth = new THREE.Mesh(new THREE.BoxGeometry(w, .12, d), pinkMat); plinth.position.set(0,.06,0); g.add(plinth);
     const backP = new THREE.Mesh(new THREE.BoxGeometry(w, h, .04), backMat); backP.position.set(0, h/2, -d/2+.02); g.add(backP);
@@ -568,7 +568,7 @@ function build(renderer){
       surfaces.push({x0:-w/2+.04, x1:w/2-.04, y:y+.0125, z:d/2-.1, zMin:-d/2+.06, depth:.12, maxH:top, rows:2});
     });
     const tagIM = new THREE.InstancedMesh(tagGeo, tagMat, tags.length); tags.forEach((m,i)=>tagIM.setMatrixAt(i,m)); g.add(tagIM);
-    if (!realStock(g, surfaces, sec, {bays: Math.max(1, Math.round(w/1.06))})) stock(g, surfaces, sec.pack);
+    if (!realStock(g, surfaces, sec, {bays: Math.max(1, Math.round(w/1.06)), start: gopts.start})) stock(g, surfaces, sec.pack);
     const sign = lightbox(sec.name, Math.min(w*.8, 4.4)); sign.position.set(0, h+.32, -d/2+.12); g.add(sign);
     addShadow(g); sign.castShadow = false;
     return {g, sign};
@@ -619,7 +619,7 @@ function build(renderer){
 
   function pharmacyCounter(sec){
     const g = new THREE.Group();
-    const wall = gondola(sec, 11, 2.25, .5); wall.g.position.z = -2.75; g.add(wall.g);
+    const wall = gondola(sec, 15.5, 2.25, .5); wall.g.position.z = -2.75; g.add(wall.g);
     const body = new THREE.Mesh(new THREE.BoxGeometry(8, 1.0, .9), std('#ffffff',{roughness:.25})); body.position.set(0,.5,0); g.add(body);
     const front = new THREE.Mesh(new THREE.BoxGeometry(8.02, .5, .02), pinkMat); front.position.set(0,.45,.451); g.add(front);
     const ctop = new THREE.Mesh(new THREE.BoxGeometry(8.2,.05,1.05), std('#efe9ec',{roughness:.12, metalness:.05, envMapIntensity:1})); ctop.position.set(0,1.025,0); g.add(ctop);
@@ -637,25 +637,34 @@ function build(renderer){
   }
 
   const place = (o, x, z, ry=0) => { o.g.position.set(x,0,z); o.g.rotation.y = ry; scene.add(o.g); return o; };
-  const sideZ = [-11.2, -5.4, .4, 6.2]; const promoX = [-7.6,-2.9,2.9,7.6];
+  const sideZ = [-18.6, -10.8, -3, 4.8]; const promoX = [-12,-6,6,12];
   let li=0, ri=0, pi=0;
   SECTIONS.forEach(sec=>{
     let o; const k = sec.zone;
-    if (k==='left')    o = place(gondola(sec, 5.3), -(ROOM.x-.3), sideZ[li++],  Math.PI/2);
-    if (k==='right')   o = place(gondola(sec, 5.3),  (ROOM.x-.3), sideZ[ri++], -Math.PI/2);
-    if (k==='center')  o = place(gondola(sec, 7, 1.7), 0, -6.6, 0);
-    if (k==='promo')   o = place(promoIsland(sec), promoX[pi++], 7.4, 0);
-    if (k==='best')    o = place(bestStand(sec), 0, 1.6, 0);
-    if (k==='counter') o = place(pharmacyCounter(sec), 0, -12.9, 0);
+    if (k==='left')    o = place(gondola(sec, 7.2), -(ROOM.x-.3), sideZ[li++],  Math.PI/2);
+    if (k==='right')   o = place(gondola(sec, 7.2),  (ROOM.x-.3), sideZ[ri++], -Math.PI/2);
+    if (k==='center')  o = place(gondola(sec, 8, 1.7), 0, -13.5, 0);
+    if (k==='promo')   o = place(promoIsland(sec), promoX[pi++], 8, 0);
+    if (k==='best')    o = place(bestStand(sec), 0, 1.5, 0);
+    if (k==='counter') o = place(pharmacyCounter(sec), 0, ROOM.zBack+3.1, 0);
     const n = new THREE.Vector3(0,0,1).applyQuaternion(o.g.quaternion), t = o.g.position.clone();
     let dist=4.4, ty=1.25, cy=.45;
     if (k==='promo'){ dist=4; ty=1.0; cy=.95; }
     if (k==='best'){ dist=4.4; ty=1.1; cy=.9; }
-    if (k==='counter'){ t.z -= 1.6; dist=7; ty=2.1; cy=.1; }
+    if (k==='counter'){ t.z -= 1.6; dist=8; ty=2.0; cy=.1; }
     if (k==='center'){ dist=4.2; ty=1.0; cy=.8; }
     t.y = ty; sec.focus = {target:t, pos:t.clone().addScaledVector(n, dist).add(new THREE.Vector3(0,cy,0))};
     o.g.traverse(m=>{ m.userData.sec = sec; });
     clickables.push({root:o.g, sec, sign:o.sign});
+  });
+
+  // double-sided aisle gondolas in the middle of the store: more of each section, different products than its wall bay
+  [[-11,'skin','hair'],[-5.5,'makeup','daily'],[5.5,'baby','vit'],[11,'devices','pets']].forEach(([x, wk, ek])=>{
+    [[wk, -1], [ek, 1]].forEach(([k, side])=>{
+      const sec = SECTIONS.find(s=>s.key===k); if (!sec) return;
+      const o = place(gondola(sec, 8, 2.25, .5, {start:.5}), x + side*.26, -8, side*Math.PI/2);
+      o.g.traverse(m=>{ m.userData.sec = sec; }); clickables.push({root:o.g, sec, sign:o.sign});
+    });
   });
 
   // ---------- UI ----------

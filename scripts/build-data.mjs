@@ -6,7 +6,7 @@ import sharp from 'sharp';
 
 const STORE_ID = '1972477543';
 const API = 'https://api.salla.dev/store/v1/products';
-const TILE = 256, COLS = 16, ROWS = 8, MAX = COLS * ROWS;   // 4096x2048 atlas, up to 128 products per section
+const TILE = 192, COLS = 21, MAX_ROWS = 13, MAX = COLS * MAX_ROWS;   // up to 273 products per section, atlas ≤ 4032x2496
 
 // key -> how to query the storefront API
 const SECTIONS = {
@@ -54,7 +54,7 @@ async function listProducts(def){
     url = `${API}?source=categories&source_value[]=${def.cat}&per_page=50`;
   }
   const out = [], seen = new Set();
-  for (let page = 0; url && page < 20 && out.length < MAX; page++){
+  for (let page = 0; url && page < 40 && out.length < MAX; page++){
     const j = await getJSON(url);
     if (!j) break;
     for (const p of j.data || []){
@@ -142,7 +142,7 @@ async function main(){
     const lr = await fetch('https://cdn.salla.sa/yKErG/pn5LJ3wpLeNIgU15HaDHqkSBOEversEv0QQOmwp8.png', { headers: { 'User-Agent': headers['User-Agent'] } });
     if (lr.ok) await sharp(Buffer.from(await lr.arrayBuffer())).resize(1024, 1024, { fit: 'inside', withoutEnlargement: true }).png().toFile('assets/logo.png');
   } catch (e){ console.warn('logo', e.message); }
-  const result = { generated: new Date().toISOString(), tile: TILE, cols: COLS, rows: ROWS, sections: {} };
+  const result = { generated: new Date().toISOString(), tile: TILE, cols: COLS, sections: {} };
   for (const [key, def] of Object.entries(SECTIONS)){
     const items = await listProducts(def);
     const comps = [], products = [];
@@ -156,11 +156,12 @@ async function main(){
       await sleep(60);
     }
     if (!products.length){ console.warn('no products for', key); continue; }
+    const ROWS = Math.ceil(products.length / COLS);
     await sharp({ create: { width: COLS*TILE, height: ROWS*TILE, channels: 4, background: { r:0, g:0, b:0, alpha:0 } } })
       .composite(comps).webp({ quality: 78, alphaQuality: 85 }).toFile(`atlas/${key}.webp`);
     // lighter half-size atlas for phones
     await sharp(`atlas/${key}.webp`).resize(COLS*TILE/2, ROWS*TILE/2).webp({ quality: 74, alphaQuality: 80 }).toFile(`atlas/${key}-m.webp`);
-    result.sections[key] = { atlas: `atlas/${key}.webp`, atlasM: `atlas/${key}-m.webp`, products };
+    result.sections[key] = { atlas: `atlas/${key}.webp`, atlasM: `atlas/${key}-m.webp`, cols: COLS, rows: ROWS, products };
     console.log(key, products.length, 'products');
   }
   if (!Object.keys(result.sections).length) throw new Error('No products fetched — storefront API unreachable?');
