@@ -238,7 +238,7 @@ function build(renderer){
   const spotAt = (x, z, ty, inten=.9, ang=.55) => { const sp = new THREE.SpotLight('#fff1e6', inten, 9, ang, .6, 1.6); sp.position.set(x, 4.3, z); sp.target.position.set(x, ty, z); scene.add(sp, sp.target); };
   spotAt(0, 1.5, 0, 1.1, .6);
   spotAt(-4, -20.9, .8, .8); spotAt(4, -20.9, .8, .8);
-  if (!isSmall){ [-12,-6,6,12].forEach(x=>spotAt(x, 8, .7, .7, .5)); spotAt(0, -13, .6, .7, .6); }
+  spotAt(0, 9, .7, .9, .5);
 
   // ---------- helpers ----------
   const aniso = renderer.capabilities.getMaxAnisotropy();
@@ -316,8 +316,7 @@ function build(renderer){
   const bulk = new THREE.Mesh(new THREE.BoxGeometry(16.4, .45, 2.6), std('#ffffff',{roughness:.7})); bulk.position.set(0, ROOM.h-.225, ROOM.zBack+1.3); scene.add(bulk);
   const reveal = new THREE.Mesh(new THREE.BoxGeometry(16.4, .04, .04), ringGlow); reveal.position.set(0, ROOM.h-.46, ROOM.zBack+2.6); scene.add(reveal);
   // columns with pink capitals
-  [[-8.25,2],[8.25,2],[-8.25,-17],[8.25,-17]].forEach(([x,z])=>{ const c=new THREE.Mesh(new THREE.BoxGeometry(.55, ROOM.h, .55), std('#f7f2f4',{roughness:.5})); c.position.set(x, ROOM.h/2, z); c.castShadow=c.receiveShadow=true; scene.add(c); const cap=new THREE.Mesh(new THREE.BoxGeometry(.6,.12,.6), pinkMat); cap.position.set(x, 1.0, z); scene.add(cap); });
-  [[-8.25,2],[8.25,2],[-8.25,-17],[8.25,-17]].forEach(([x,z])=>OBSTACLES.push({x, z, r:.6}));
+
 
   // iBrand logo (downloaded next to the page by the refresh workflow); text until it loads
   function logoPlane(hgt, maxW){
@@ -427,6 +426,7 @@ function build(renderer){
   }
   // Box-shaped packs become real boxes (photo on the front, pack colour on the sides);
   // bottles/jars/irregular packs become a thin stack of cut-out layers so the silhouette stays true.
+  const CURSOR = {};
   const sideMat = new THREE.MeshStandardMaterial({vertexColors:true, roughness:.45, metalness:0, envMapIntensity:.6});
   function realStock(group, surfaces, sec, opts={}){
     const key = realKey(sec); if (!key) return false;
@@ -434,12 +434,17 @@ function build(renderer){
     // keep brand blocks in data order, tidy each block from tall to wide
     const order = [], byBrand = new Map();
     sd.products.forEach(p=>{ if (!byBrand.has(p.brand)) { byBrand.set(p.brand, []); order.push(p.brand); } byBrand.get(p.brand).push(p); });
-    const P = order.flatMap(b => byBrand.get(b).slice().sort((a,c)=>(a.aspect||1)-(c.aspect||1)));
+    let P = order.flatMap(b => byBrand.get(b).slice().sort((a,c)=>(a.aspect||1)-(c.aspect||1)));
+    if (opts.only) P = P.filter(p => p.brandId === opts.only);
+    if (!P.length) return false;
+    const brandCount = {}; P.forEach(p => { brandCount[p.brand] = (brandCount[p.brand]||0) + 1; });
+    const big = p => p.brand && brandCount[p.brand] > 10;
     const F = {pos:[], uv:[], nor:[], col:[], idx:[], places:[]}, S = {pos:[], nor:[], col:[], idx:[], places:[]};
     const base = .3 * Math.min(1.45, Math.max(.8, PACKS[sec.pack].size * .85));
     const LAYERS = isSmall ? 2 : 4;
     const tmpC = new THREE.Color();
-    let pi = Math.floor((opts.start || 0) * P.length);
+    const curKey = key + (opts.only ? ':' + opts.only : '');
+    let pi = opts.only ? 0 : (CURSOR[curKey] || 0);
     const isBox = p => p.card || (p.rect || 0) >= .84;
     function size(p, maxH, k=1){
       const a = p.card ? 1 : (p.aspect || 1); let h = base * k * (p.card ? .8 : 1), w = h * a;
@@ -487,24 +492,69 @@ function build(renderer){
       while (true){
         const p = P[pi % P.length], [w,h,d] = size(p, s.maxH - .015, s.scale || 1);
         if (x + w > x1) break;
-        const facings = w < .09 ? 3 : w < .17 ? 2 : 1;
-        for (let k=0; k<facings && x + w <= x1; k++){
-          let z = s.z;
-          const rows = isBox(p) ? (s.rows || 2) : 1;
-          for (let r=0; r < rows; r++){
-            if (s.zMin !== undefined && z - d < s.zMin) break;
-            product(x + w/2, s.y, z, 0, w, h, d, p);
-            z -= d + .006;
-          }
-          x += w + .004;
-        }
-        x += .014; pi++;
+        placeFacings(p, s, x, w, h, d, x1); x = lastX + .014; pi++;
       }
     }
+    let lastX = 0;
+    function placeFacings(p, s, x, w, h, d, x1){
+      const facings = w < .09 ? 3 : w < .17 ? 2 : 1;
+      for (let k=0; k<facings && x + w <= x1; k++){
+        let z = s.z; const rows = isBox(p) && !isSmall ? (s.rows || 2) : 1;
+        for (let r=0; r < rows; r++){
+          if (s.zMin !== undefined && z - d < s.zMin) break;
+          product(x + w/2, s.y, z, 0, w, h, d, p); z -= d + .006;
+        }
+        x += w + .004;
+      }
+      lastX = x;
+    }
+    let headers = null, bw = 0, gx0 = 0;
     if (opts.bays){
-      // planogram: brands run down each bay top-to-bottom, then on to the next bay
-      const shelves = surfaces.filter(s=>!s.ring).slice().reverse(), x0 = shelves[0].x0, x1 = shelves[0].x1, bw = (x1-x0)/opts.bays;
-      for (let b=0; b<opts.bays; b++) shelves.forEach(s=>fillRun(s, x0 + b*bw, x0 + (b+1)*bw - .01));
+      // planogram: each big brand (10+ items) gets its own bays under its logo; smaller brands share the rest.
+      // A brand fills its bay top shelf to bottom, then moves on to the next bay. Continues across fixtures of the section.
+      const shelves = surfaces.filter(s=>!s.ring).slice().reverse();
+      gx0 = shelves[0].x0; const x1all = shelves[0].x1; bw = (x1all - gx0) / opts.bays;
+      headers = [];
+      let b = 0, k = 0, x = gx0 + .015, used = false, curBrand = null, hdr = null;
+      const runEnd = () => gx0 + (b+1)*bw - .01;
+      const nextBay = () => { b++; k = 0; x = gx0 + b*bw + .015; used = false; };
+      // place one product at the cursor: 'ok' | 'shelf' (moved down a shelf, retry) | 'bay' (moved to next bay) | 'end'
+      function tryPlace(p){
+        if (b >= opts.bays) return 'end';
+        const sh = shelves[k], [w,h,d] = size(p, sh.maxH - .015, sh.scale || 1);
+        if (x + w > runEnd()){
+          k++; x = gx0 + b*bw + .015;
+          if (k >= shelves.length){ nextBay(); return b >= opts.bays ? 'end' : 'bay'; }
+          return 'shelf';
+        }
+        placeFacings(p, sh, x, w, h, d, runEnd()); x = lastX + .014; used = true; return 'ok';
+      }
+      // when a big brand ends part-way through a bay, top the bay up with more facings of that brand
+      function topUp(h){
+        const n = h.end - h.start; if (n <= 0) return;
+        for (let i=0, g=0; g < 400; g++){
+          const r = tryPlace(P[(h.start + (i % n)) % P.length]);
+          if (r === 'ok') i++; else if (r === 'bay' || r === 'end') return;
+        }
+      }
+      let guard = 0;
+      while (b < opts.bays && guard++ < 5000){
+        const p = P[pi % P.length], isBig = big(p), bid = p.brandId || p.brand;
+        if (bid !== curBrand){
+          if (hdr){ hdr.end = pi; if (hdr.big && used){ topUp(hdr); if (b >= opts.bays) break; if (used) nextBay(); } }
+          if (b >= opts.bays) break;
+          if (isBig && used){ nextBay(); if (b >= opts.bays) break; }
+          curBrand = bid;
+          hdr = {brand:p.brand, brandId:bid, b0:b, b1:b, big:isBig, start:pi}; headers.push(hdr);
+        }
+        const r = tryPlace(p);
+        if (r === 'end') break;
+        if (r === 'ok'){ hdr.b1 = b; pi++; }
+        else if (r === 'bay') hdr.b1 = b;
+      }
+      if (hdr && hdr.end === undefined) hdr.end = pi;
+      // drop the empty header a trailing new bay may have opened
+      headers = headers.filter(hh => hh.b1 >= hh.b0);
     } else surfaces.forEach(s=>{
       if (s.ring){
         for (let i=0;i<s.n;i++){
@@ -513,6 +563,7 @@ function build(renderer){
         }
       } else fillRun(s, s.x0, s.x1);
     });
+    if (!opts.only) CURSOR[curKey] = pi;
     const build = (T, m, withUV) => {
       if (!T.idx.length) return;
       const geo = new THREE.BufferGeometry();
@@ -527,7 +578,7 @@ function build(renderer){
       group.add(mesh);
     };
     build(F, mat, true); build(S, sideMat, false);
-    return true;
+    return headers ? {headers, bw, x0: gx0} : true;
   }
 
   // ---------- fixtures ----------
@@ -554,6 +605,29 @@ function build(renderer){
     return m;
   }
 
+  // brand logo header: white lightbox with the logo from the brand atlas (or the brand name)
+  let brandTex = null;
+  const brandFace = new THREE.MeshBasicMaterial({color:'#ffffff', toneMapped:false});
+  function brandHeader(brandId, brandName, width, fallback){
+    const g = new THREE.Group(), hh = .44;
+    const box = new THREE.Mesh(new THREE.BoxGeometry(width, hh, .1), [std('#ffffff'),std('#ffffff'),std('#ffffff'),std('#ffffff'),brandFace,std('#ffffff')]); g.add(box);
+    const bar = new THREE.Mesh(new THREE.BoxGeometry(width, .035, .102), new THREE.MeshBasicMaterial({color:PINK, toneMapped:false})); bar.position.y = -hh/2 + .0175; g.add(bar);
+    const info = DATA && DATA.brands && DATA.brands[brandId], BA = DATA && DATA.brandAtlas;
+    if (info && BA){
+      if (!brandTex) brandTex = sRGB(texLoader.load(BA.src));
+      const lw = Math.min(width - .1, (hh - .08) * BA.w / BA.h), lh = lw * BA.h / BA.w;
+      const geo = new THREE.PlaneGeometry(lw, lh), uv = geo.attributes.uv, c = info.tile % BA.cols, r = Math.floor(info.tile / BA.cols);
+      const u0 = c/BA.cols, u1 = (c+1)/BA.cols, v0 = 1 - (r+1)/BA.rows, v1 = 1 - r/BA.rows;
+      for (let i=0;i<uv.count;i++) uv.setXY(i, uv.getX(i) ? u1 : u0, uv.getY(i) ? v1 : v0);
+      const logo = new THREE.Mesh(geo, new THREE.MeshBasicMaterial({map:brandTex, toneMapped:false})); logo.position.set(0, .01, .052); g.add(logo);
+    } else {
+      const t = canvasTex(512, 96, (x,W,H)=>{ x.fillStyle='#fff'; x.fillRect(0,0,W,H); x.fillStyle = fallback ? PINK_DEEP : PLUM; x.textAlign='center'; x.textBaseline='middle'; x.direction='rtl'; fitText(x, brandName, W-40, 800, 54); x.fillText(brandName, W/2, H/2+2); });
+      const aspect = 512/96, lw = Math.min(width - .1, (hh - .1) * aspect);
+      const txt = new THREE.Mesh(new THREE.PlaneGeometry(lw, lw/aspect), new THREE.MeshBasicMaterial({map:t, toneMapped:false})); txt.position.set(0, .01, .052); g.add(txt);
+    }
+    return g;
+  }
+
   function gondola(sec, w, h=2.25, d=.55, gopts={}){
     const g = new THREE.Group(), levels = [.14, .58, 1.02, 1.46, 1.9].filter(y=>y < h-.25), surfaces=[], tags=[];
     const plinth = new THREE.Mesh(new THREE.BoxGeometry(w, .12, d), pinkMat); plinth.position.set(0,.06,0); g.add(plinth);
@@ -568,9 +642,22 @@ function build(renderer){
       surfaces.push({x0:-w/2+.04, x1:w/2-.04, y:y+.0125, z:d/2-.1, zMin:-d/2+.06, depth:.12, maxH:top, rows:2});
     });
     const tagIM = new THREE.InstancedMesh(tagGeo, tagMat, tags.length); tags.forEach((m,i)=>tagIM.setMatrixAt(i,m)); g.add(tagIM);
-    if (!realStock(g, surfaces, sec, {bays: Math.max(1, Math.round(w/1.06)), start: gopts.start})) stock(g, surfaces, sec.pack);
-    const sign = lightbox(sec.name, Math.min(w*.8, 4.4)); sign.position.set(0, h+.32, -d/2+.12); g.add(sign);
-    addShadow(g); sign.castShadow = false;
+    const res = realStock(g, surfaces, sec, {bays: Math.max(1, Math.round(w/1.06)), only: gopts.only});
+    if (!res) stock(g, surfaces, sec.pack);
+    addShadow(g);
+    const sign = new THREE.Group(); sign.position.set(0, h+.3, -d/2+.1); g.add(sign);
+    if (res && res.headers){
+      // one logo header per big brand, the section name over the shared bays
+      let open = null;
+      const flush = () => { if (!open) return; const wdt = (open.b1 - open.b0 + 1) * res.bw - .04, hd = brandHeader(open.id, open.name, wdt, open.fallback); hd.position.x = res.x0 + (open.b0 + open.b1 + 1) / 2 * res.bw; sign.add(hd); open = null; };
+      res.headers.forEach(hh=>{
+        const asBrand = hh.big || gopts.only, id = asBrand ? (hh.brandId || hh.brand) : '_sec', name = asBrand ? hh.brand : sec.name;
+        if (open && open.id === id && open.b1 >= hh.b0 - 1){ open.b1 = Math.max(open.b1, hh.b1); return; }
+        if (open && open.b1 >= hh.b0){ if (!hh.big) { open.b1 = Math.max(open.b1, hh.b1); return; } hh = {...hh, b0: open.b1 + 1}; if (hh.b0 > hh.b1) return; }
+        flush(); open = {id, name, b0: hh.b0, b1: hh.b1, fallback: !asBrand};
+      });
+      flush();
+    } else { const lb = lightbox(gopts.title || sec.name, Math.min(w*.8, 4.4)); sign.add(lb); }
     return {g, sign};
   }
 
@@ -637,34 +724,57 @@ function build(renderer){
   }
 
   const place = (o, x, z, ry=0) => { o.g.position.set(x,0,z); o.g.rotation.y = ry; scene.add(o.g); return o; };
-  const sideZ = [-18.6, -10.8, -3, 4.8]; const promoX = [-12,-6,6,12];
-  let li=0, ri=0, pi=0;
+  // Store plan: gondola rows run front-to-back; each section owns ONE aisle half (both facing sides), so it is in one place.
+  const ROWX = [-(ROOM.x-.3), -12.5, -6.5, 6.5, 12.5, ROOM.x-.3];
+  const HALF = {back:{z:-12.5, w:11}, front:{z:1.5, w:11}};
+  // [left row, its face (+1 east / -1 west)] pairs for each aisle; promenade faces are single
+  const AISLES = [ [[0,1],[1,-1]], [[1,1],[2,-1]], [[3,1],[4,-1]], [[4,1],[5,-1]] ];
+  const ZONES = {skin:['a',0,'back'], hair:['a',0,'front'], makeup:['a',1,'back'], daily:['a',1,'front'], baby:['a',2,'back'], vit:['a',2,'front'], devices:['a',3,'back'], pets:['a',3,'front'],
+                 import:['p',[2,1],'back'], excl:['p',[2,1],'front'], offers:['p',[3,-1],'back'], trend:['p',[3,-1],'front']};
+  const faceX = (ri, side) => ri === 0 || ri === ROWX.length-1 ? ROWX[ri] : ROWX[ri] + side*.26;
+  const aisleSigns = [];
   SECTIONS.forEach(sec=>{
-    let o; const k = sec.zone;
-    if (k==='left')    o = place(gondola(sec, 7.2), -(ROOM.x-.3), sideZ[li++],  Math.PI/2);
-    if (k==='right')   o = place(gondola(sec, 7.2),  (ROOM.x-.3), sideZ[ri++], -Math.PI/2);
-    if (k==='center')  o = place(gondola(sec, 8, 1.7), 0, -13.5, 0);
-    if (k==='promo')   o = place(promoIsland(sec), promoX[pi++], 8, 0);
+    let o; const k = sec.zone, Z = ZONES[sec.key];
+    if (Z){
+      const half = HALF[Z[2]], faces = Z[0]==='a' ? AISLES[Z[1]] : [Z[1]];
+      const fixtures = faces.map(([ri, side]) => place(gondola(sec, half.w), faceX(ri, side), half.z, side*Math.PI/2));
+      fixtures.forEach(f=>{ f.g.traverse(m=>{ m.userData.sec = sec; }); clickables.push({root:f.g, sec, sign:f.sign}); });
+      const xs = faces.map(([ri, side]) => faceX(ri, side)), ax = xs.length > 1 ? (xs[0]+xs[1])/2 : xs[0] + faces[0][1]*2.2;
+      const zMouth = half.z + half.w/2;
+      // hanging aisle sign over the aisle mouth, readable from both directions
+      const single = xs.length === 1;
+      const hs = lightbox(sec.name, single ? 3.4 : Math.min(4.2, Math.abs(xs[1]-xs[0]) - 1.2), {bg:PINK, fg:'#ffffff'});
+      const hs2 = hs.clone();
+      if (single){ const sd = faces[0][1]; hs.rotation.y = sd*Math.PI/2; hs.position.set(xs[0] + sd*.7, 3.5, half.z); hs2.rotation.y = -sd*Math.PI/2; hs2.position.set(xs[0] + sd*.6, 3.5, half.z); }
+      else { hs.position.set(ax, 3.45, zMouth + .3); hs2.rotation.y = Math.PI; hs2.position.set(ax, 3.45, zMouth + .2); }
+      scene.add(hs, hs2);
+      [-1,1].forEach(sd=>{ const wire=new THREE.Mesh(new THREE.CylinderGeometry(.004,.004,ROOM.h-3.7,4), steelMat); if (single) wire.position.set(xs[0] + faces[0][1]*.65, 3.7+(ROOM.h-3.7)/2, half.z + sd*1.4); else wire.position.set(ax + sd*1.4, 3.7+(ROOM.h-3.7)/2, zMouth+.25); scene.add(wire); });
+      [hs, hs2].forEach(m=>{ m.traverse(q=>{ q.userData.sec = sec; }); aisleSigns.push(m); });
+      sec.focus = {target:new THREE.Vector3(ax, 1.25, half.z - half.w/2 + 1), pos:new THREE.Vector3(ax, EYE, zMouth + 2.2)};
+      return;
+    }
+    if (k==='promo')   o = place(promoIsland(sec), 0, 9, 0);
     if (k==='best')    o = place(bestStand(sec), 0, 1.5, 0);
     if (k==='counter') o = place(pharmacyCounter(sec), 0, ROOM.zBack+3.1, 0);
+    if (!o) return;
     const n = new THREE.Vector3(0,0,1).applyQuaternion(o.g.quaternion), t = o.g.position.clone();
     let dist=4.4, ty=1.25, cy=.45;
     if (k==='promo'){ dist=4; ty=1.0; cy=.95; }
     if (k==='best'){ dist=4.4; ty=1.1; cy=.9; }
     if (k==='counter'){ t.z -= 1.6; dist=8; ty=2.0; cy=.1; }
-    if (k==='center'){ dist=4.2; ty=1.0; cy=.8; }
     t.y = ty; sec.focus = {target:t, pos:t.clone().addScaledVector(n, dist).add(new THREE.Vector3(0,cy,0))};
     o.g.traverse(m=>{ m.userData.sec = sec; });
     clickables.push({root:o.g, sec, sign:o.sign});
   });
 
-  // double-sided aisle gondolas in the middle of the store: more of each section, different products than its wall bay
-  [[-11,'skin','hair'],[-5.5,'makeup','daily'],[5.5,'baby','vit'],[11,'devices','pets']].forEach(([x, wk, ek])=>{
-    [[wk, -1], [ek, 1]].forEach(([k, side])=>{
-      const sec = SECTIONS.find(s=>s.key===k); if (!sec) return;
-      const o = place(gondola(sec, 8, 2.25, .5, {start:.5}), x + side*.26, -8, side*Math.PI/2);
-      o.g.traverse(m=>{ m.userData.sec = sec; }); clickables.push({root:o.g, sec, sign:o.sign});
-    });
+  // brand endcaps facing the entrance at the front end of each middle row: the biggest brand of the next aisle
+  [[1,'hair'],[2,'daily'],[3,'vit'],[4,'pets']].forEach(([ri, key])=>{
+    const sec = SECTIONS.find(s=>s.key===key), sd = DATA && DATA.sections && DATA.sections[key]; if (!sec || !sd) return;
+    const cnt = {}; sd.products.forEach(p=>{ if (p.brandId) cnt[p.brandId] = (cnt[p.brandId]||0) + 1; });
+    const ids = Object.keys(cnt).sort((a,b)=>(!!(DATA.brands||{})[b]) - (!!(DATA.brands||{})[a]) || cnt[b]-cnt[a]);
+    if (!ids.length) return;
+    const o = place(gondola(sec, 1.25, 2.25, .5, {only: ids[0]}), ROWX[ri], HALF.front.z + HALF.front.w/2 + .3, 0);
+    o.g.traverse(m=>{ m.userData.sec = sec; }); clickables.push({root:o.g, sec, sign:o.sign});
   });
 
   // ---------- UI ----------
@@ -726,7 +836,7 @@ function build(renderer){
   const clampV = (v, pad) => { v.x = Math.max(-ROOM.x+pad, Math.min(ROOM.x-pad, v.x)); v.z = Math.max(ROOM.zBack+pad, Math.min(ROOM.zFront-.3, v.z)); v.y = Math.max(.6, Math.min(ROOM.h-.35, v.y)); };
 
   // ---------- picking ----------
-  const ray = new THREE.Raycaster(), mouse = new THREE.Vector2(), roots = clickables.map(c=>c.root);
+  const ray = new THREE.Raycaster(), mouse = new THREE.Vector2(), roots = clickables.map(c=>c.root).concat(aisleSigns);
   function pick(ev){
     const r = renderer.domElement.getBoundingClientRect();
     mouse.set(((ev.clientX-r.left)/r.width)*2-1, -((ev.clientY-r.top)/r.height)*2+1);
@@ -752,7 +862,7 @@ function build(renderer){
   addEventListener('resize', ()=>{ camera.aspect = stage.clientWidth/stage.clientHeight; camera.fov = fovFor(camera.aspect); camera.updateProjectionMatrix(); renderer.setSize(stage.clientWidth, stage.clientHeight); });
 
   // ---------- walking: joystick / WASD + drag to look, with simple collisions ----------
-  roots.forEach(r=>{ const b = new THREE.Box3().setFromObject(r); OBSTACLES.push({box:{x0:b.min.x-.35, x1:b.max.x+.35, z0:b.min.z-.35, z1:b.max.z+.35}}); });
+  clickables.map(c=>c.root).forEach(r=>{ const b = new THREE.Box3().setFromObject(r); OBSTACLES.push({box:{x0:b.min.x-.35, x1:b.max.x+.35, z0:b.min.z-.35, z1:b.max.z+.35}}); });
   const blocked = (x, z) => OBSTACLES.some(o => o.box ? (x>o.box.x0 && x<o.box.x1 && z>o.box.z0 && z<o.box.z1) : Math.hypot(x-o.x, z-o.z) < o.r + .3);
   const keys = {f:0, b:0, sl:0, sr:0, tl:0, tr:0}, joy = {x:0, y:0};
   const KEYS = {ArrowUp:'f', KeyW:'f', ArrowDown:'b', KeyS:'b', ArrowLeft:'sl', KeyA:'sl', ArrowRight:'sr', KeyD:'sr', KeyQ:'tl', KeyE:'tr'};
