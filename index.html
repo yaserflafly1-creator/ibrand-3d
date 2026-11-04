@@ -784,7 +784,7 @@ function build(renderer){
   el.addEventListener('pointermove', e=>{
     const L = lookers.get(e.pointerId); if (!L || lookers.size > 1 || e.pointerId === joyId) return;
     const sens = e.pointerType === 'mouse' ? .0042 : .0068;
-    view.yaw += (e.clientX - L.x) * sens; view.pitch = clampPitch(view.pitch + (e.clientY - L.y) * sens * .8);
+    view.yaw -= (e.clientX - L.x) * sens; view.pitch = clampPitch(view.pitch - (e.clientY - L.y) * sens * .8);
     L.x = e.clientX; L.y = e.clientY;
   });
   const lookEnd = e=>lookers.delete(e.pointerId);
