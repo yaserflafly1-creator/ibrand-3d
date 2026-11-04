@@ -6,7 +6,7 @@ import sharp from 'sharp';
 
 const STORE_ID = '1972477543';
 const API = 'https://api.salla.dev/store/v1/products';
-const TILE = 256, COLS = 8, ROWS = 6, MAX = COLS * ROWS;
+const TILE = 256, COLS = 16, ROWS = 8, MAX = COLS * ROWS;   // 4096x2048 atlas, up to 128 products per section
 
 // key -> how to query the storefront API
 const SECTIONS = {
@@ -54,7 +54,7 @@ async function listProducts(def){
     url = `${API}?source=categories&source_value[]=${def.cat}&per_page=50`;
   }
   const out = [], seen = new Set();
-  for (let page = 0; url && page < 10 && out.length < MAX; page++){
+  for (let page = 0; url && page < 20 && out.length < MAX; page++){
     const j = await getJSON(url);
     if (!j) break;
     for (const p of j.data || []){
@@ -64,6 +64,7 @@ async function listProducts(def){
       seen.add(p.id);
       out.push({
         id: String(p.id), name: p.name, url: p.url, img,
+        brand: (p.brand && p.brand.name || '').trim(),
         price: priceOf(p), regular: num(p.regular_price) || num(p.price) || null,
         onSale: !!p.is_on_sale
       });
@@ -71,6 +72,9 @@ async function listProducts(def){
     url = j.cursor && j.cursor.next;
     await sleep(250);
   }
+  // group by brand like a real planogram: bigger brands first, unbranded last
+  const count = {}; out.forEach(p => { count[p.brand] = (count[p.brand]||0) + 1; });
+  out.sort((a, b) => (!a.brand) - (!b.brand) || count[b.brand] - count[a.brand] || a.brand.localeCompare(b.brand, 'ar') || a.name.localeCompare(b.name, 'ar'));
   return out;
 }
 
@@ -105,7 +109,7 @@ async function tileFor(imgUrl){
   const r = await fetch(imgUrl, { headers: { 'User-Agent': headers['User-Agent'] } });
   if (!r.ok) throw new Error('img ' + r.status);
   const buf = Buffer.from(await r.arrayBuffer());
-  const S = 420;
+  const S = 520;
   const { data, info } = await sharp(buf).rotate().flatten({ background: '#ffffff' }).resize(S, S, { fit: 'contain', background: '#ffffff' }).ensureAlpha().raw().toBuffer({ resolveWithObject: true });
   const res = cutout(data, info.width, info.height);
   let img, card = false;
@@ -124,6 +128,11 @@ async function tileFor(imgUrl){
 async function main(){
   await fs.mkdir('atlas', { recursive: true });
   await fs.mkdir('data', { recursive: true });
+  await fs.mkdir('assets', { recursive: true });
+  try {
+    const lr = await fetch('https://cdn.salla.sa/yKErG/pn5LJ3wpLeNIgU15HaDHqkSBOEversEv0QQOmwp8.png', { headers: { 'User-Agent': headers['User-Agent'] } });
+    if (lr.ok) await sharp(Buffer.from(await lr.arrayBuffer())).resize(1024, 1024, { fit: 'inside', withoutEnlargement: true }).png().toFile('assets/logo.png');
+  } catch (e){ console.warn('logo', e.message); }
   const result = { generated: new Date().toISOString(), tile: TILE, cols: COLS, rows: ROWS, sections: {} };
   for (const [key, def] of Object.entries(SECTIONS)){
     const items = await listProducts(def);
@@ -139,7 +148,7 @@ async function main(){
     }
     if (!products.length){ console.warn('no products for', key); continue; }
     await sharp({ create: { width: COLS*TILE, height: ROWS*TILE, channels: 4, background: { r:0, g:0, b:0, alpha:0 } } })
-      .composite(comps).webp({ quality: 82, alphaQuality: 90 }).toFile(`atlas/${key}.webp`);
+      .composite(comps).webp({ quality: 78, alphaQuality: 85 }).toFile(`atlas/${key}.webp`);
     result.sections[key] = { atlas: `atlas/${key}.webp`, products };
     console.log(key, products.length, 'products');
   }
