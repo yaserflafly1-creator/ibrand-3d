@@ -125,7 +125,7 @@ body{background:var(--ground);color:var(--plum);font-family:var(--font);overflow
 <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/environments/RoomEnvironment.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/objects/Reflector.js"></script>
 <script>
-const PINK = '#e873a8', PINK_DEEP = '#c9518b', PLUM = '#3b1d36';
+const TEAL = '#2fbcb2', PINK = '#e873a8', PINK_DEEP = '#c9518b', PLUM = '#3b1d36';
 const STORE = 'https://ibrand.com.sa/ar/';
 const cat = (slug, id) => STORE + encodeURIComponent(slug) + '/c' + id;
 
@@ -326,11 +326,11 @@ function build(renderer){
   for (let x=-ROOM.x; x<=ROOM.x+.01; x+=2.6){ const m=new THREE.Mesh(new THREE.BoxGeometry(.08, ROOM.h, .1), frameMat); m.position.set(x, ROOM.h/2, ROOM.zFront); scene.add(m); }
   const header = new THREE.Mesh(new THREE.BoxGeometry(fw, .5, .2), pinkMat); header.position.set(0, ROOM.h-.25, ROOM.zFront-.05); scene.add(header);
   // logo lightbox over the entrance (seen when turning around) and a logo floor inlay
-  const entryBox = new THREE.Mesh(new THREE.BoxGeometry(3.4, .9, .12), std('#ffffff',{roughness:.3})); entryBox.position.set(0, ROOM.h-.95, ROOM.zFront-.2); scene.add(entryBox);
-  const entryLogo = logoPlane(.62, 3.1); entryLogo.rotation.y = Math.PI; entryLogo.position.set(0, ROOM.h-.95, ROOM.zFront-.27); scene.add(entryLogo);
+  const entryBox = new THREE.Mesh(new THREE.CylinderGeometry(.6, .6, .1, 64), std('#ffffff',{roughness:.3})); entryBox.rotation.x = Math.PI/2; entryBox.position.set(0, ROOM.h-1.15, ROOM.zFront-.2); scene.add(entryBox);
+  const entryLogo = logoPlane(1.16, 1.16); entryLogo.rotation.y = Math.PI; entryLogo.position.set(0, ROOM.h-1.15, ROOM.zFront-.26); scene.add(entryLogo);
   const inlay = new THREE.Mesh(new THREE.CircleGeometry(1.1, 64), std('#ffffff',{roughness:.3})); inlay.rotation.x = -Math.PI/2; inlay.position.set(0, .004, 10.6); scene.add(inlay);
-  const inlayRing = new THREE.Mesh(new THREE.RingGeometry(1.1, 1.18, 64), pinkMat); inlayRing.rotation.x = -Math.PI/2; inlayRing.position.set(0, .005, 10.6); scene.add(inlayRing);
-  const floorLogo = logoPlane(.5, 1.8); floorLogo.rotation.x = -Math.PI/2; floorLogo.position.set(0, .006, 10.6); scene.add(floorLogo);
+  const inlayRing = new THREE.Mesh(new THREE.RingGeometry(1.1, 1.18, 64), std(TEAL,{roughness:.4})); inlayRing.rotation.x = -Math.PI/2; inlayRing.position.set(0, .005, 10.6); scene.add(inlayRing);
+  const floorLogo = logoPlane(2.1, 2.1); floorLogo.rotation.x = -Math.PI/2; floorLogo.position.set(0, .006, 10.6); scene.add(floorLogo);
 
   // ---------- packaging ----------
   const latinFont = '"Arial Black", "Helvetica Neue", Arial, sans-serif';
@@ -585,11 +585,11 @@ function build(renderer){
     [-2.2, 2.2].forEach(x=>{ const st=new THREE.Mesh(new THREE.BoxGeometry(.06,.25,.06), steelMat); st.position.set(x,1.17,-.15); g.add(st); const sc=new THREE.Mesh(new THREE.BoxGeometry(.42,.28,.03), std('#1b1b1f',{roughness:.2})); sc.position.set(x,1.38,-.15); sc.rotation.x=-.2; g.add(sc); });
     addShadow(g);
     // brand wall
-    const brandPanel = new THREE.Mesh(new THREE.BoxGeometry(5.2, 1.1, .08), std('#ffffff',{roughness:.3})); brandPanel.position.set(-1.0, 3.2, -3.02); g.add(brandPanel);
-    const brand = logoPlane(.8, 4.8); brand.position.set(-1.0, 3.2, -2.97); g.add(brand);
-    const crossMat = new THREE.MeshBasicMaterial({color:'#20c27a', toneMapped:false});
+    const brandPanel = new THREE.Mesh(new THREE.CylinderGeometry(.54, .54, .08, 64), std('#ffffff',{roughness:.3})); brandPanel.rotation.x = Math.PI/2; brandPanel.position.set(-1.0, 3.3, -3.02); g.add(brandPanel);
+    const brand = logoPlane(1.04, 1.04); brand.position.set(-1.0, 3.3, -2.975); g.add(brand);
+    const crossMat = new THREE.MeshBasicMaterial({color:TEAL, toneMapped:false});
     const c1 = new THREE.Mesh(new THREE.BoxGeometry(.28,.84,.08), crossMat), c2 = new THREE.Mesh(new THREE.BoxGeometry(.84,.28,.08), crossMat);
-    [c1,c2].forEach(c=>{ c.position.set(2.6, 3.2, -2.96); g.add(c); });
+    [c1,c2].forEach(c=>{ c.scale.setScalar(.8); c.position.set(1.0, 3.3, -2.96); g.add(c); });
     g.userData.cross = crossMat;
     return {g, sign: wall.sign};
   }
@@ -758,7 +758,7 @@ function build(renderer){
       if (k>=1){ flight=null; if (pano) anchorPano(); }
     }
     if (walk(dt) && pano) anchorPano();
-    if (!reduceMotion){ spin.rotation.y = now*0.00035; const g=.82+.18*Math.sin(now*0.0025); cross.color.setRGB(.12*g, .76*g, .48*g); }
+    if (!reduceMotion){ spin.rotation.y = now*0.00035; const g=.82+.18*Math.sin(now*0.0025); cross.color.setRGB(.18*g, .74*g, .70*g); }
     controls.update();
     clampV(camera.position, .45); clampV(controls.target, .6);
     renderer.render(scene, camera);
