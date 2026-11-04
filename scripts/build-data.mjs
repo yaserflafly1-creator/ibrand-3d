@@ -64,7 +64,7 @@ async function listProducts(def){
       seen.add(p.id);
       out.push({
         id: String(p.id), name: p.name, url: p.url, img,
-        brand: (p.brand && p.brand.name || '').trim(),
+        brand: (p.brand && p.brand.name || '').trim(), brandId: p.brand && p.brand.id ? String(p.brand.id) : '',
         price: priceOf(p), regular: num(p.regular_price) || num(p.price) || null,
         onSale: !!p.is_on_sale
       });
@@ -165,6 +165,50 @@ async function main(){
     console.log(key, products.length, 'products');
   }
   if (!Object.keys(result.sections).length) throw new Error('No products fetched — storefront API unreachable?');
+
+  // ---------- brand logos for shelf headers (brands with 6+ products in a section) ----------
+  const want = new Map();
+  for (const sec of Object.values(result.sections)){
+    const n = {}; sec.products.forEach(p => { if (p.brandId) n[p.brandId] = (n[p.brandId]||0) + 1; });
+    sec.products.forEach(p => { if (p.brandId && n[p.brandId] >= 6) want.set(p.brandId, p.brand); });
+  }
+  const logoUrl = {};
+  // listing first (one call per page), then single lookups for anything missing
+  let burl = 'https://api.salla.dev/store/v1/brands?per_page=100';
+  for (let page = 0; burl && page < 15; page++){
+    const j = await getJSON(burl, 2); if (!j) break;
+    if (page === 0) console.log('brands listing keys:', Object.keys(j), j.data && j.data[0] ? Object.keys(j.data[0]) : '');
+    for (const b of j.data || []){ const u = b.logo || (b.image && (b.image.url || b.image)) || b.banner; if (b.id && typeof u === 'string' && u.startsWith('http')) logoUrl[String(b.id)] = u; }
+    burl = (j.cursor && j.cursor.next) || (j.links && j.links.next) || null;
+    await sleep(200);
+  }
+  for (const id of want.keys()){
+    if (logoUrl[id]) continue;
+    const j = await getJSON(`https://api.salla.dev/store/v1/brands/${id}`, 1);
+    const b = j && j.data; const u = b && (b.logo || (b.image && (b.image.url || b.image)));
+    if (typeof u === 'string' && u.startsWith('http')) logoUrl[id] = u;
+    await sleep(120);
+  }
+  const BW = 320, BH = 128, BCOLS = 10, bcomps = [], brands = {};
+  for (const [id, name] of want){
+    const u = logoUrl[id]; if (!u) continue;
+    try {
+      const r = await fetch(u, { headers: { 'User-Agent': headers['User-Agent'] } }); if (!r.ok) continue;
+      const buf = Buffer.from(await r.arrayBuffer());
+      const trimmed = await sharp(buf).flatten({ background:'#ffffff' }).trim({ threshold: 18 }).toBuffer({ resolveWithObject: true });
+      const png = await sharp(trimmed.data).resize(BW - 24, BH - 20, { fit:'contain', background:'#ffffff' }).extend({ top:10, bottom:10, left:12, right:12, background:'#ffffff' }).png().toBuffer();
+      const i = Object.keys(brands).length;
+      bcomps.push({ input: png, left: (i % BCOLS) * BW, top: Math.floor(i / BCOLS) * BH });
+      brands[id] = { name, tile: i };
+    } catch (e){ console.warn('logo', id, e.message); }
+  }
+  if (bcomps.length){
+    const brows = Math.ceil(bcomps.length / BCOLS);
+    await sharp({ create: { width: BCOLS*BW, height: brows*BH, channels: 3, background: '#ffffff' } }).composite(bcomps).webp({ quality: 85 }).toFile('atlas/brands.webp');
+    result.brandAtlas = { src: 'atlas/brands.webp', cols: BCOLS, rows: brows, w: BW, h: BH };
+  }
+  result.brands = brands;
+  console.log('brand logos:', Object.keys(brands).length, 'of', want.size, 'wanted;', Object.keys(logoUrl).length, 'logo urls');
   await fs.writeFile('data/products.json', JSON.stringify(result));
 }
 
