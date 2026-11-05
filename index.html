@@ -271,6 +271,7 @@ const SECTIONS = [
   {key:'trend', name:'ترند اي براند', url:cat('ترند-اي-براند',878276543), promo:true, size:.95, eyebrow:'ركن العروض', desc:'المنتجات الأكثر رواجاً الآن.'},
   {key:'import', name:'منتجات مستوردة', url:cat('منتجات-مستوردة',270592768), promo:true, size:1, eyebrow:'ركن العروض', desc:'منتجات عناية وتجميل مستوردة من علامات عالمية.'},
   {key:'best', name:'الأكثر طلباً', url:'https://ibrand.com.sa', promo:true, size:1.3, eyebrow:'منصة المنتجات', desc:'المنتجات الأكثر طلباً من عملاء اي براند.'},
+  {key:'bulk', name:'حفايض وحليب • كميات', url:cat('العناية-بالأم-والطفل',745675715), size:1.45, eyebrow:'عروض الكميات', desc:'حفايض وحليب أطفال ومناديل بكميات، اختر اللي يناسبك وأضفه للسلة.'},
   {key:'quick', name:'مشتريات سريعة', url:STORE, promo:true, size:.85, eyebrow:'عند الكاونتر', desc:'مناديل، معطرات، معقمات ومشتريات سريعة بجانب الكاونتر.'},
 ];
 const SEC = Object.fromEntries(SECTIONS.map(s=>[s.key, s]));
@@ -520,23 +521,29 @@ function build(renderer){
   const totalBays = mainKeys.reduce((a,k)=>a + plans[k].length, 0);
   const AISLE_W = 2.5, ROW_T = 2*GONDOLA.d + .04, WALL_D = GONDOLA.d;
   // choose aisle count and length so the store stays walkable
+  // the back wall behind the counter takes medicines first, the rest goes into the aisles
   let nA = 6, nb = 12;
-  for (nA = 6; nA < 40; nA++){ nb = Math.ceil(totalBays / (2*nA)); if (nb <= 22) break; }
-  nb = Math.max(10, nb);
+  const medsBays = (plans.meds || []).length;
+  for (nA = 4; nA < 40; nA++){
+    const w = nA*AISLE_W + (nA-1)*ROW_T + 2*WALL_D, back = Math.min(medsBays, Math.floor((w - 1.2) / BW));
+    nb = Math.ceil(Math.max(1, totalBays - back) / (2*nA)); if (nb <= 22) break;
+  }
+  nb = Math.max(8, nb);
   const L = nb * BW;
   const innerW = nA*AISLE_W + (nA-1)*ROW_T + 2*WALL_D;
   const Wx = innerW/2;
   const zF = 0;                     // glass front
-  const zA0 = zF - 12;              // front end of the aisles
+  const zA0 = zF - 9.5;             // front end of the aisles
+  const ZP = zF - 6;                // promotion row
   const zA1 = zA0 - L;              // back end of the aisles
-  const zC = zA1 - 4.4;             // front edge of the pharmacist counter
-  const zB = zC - 3.4;              // back wall
+  const zC = zA1 - 3.6;             // front edge of the pharmacist counter
+  const zB = zC - 2.7;              // back wall
   const ROOM = {x:Wx, zBack:zB, zFront:zF, h:H};
   const fw = 2*Wx, fl = zF - zB, zMid = (zF + zB)/2;
 
   // camera
   const fovFor = a => a < 1 ? 74 : 58;
-  const camera = new THREE.PerspectiveCamera(fovFor(stage.clientWidth/stage.clientHeight), stage.clientWidth/stage.clientHeight, 0.05, Math.max(90, fl + 20));
+  const camera = new THREE.PerspectiveCamera(fovFor(stage.clientWidth/stage.clientHeight), stage.clientWidth/stage.clientHeight, 0.05, Math.max(120, fl + 70));
   const DOOR_IN = 3.4, DOOR_OUT = -3.4;
   const HOME = {pos:new THREE.Vector3(DOOR_IN, EYE, zF - 2.4), target:new THREE.Vector3(0, 1.45, zF - 10)};
   camera.position.copy(HOME.pos);
@@ -584,7 +591,7 @@ function build(renderer){
     const haloMat = new THREE.MeshBasicMaterial({map:haloTex, transparent:true, depthWrite:false, toneMapped:false});
     const spots = [], panels = [];
     for (let x=-Wx+1.3; x<=Wx-1.2; x+=1.8) for (let z=zB+1.2; z<=zF-1; z+=1.8){
-      if (Math.hypot(x, z-(zF-7.5)) < 2.7) continue;
+      if (Math.hypot(x, z-ZP) < 2.7) continue;
       ((Math.round(x/1.8) % 3 === 0) && (Math.round(z/1.8) % 3 === 0) ? panels : spots).push([x, z]);
     }
     const inst = (geo, mat, list, y, s=1) => { const im = new THREE.InstancedMesh(geo, mat, list.length), m4 = new THREE.Matrix4(), q = new THREE.Quaternion().setFromEuler(new THREE.Euler(Math.PI/2,0,0)); list.forEach(([x,z],i)=>{ m4.compose(new THREE.Vector3(x,y,z), q, new THREE.Vector3(s,s,s)); im.setMatrixAt(i, m4); }); scene.add(im); };
@@ -592,13 +599,13 @@ function build(renderer){
     inst(new THREE.CircleGeometry(.11, 20), panelMat, spots, H-.006); inst(new THREE.PlaneGeometry(.9,.9), haloMat, spots, H-.009);
     // feature ring above the best-seller stand
     const ringGlow = new THREE.MeshBasicMaterial({color:'#ff9fca', toneMapped:false});
-    const drop = new THREE.Mesh(new THREE.CylinderGeometry(2.3, 2.3, .28, 64, 1, true), std('#ffffff',{side:THREE.DoubleSide})); drop.position.set(0, H-.14, zF-7.5); scene.add(drop);
-    const ringLed = new THREE.Mesh(new THREE.TorusGeometry(2.25, .03, 8, 96), ringGlow); ringLed.rotation.x = Math.PI/2; ringLed.position.set(0, H-.29, zF-7.5); scene.add(ringLed);
+    const drop = new THREE.Mesh(new THREE.CylinderGeometry(2.3, 2.3, .28, 64, 1, true), std('#ffffff',{side:THREE.DoubleSide})); drop.position.set(0, H-.14, ZP); scene.add(drop);
+    const ringLed = new THREE.Mesh(new THREE.TorusGeometry(2.25, .03, 8, 96), ringGlow); ringLed.rotation.x = Math.PI/2; ringLed.position.set(0, H-.29, ZP); scene.add(ringLed);
     // bulkhead over the pharmacist counter
     const bulk = new THREE.Mesh(new THREE.BoxGeometry(fw, .45, zC - zB), std('#ffffff',{roughness:.7})); bulk.position.set(0, H-.225, (zC+zB)/2); scene.add(bulk);
     const reveal = new THREE.Mesh(new THREE.BoxGeometry(fw, .04, .04), ringGlow); reveal.position.set(0, H-.46, zC); scene.add(reveal);
   }
-  spotAt(0, zF-7.5, 0, 1.1, .6);
+  spotAt(0, ZP, 0, 1.1, .6);
 
   function logoPlane(hgt, maxW){
     const txt = canvasTex(1024, 256, (x,W,H)=>{ x.fillStyle=PINK; x.textAlign='center'; x.textBaseline='middle'; x.direction='rtl'; x.font='800 150px "Almarai", Tahoma'; x.fillText('اي براند', W/2, H/2+8); });
@@ -724,6 +731,19 @@ function build(renderer){
       p += seg; if (p >= nb){ a++; p = 0; }
     }
   }
+  // fill any bays left empty with bulk diapers & baby milk (and more medicine facings behind the counter)
+  {
+    const empties = []; faces.forEach(f => f.slots.forEach((b, i) => { if (!b) empties.push([f, i]); }));
+    const bulkSrc = SD('baby') ? SD('baby').products.filter(p => /حفاض|حفاظ|حفايض|حليب|مناديل|بامبرز|بيبي جوي|كلوت/.test(p.name)) : [];
+    if (empties.length && bulkSrc.length){
+      const bulk = planogram('baby', bulkSrc, GONDOLA, {cycle:true, maxBays:empties.length, noBrands:true});
+      empties.forEach(([f, i], j) => { if (bulk[j]){ f.slots[i] = bulk[j]; f.keys[i] = 'bulk'; } });
+    }
+    const emptyBack = backBays.filter(b => !b).length;
+    if (emptyBack && SD('meds')){ const more = planogram('meds', SD('meds').products, GONDOLA, {cycle:true, maxBays:emptyBack}); let j = 0; backBays.forEach((b, i) => { if (!b && more[j]) backBays[i] = more[j++]; }); }
+    // any aisle segment that is only bulk gets a sign too
+    for (let a2 = 0; a2 < nA; a2++){ const f = faces[2*a2]; let s0 = -1; for (let s = 0; s < nb; s++){ const k = f.keys[slotIdx(f, s)]; if (k === 'bulk' && s0 < 0) s0 = s; } if (s0 >= 0) SEG.push({key:'bulk', aisle:a2, s0, s1:nb}); }
+  }
   // build faces: a face can hold several sections; build one run per section so products land in their section meshes
   faces.forEach(face => {
     let s0 = 0;
@@ -731,7 +751,7 @@ function build(renderer){
       if (i < nb && face.keys[i] === face.keys[s0]) continue;
       const k = face.keys[s0], run = face.slots.slice(s0, i), runW = (i - s0) * BW;
       const lx = -nb*BW/2 + s0*BW + runW/2, c = face.F.at(lx, 0, 0);
-      gondolaFace(frame(c[0], c[2], face.F.yaw), run.length ? run : [null], k || 'other', {headers: !!k, endPanels: s0 === 0 || i === nb});
+      gondolaFace(frame(c[0], c[2], face.F.yaw), run.length ? run : [null], k === 'bulk' ? 'baby' : (k || 'other'), {headers: !!k, endPanels: s0 === 0 || i === nb, titleKey: k === 'bulk' ? 'bulk' : undefined});
       s0 = i;
     }
   });
@@ -739,18 +759,16 @@ function build(renderer){
   gondolaFace(frame(0, zB + GONDOLA.d/2 + .02, 0), backBays, 'meds');
 
   // ---------- pharmacist counter ----------
-  const deskW = Math.min(12, fw - 8);
+  const deskW = fw - .9;
   {
     const F = frame(0, zC - .45, 0), T = STRUCT;
     boxInto(T, F, 0, .5, 0, deskW, 1.0, .9, '#ffffff');
     boxInto(T, F, 0, .45, .452, deskW + .02, .5, .01, C_PINK);
     boxInto(T, F, 0, 1.025, 0, deskW + .2, .05, 1.05, '#efe9ec');
-    // glass partitions from the desk ends to the side walls keep shoppers in front
-    [-1,1].forEach(s => { const x0 = s*(deskW/2 + .1), x1 = s*Wx, cx = (x0+x1)/2, w = Math.abs(x1-x0);
-      boxInto(T, frame(cx, zC - .45, 0), 0, .45, 0, w, .9, .5, '#ffffff'); boxInto(T, frame(cx, zC - .45, 0), 0, .92, 0, w + .02, .04, .55, '#efe9ec'); });
     OBSTACLES.push({box:{x0:-Wx-1, x1:Wx+1, z0:zB-1, z1:zC + .35}});
     // POS screens
-    [-3.9, 3.9].forEach(x=>{ boxInto(T, frame(x, zC - .6, 0), 0, 1.17, 0, .06, .25, .06, C_UPRIGHT); boxInto(T, frame(x, zC - .62, 0), 0, 1.38, 0, .42, .28, .03, '#1b1b1f'); });
+    const pos = []; for (let x = 4.2; x < deskW/2 - 1; x += 5.5) pos.push(x, -x);
+    pos.forEach(x=>{ boxInto(T, frame(x, zC - .6, 0), 0, 1.17, 0, .06, .25, .06, C_UPRIGHT); boxInto(T, frame(x, zC - .62, 0), 0, 1.38, 0, .42, .28, .03, '#1b1b1f'); });
     // brand wall above the medicines: logo + green cross
     const disc = new THREE.Mesh(new THREE.BoxGeometry(1.25, 1.25, .08), std('#ffffff',{roughness:.3})); disc.position.set(-1.2, 3.55, zB + .06); scene.add(disc);
     const logo = logoPlane(1.04, 1.04); logo.position.set(-1.2, 3.55, zB + .11); scene.add(logo);
@@ -834,7 +852,7 @@ function build(renderer){
     const qp = planogram('quick', SD('quick').products, QG, {cycle:true, maxBays:4, noBrands:true});
     [-1,1].forEach((s, i) => {
       const bays = qp.slice(i*2, i*2+2);
-      gondolaFace(frame(s*(deskW/2 + .5), zC + 1.15, 0), bays.length ? bays : [null], 'quick', {G:QG, titleKey:'quick'});
+      gondolaFace(frame(s*Math.min(7.5, Wx - 3), zC + 1.0, 0), bays.length ? bays : [null], 'quick', {G:QG, titleKey:'quick'});
     });
   }
 
@@ -851,13 +869,13 @@ function build(renderer){
     spotAt(x, z, .6, .7, .5);
   }
   {
-    const zP = zF - 7.5, spread = Math.max(5.2, Math.min(Wx - 4, 13));
-    promoIsland('offers', -spread, zP); promoIsland('excl', -spread*.5, zP - 2.6);
-    promoIsland('trend', spread*.5, zP - 2.6); promoIsland('import', spread, zP);
+    const inner = 4.3, outer = Math.max(inner + 4.8, Math.min(Wx - 3.6, 11));
+    promoIsland('excl', -inner, ZP); promoIsland('trend', inner, ZP);
+    promoIsland('offers', -outer, ZP); promoIsland('import', outer, ZP);
   }
   // milk bundle table and the best-seller stand
   if (SD('milk')){
-    const x = 0, z = zF - 3.8, Fm = frame(x, z, 0);
+    const x = 0, z = zF - 3.2, Fm = frame(x, z, 0);
     boxInto(STRUCT, Fm, 0, .36, 0, 2.6, .72, 1.3, C_PINK); boxInto(STRUCT, Fm, 0, .74, 0, 2.7, .04, 1.4, '#ffffff');
     boxInto(STRUCT, Fm, 0, .9, -.1, 1.8, .3, .6, '#ffffff'); boxInto(STRUCT, Fm, 0, 1.2, -.1, 1.0, .3, .38, '#ffffff');
     const size = sizer('milk'), P = SD('milk').products; let i = 0;
@@ -869,7 +887,7 @@ function build(renderer){
     SEC.milk.focus = {pos:new THREE.Vector3(x + .3, EYE, z + 3), target:new THREE.Vector3(x, 1, z)};
   }
   if (SD('best')){
-    const x = 0, z = zF - 7.5, g = new THREE.Group(); g.position.set(x, 0, z); scene.add(g);
+    const x = 0, z = ZP, g = new THREE.Group(); g.position.set(x, 0, z); scene.add(g);
     [[1.35,.4],[1.0,.8],[.62,1.18]].forEach(([r,y],i)=>{
       const t = new THREE.Mesh(new THREE.CylinderGeometry(r, r, .4, 48), i===0 ? pinkMat : std('#ffffff',{roughness:.35})); t.position.y = y-.2; t.castShadow = t.receiveShadow = true; g.add(t);
       const rim = new THREE.Mesh(new THREE.TorusGeometry(r, .012, 6, 64), steelMat); rim.rotation.x = Math.PI/2; rim.position.y = y; g.add(rim);
@@ -921,22 +939,28 @@ function build(renderer){
   // section focus (first segment)
   mainKeys.forEach(k => {
     const sg = SEG.find(s => s.key === k);
-    if (k === 'meds'){ SEC.meds.focus = {pos:new THREE.Vector3(aisleCX(Math.floor(nA/2)) , EYE, zC + 2.4), target:new THREE.Vector3(0, 1.5, zB)}; return; }
+    if (k === 'meds'){ SEC.meds.focus = {pos:new THREE.Vector3(aisleCX(Math.floor(nA/2)) , EYE, zC + 2.2), target:new THREE.Vector3(0, 1.5, zB)}; return; }
     if (!sg) return;
     const z0 = zA0 - sg.s0*BW;
     SEC[k].focus = {pos:new THREE.Vector3(aisleCX(sg.aisle), EYE, z0 + 1.6), target:new THREE.Vector3(aisleCX(sg.aisle), 1.3, z0 - 4)};
   });
-  SEC.quick.focus = {pos:new THREE.Vector3(deskW/2 + .5, EYE, zC + 3.4), target:new THREE.Vector3(deskW/2 + .5, 1.0, zC + 1.1)};
+  SEC.quick.focus = {pos:new THREE.Vector3(Math.min(7.5, Wx - 3), EYE, zC + 3.0), target:new THREE.Vector3(Math.min(7.5, Wx - 3), 1.0, zC + 1.0)};
 
   // ---------- entrance & exit doors, security gates ----------
   const doors = [];
   {
     const frameMat = std('#c9c3c7',{metalness:.85, roughness:.25});
-    const glassMat = new THREE.MeshStandardMaterial({color:'#dfeef2', transparent:true, opacity:.16, roughness:.05, metalness:.2, envMapIntensity:1.2, depthWrite:false, side:THREE.DoubleSide});
+    const glassMat = new THREE.MeshStandardMaterial({color:'#bfe0e6', transparent:true, opacity:.26, roughness:.03, metalness:.35, envMapIntensity:1.6, depthWrite:false, side:THREE.DoubleSide});
     // fixed glass with mullions, leaving two door openings
     const openings = [[DOOR_OUT - 1.25, DOOR_OUT + 1.25], [DOOR_IN - 1.25, DOOR_IN + 1.25]];
     const segs = []; let x0 = -Wx; for (const [a0, a1] of openings){ segs.push([x0, a0]); x0 = a1; } segs.push([x0, Wx]);
+    // frosted window graphic band across the fixed glass
+    const decalTex = canvasTex(1024, 128, (x,W,Hh)=>{ x.clearRect(0,0,W,Hh); x.fillStyle='rgba(255,255,255,.78)'; x.fillRect(0, 18, W, 92); x.fillStyle = PINK_DEEP; x.textAlign='center'; x.textBaseline='middle'; x.direction='rtl'; x.font='800 52px "Almarai", Tahoma'; x.fillText('صيدلية اي براند', W*.3, 66); x.fillStyle = TEAL; x.fillRect(W*.62-12, 46, 24, 40); x.fillRect(W*.62-20, 54, 40, 24); x.fillStyle = PLUM; x.font='700 34px "Almarai", Tahoma'; x.fillText('صحتك وجمالك', W*.8, 66); });
+    decalTex.wrapS = THREE.RepeatWrapping;
+    const decalMat = new THREE.MeshBasicMaterial({map:decalTex, transparent:true, depthWrite:false, side:THREE.DoubleSide, toneMapped:false});
     segs.forEach(([a0, a1]) => { if (a1 - a0 < .05) return; const g = new THREE.Mesh(new THREE.PlaneGeometry(a1-a0, H), glassMat); g.position.set((a0+a1)/2, H/2, zF); scene.add(g);
+      const dm = decalMat.clone(); dm.map = decalTex.clone(); dm.map.needsUpdate = true; dm.map.repeat.set(Math.max(1, (a1-a0)/4.2), 1);
+      const dc = new THREE.Mesh(new THREE.PlaneGeometry(a1-a0, .5), dm); dc.position.set((a0+a1)/2, 1.25, zF - .01); scene.add(dc);
       for (let x = a0; x <= a1 + .01; x += Math.max(1.2, (a1-a0)/Math.max(1, Math.round((a1-a0)/2.6)))) { const m = new THREE.Mesh(new THREE.BoxGeometry(.08, H, .1), frameMat); m.position.set(x, H/2, zF); scene.add(m); } });
     const header = new THREE.Mesh(new THREE.BoxGeometry(fw, .5, .2), pinkMat); header.position.set(0, H-.25, zF-.05); scene.add(header);
     const entryLogo = logoPlane(1.0, 1.0); entryLogo.rotation.y = Math.PI; entryLogo.position.set(0, H-1.25, zF-.08); scene.add(entryLogo);
@@ -962,6 +986,85 @@ function build(renderer){
       const hit = new THREE.Mesh(new THREE.BoxGeometry(2.6, 2.5, .3), new THREE.MeshBasicMaterial({visible:false})); hit.position.set(x, 1.25, zF - .05); hit.userData.door = kind; scene.add(hit); doorTargets.push(hit);
       doors.push({x, leaves, kind});
     });
+  }
+
+  // ---------- outside, seen through the glass: pavement, road, parking and a Riyadh-style skyline ----------
+  {
+    const OW = fw + 80, OD = 34;
+    const gTex = canvasTex(1024, 512, (x,W,Hh)=>{
+      x.fillStyle = '#d9d4cc'; x.fillRect(0,0,W,Hh*.22);                       // pavement near the store
+      for (let i=0;i<W;i+=32) for (let j=0;j<Hh*.22;j+=32){ x.strokeStyle='rgba(120,110,100,.25)'; x.strokeRect(i,j,32,32); }
+      x.fillStyle = '#9c9690'; x.fillRect(0,Hh*.22,W,8);                         // kerb
+      x.fillStyle = '#4b4e52'; x.fillRect(0,Hh*.22+8,W,Hh);                      // asphalt
+      x.strokeStyle = '#f2f2f2'; x.lineWidth = 4; for (let i=0;i<W;i+=64){ x.beginPath(); x.moveTo(i, Hh*.26); x.lineTo(i, Hh*.5); x.stroke(); }
+      x.fillStyle = '#f5d33f'; for (let i=0;i<W;i+=80) x.fillRect(i, Hh*.7, 40, 6);
+    });
+    const ground = new THREE.Mesh(new THREE.PlaneGeometry(OW, OD), new THREE.MeshBasicMaterial({map:gTex}));
+    ground.rotation.x = -Math.PI/2; ground.position.set(0, -.01, zF + OD/2); scene.add(ground);
+    const skyTex = canvasTex(2048, 512, (x,W,Hh)=>{
+      const g = x.createLinearGradient(0,0,0,Hh); g.addColorStop(0,'#8ec5ea'); g.addColorStop(.7,'#d8ecf6'); g.addColorStop(1,'#f3e7d6'); x.fillStyle = g; x.fillRect(0,0,W,Hh);
+      let bx = 0; while (bx < W){ const bw = 60 + Math.random()*140, bh = 60 + Math.random()*170; x.fillStyle = `rgb(${200+Math.random()*25|0},${190+Math.random()*20|0},${178+Math.random()*20|0})`; x.fillRect(bx, Hh - bh, bw, bh);
+        x.fillStyle = 'rgba(110,140,160,.35)'; for (let wy = Hh - bh + 12; wy < Hh - 14; wy += 20) for (let wx = bx + 8; wx < bx + bw - 12; wx += 18) x.fillRect(wx, wy, 9, 11); bx += bw + 10 + Math.random()*40; }
+      x.fillStyle = '#c4b8a6'; x.beginPath(); x.moveTo(W*.55, Hh); x.lineTo(W*.57, Hh-330); x.lineTo(W*.59, Hh); x.fill();       // tower
+      for (let i=0;i<14;i++){ const px = Math.random()*W, ph = 90 + Math.random()*60; x.fillStyle = '#6b5a45'; x.fillRect(px, Hh-ph, 6, ph); x.fillStyle = '#4f7a3a';
+        for (let k=0;k<7;k++){ x.beginPath(); x.ellipse(px+3 + Math.cos(k)*20, Hh-ph + Math.sin(k)*6, 26, 7, k*.9, 0, 7); x.fill(); } }
+    });
+    const sky = new THREE.Mesh(new THREE.PlaneGeometry(OW, 26), new THREE.MeshBasicMaterial({map:skyTex}));
+    sky.rotation.y = Math.PI; sky.position.set(0, 11, zF + OD); scene.add(sky);
+    [-1,1].forEach(s => { const side = new THREE.Mesh(new THREE.PlaneGeometry(OD, 26), new THREE.MeshBasicMaterial({map:skyTex})); side.rotation.y = -s*Math.PI/2; side.position.set(s*OW/2, 11, zF + OD/2); scene.add(side); });
+    // canopy over the entrance
+    const canopy = new THREE.Mesh(new THREE.BoxGeometry(fw, .18, 2.2), pinkMat); canopy.position.set(0, H - .1, zF + 1.1); scene.add(canopy);
+  }
+
+  // ---------- steel carts filling the open spaces ----------
+  const C_CHROME = rgb('#c3c9cd'), C_WHEEL = rgb('#2b2d30');
+  // shopping trolley (nests in a row by the entrance)
+  function trolley(F){
+    const L = .85, W = .55, y0 = .42, y1 = .88;
+    [[-W/2],[W/2]].forEach(([x]) => { boxInto(STRUCT, F, x, (y0+y1)/2, 0, .012, y1-y0, L, C_CHROME); });
+    boxInto(STRUCT, F, 0, y1, 0, W, .015, L, C_CHROME); boxInto(STRUCT, F, 0, y0, 0, W, .012, L, C_CHROME);
+    for (let z = -L/2; z <= L/2 + .01; z += .085) [-W/2, W/2].forEach(x => boxInto(STRUCT, F, x, (y0+y1)/2, z, .008, y1-y0, .008, C_CHROME));
+    for (let x = -W/2; x <= W/2 + .01; x += .085) boxInto(STRUCT, F, x, (y0+y1)/2, L/2, .008, y1-y0, .008, C_CHROME);
+    boxInto(STRUCT, F, 0, 1.0, -L/2 - .08, W + .06, .03, .03, C_PINK);                       // handle
+    [-1,1].forEach(s => boxInto(STRUCT, F, s*W/2, .95, -L/2 - .04, .015, .14, .1, C_CHROME));
+    [-1,1].forEach(s => { boxInto(STRUCT, F, s*.22, .2, 0, .02, .02, L*.95, C_CHROME); boxInto(STRUCT, F, s*.22, .22, -L/2+.05, .02, .4, .02, C_CHROME); boxInto(STRUCT, F, s*.22, .22, L/2-.08, .02, .4, .02, C_CHROME); });
+    boxInto(STRUCT, F, 0, .18, 0, .42, .01, L*.8, C_CHROME);                                   // bottom tray
+    [[-.22,-L/2+.05],[.22,-L/2+.05],[-.22,L/2-.08],[.22,L/2-.08]].forEach(([x,z]) => boxInto(STRUCT, F, x, .05, z, .03, .09, .09, C_WHEEL));
+  }
+  // wire display bin on wheels, filled with real products
+  function wireBin(x, z, yaw, key, start){
+    const sd = SD(key); if (!sd) return;
+    const F = frame(x, z, yaw), W = 1.1, D = .62, y0 = .5, y1 = .9;
+    for (let xx = -W/2; xx <= W/2 + .01; xx += .07){ boxInto(STRUCT, F, xx, (y0+y1)/2, D/2, .007, y1-y0, .007, C_CHROME); boxInto(STRUCT, F, xx, (y0+y1)/2, -D/2, .007, y1-y0, .007, C_CHROME); }
+    for (let zz = -D/2; zz <= D/2 + .01; zz += .07){ boxInto(STRUCT, F, W/2, (y0+y1)/2, zz, .007, y1-y0, .007, C_CHROME); boxInto(STRUCT, F, -W/2, (y0+y1)/2, zz, .007, y1-y0, .007, C_CHROME); }
+    [y0, y1, (y0+y1)/2].forEach(y => { boxInto(STRUCT, F, 0, y, D/2, W, .012, .012, C_CHROME); boxInto(STRUCT, F, 0, y, -D/2, W, .012, .012, C_CHROME); boxInto(STRUCT, F, W/2, y, 0, .012, .012, D, C_CHROME); boxInto(STRUCT, F, -W/2, y, 0, .012, .012, D, C_CHROME); });
+    boxInto(STRUCT, F, 0, y0, 0, W, .015, D, C_SHELF);
+    [[-1,-1],[1,-1],[-1,1],[1,1]].forEach(([a,b]) => { boxInto(STRUCT, F, a*(W/2-.03), y0/2 + .05, b*(D/2-.03), .025, y0 - .06, .025, C_CHROME); boxInto(STRUCT, F, a*(W/2-.03), .045, b*(D/2-.03), .05, .08, .07, C_WHEEL); });
+    boxInto(STRUCT, F, 0, .25, 0, W - .06, .012, D - .06, C_CHROME);                           // lower rack
+    // products: two rows standing in the bin
+    const size = sizer(key), P = sd.products; let i = start || 0;
+    [D/2 - .12, -.02].forEach((zz, row) => { let xx = -W/2 + .04; while (true){ const p = P[i % P.length], [w,h,d] = size(p, .42, .9); if (xx + w > W/2 - .03) break; putProduct(key, F, xx + w/2, y0 + .01 + row*.02, zz, w, h, d, p, 1); xx += w + .012; i++; } });
+    // price card on a pole
+    const card = lightbox(SEC[key].name, .62, {bg:PINK, fg:'#ffffff'}); const cp = F.at(0, 1.32, 0); card.position.set(cp[0], cp[1], cp[2]); card.rotation.y = yaw; scene.add(card);
+    const pole = F.at(0, 1.1, 0); const pm = new THREE.Mesh(new THREE.CylinderGeometry(.01,.01,.4,8), steelMat); pm.position.set(pole[0], pole[1], pole[2]); scene.add(pm);
+    const c1 = F.at(-W/2, 0, -D/2), c2 = F.at(W/2, 0, D/2);
+    OBSTACLES.push({box:{x0:Math.min(c1[0],c2[0]) - .3, x1:Math.max(c1[0],c2[0]) + .3, z0:Math.min(c1[2],c2[2]) - .3, z1:Math.max(c1[2],c2[2]) + .3}});
+    return i;
+  }
+  {
+    // trolleys nested along the glass beside the entrance, and a stack of baskets
+    for (let k = 0; k < 6; k++) trolley(frame(DOOR_IN + 2.0 + k*.32, zF - .75, Math.PI/2));
+    OBSTACLES.push({box:{x0:DOOR_IN + 1.4, x1:DOOR_IN + 4.3, z0:zF - 1.3, z1:zF}});
+    const bk = frame(DOOR_IN - 1.9, zF - 1.6, 0);
+    for (let k = 0; k < 7; k++){ boxInto(STRUCT, bk, 0, .08 + k*.06, 0, .5, .05, .36, '#d64f8e'); }
+    boxInto(STRUCT, bk, 0, .03, 0, .56, .06, .42, C_UPRIGHT);
+    OBSTACLES.push({x: DOOR_IN - 1.9, z: zF - 1.6, r:.35});
+    // wire bins along the side walls of the entrance zone, and at both ends of the counter aisle
+    const keysCycle = ['offers', 'quick', 'trend', 'excl', 'import', 'milk'].filter(k => SD(k));
+    let n = 0, idx = {};
+    const bin = (x, z, yaw) => { const k = keysCycle[n++ % keysCycle.length]; if (!k) return; idx[k] = wireBin(x, z, yaw, k, idx[k] || 0); };
+    [-1, 1].forEach(s => { for (let z = zF - 2.2; z > zA0 + 1.0; z -= 1.75) bin(s*(Wx - .7), z, -s*Math.PI/2); });
+    [-1, 1].forEach(s => { bin(s*(Wx - .7), zA1 - 1.0, -s*Math.PI/2); bin(s*(Wx - .7), zC + 1.1, -s*Math.PI/2); });
   }
 
   // ---------- digital signage screens ----------
@@ -1061,7 +1164,7 @@ function build(renderer){
     const b = document.createElement('button'); b.className = 'chip' + (sec.promo ? ' offer' : ''); b.type='button'; b.textContent = sec.name; b.setAttribute('aria-pressed','false');
     b.addEventListener('click', () => select(sec, true)); chips.appendChild(b); chipEls[sec.key] = b;
   });
-  { const b = document.createElement('button'); b.className = 'chip svc'; b.type='button'; b.textContent = 'اسأل الصيدلي'; b.addEventListener('click', () => { flyTo(new THREE.Vector3(staff[0].position.x * .4, EYE, zC + 2.4), new THREE.Vector3(staff[0].position.x, 1.55, zC - 1.2)); openService(false); }); chips.appendChild(b); }
+  { const b = document.createElement('button'); b.className = 'chip svc'; b.type='button'; b.textContent = 'اسأل الصيدلي'; b.addEventListener('click', () => { flyTo(new THREE.Vector3(staff[0].position.x * .4, EYE, zC + 2.2), new THREE.Vector3(staff[0].position.x, 1.55, zC - 1.2)); openService(false); }); chips.appendChild(b); }
   const panel = $('#panel'); let current = null, qty = 1;
   function markChip(key){ Object.entries(chipEls).forEach(([k,el])=>el.setAttribute('aria-pressed', k===key ? 'true':'false')); }
   function select(sec, fromChip){
