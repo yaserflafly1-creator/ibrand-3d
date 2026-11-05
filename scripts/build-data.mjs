@@ -21,6 +21,12 @@ const PLACEHOLDER_REFS = [
   'https://cdn.salla.sa/yKErG/WntfW7079ljQkWCWqHY8ZGpu4ydKsU7vXY7ShCYJ.jpg',
   'https://cdn.salla.sa/yKErG/dfGGyay6RVx5j0fTSNFONyFVzgx1YXrcubBzjLMS.jpg',
   'https://cdn.salla.sa/yKErG/qncTARQ1yVcArz7QnoZqDnj6pJh349NhA28h7L8d.jpg',
+  'https://cdn.salla.sa/yKErG/DQJxfNTStMVIGuLzSm4yMNxX7DLC1ORh4AeOl5sm.jpg',
+  'https://cdn.salla.sa/yKErG/SMgzimibyYY524qLIh6EJGCz6vvyMJlOMXTX6lQb.jpg',
+  'https://cdn.salla.sa/yKErG/T4JKe3Gt1TAmlSaCeLwgfl9DSltuBJvUpsu7YH6d.jpg',
+  'https://cdn.salla.sa/yKErG/qcAvBCkUX0KcKE7ipxffheLnACqPwfV1LAtvacea.jpg',
+  'https://cdn.salla.sa/yKErG/3V01ZVsXRg8W9OdwEcyjrwWqg6n7stSOssbEobMh.jpg',
+  'https://cdn.salla.sa/yKErG/ip8sI1tkEfyOD5UdcOEAWfwA2nJg1uvYTXQELFN7.jpg',
 ];
 // 256-bit perceptual hash (dHash): robust to re-encoding
 async function dHash(buf){
@@ -319,8 +325,13 @@ async function main(){
     } catch (e){ console.warn('placeholder ref', u.slice(-20), e.message); }
   }
   console.log('placeholder refs loaded:', refAh.length);
-  for (const [img, m] of metaByImg)
-    if ((m.psig && refPsig.has(m.psig)) || (m.ah && refAh.some(a => hamming(a, m.ah) <= 10))) ph.add(img);
+  let nearest = 999;
+  for (const [img, m] of metaByImg){
+    const d = m.ah ? Math.min(...refAh.map(a => hamming(a, m.ah))) : 999;
+    nearest = Math.min(nearest, d);
+    if ((m.psig && refPsig.has(m.psig)) || d <= 10) ph.add(img);
+  }
+  console.log('placeholder nearest hamming across catalog:', nearest);
   for (const u of uniqImgs) if (/placeholder|no[-_]?image/i.test(u)) ph.add(u);
   let hiddenPh = 0;
   for (const k of Object.keys(main)){ const n0 = main[k].length; main[k] = main[k].filter(p => !ph.has(p.img)); hiddenPh += n0 - main[k].length; }
