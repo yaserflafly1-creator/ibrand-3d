@@ -741,6 +741,23 @@ function build(renderer){
     }
   }
 
+  // end-panel graphics (cached per section name)
+  const endGeo = new THREE.PlaneGeometry(GONDOLA.d - .02, GONDOLA.h - .14), endCache = {};
+  function endMat(nm){
+    if (endCache[nm]) return endCache[nm];
+    const t = canvasTex(256, 864, (x, W, Hh) => {
+      const g = x.createLinearGradient(0, 0, 0, Hh); g.addColorStop(0, '#f08bbb'); g.addColorStop(1, '#c9518b'); x.fillStyle = g; x.fillRect(0, 0, W, Hh);
+      x.fillStyle = 'rgba(255,255,255,.12)'; for (let i = 0; i < 8; i++){ x.beginPath(); x.arc(W*.9, 80 + i*110, 50 + i*6, 0, 7); x.fill(); }
+      x.fillStyle = '#ffffff'; x.fillRect(W/2-12, 70, 24, 72); x.fillRect(W/2-36, 94, 72, 24);
+      x.textAlign = 'center'; x.textBaseline = 'middle'; x.direction = 'rtl'; x.fillStyle = '#ffffff';
+      const words = nm.split(' '), lines = []; let cur = '';
+      words.forEach(w => { const t2 = cur ? cur + ' ' + w : w; x.font = '800 44px "Almarai", Tahoma'; if (x.measureText(t2).width > W - 36 && cur){ lines.push(cur); cur = w; } else cur = t2; }); if (cur) lines.push(cur);
+      lines.forEach((ln, j) => { fitText(x, ln, W - 30, 800, 46); x.fillText(ln, W/2, 300 + j*60 - (lines.length-1)*30); });
+      x.fillStyle = 'rgba(255,255,255,.95)'; x.fillRect(22, Hh - 96, W - 44, 58); x.fillStyle = PINK_DEEP; fitText(x, 'صيدلية اي براند', W - 70, 800, 30); x.fillText('صيدلية اي براند', W/2, Hh - 66);
+    });
+    return endCache[nm] = new THREE.MeshStandardMaterial({map:t, roughness:.45, envMapIntensity:.5});
+  }
+
   // build a gondola face of `bays` (array of planogram bays or null for empty) at frame F; local x from 0..n*BW
   function gondolaFace(F, bays, key, opts={}){
     const G = opts.G || GONDOLA, n = bays.length, Wd = n * BW, d = G.d, x0 = -Wd/2;
@@ -759,7 +776,12 @@ function build(renderer){
     });
     // ambient occlusion on the floor along the kick plate
     { const z0 = d/2 + .32, z1 = d/2 - .02; quad(AOL, [F.at(x0-.05, .002, z0), F.at(x0+Wd+.05, .002, z0), F.at(x0+Wd+.05, .002, z1), F.at(x0-.05, .002, z1)], [0,1,0], C_WHITE, null, [0,0, 1,0, 1,1, 0,1]); }
-    if (opts.endPanels !== false) [-1,1].forEach(s => boxInto(STRUCT, F, s*(Wd/2), G.h/2, 0, .025, G.h, d, '#dfe3e6'));
+    if (opts.endPanels !== false) [-1,1].forEach(s => {
+      boxInto(STRUCT, F, s*(Wd/2), G.h/2, 0, .025, G.h, d, '#dfe3e6');
+      // designed graphic on the outside of every end panel: the section's name
+      const nm = opts.titleKey && SEC[opts.titleKey] ? SEC[opts.titleKey].name : (SEC[key] ? SEC[key].name : '');
+      if (nm && G === GONDOLA){ const c = F.at(s*(Wd/2 + .014), 0, 0), m = new THREE.Mesh(endGeo, endMat(nm)); m.position.set(c[0], .12 + (G.h-.14)/2, c[2]); m.rotation.y = F.yaw + s*Math.PI/2; scene.add(m); }
+    });
     // products
     bays.forEach((bay, b) => {
       if (!bay) return;
