@@ -742,7 +742,8 @@ function build(renderer){
   }
 
   // end-panel graphics (cached per section name)
-  const endGeo = new THREE.PlaneGeometry(GONDOLA.d - .02, GONDOLA.h - .14), endCache = {};
+  const endGeos = {}, endCache = {};
+  const endGeoFor = G => endGeos[G.d + 'x' + G.h] || (endGeos[G.d + 'x' + G.h] = new THREE.PlaneGeometry(G.d - .02, G.h - .14));
   function endMat(nm){
     if (endCache[nm]) return endCache[nm];
     const t = canvasTex(256, 864, (x, W, Hh) => {
@@ -780,7 +781,7 @@ function build(renderer){
       boxInto(STRUCT, F, s*(Wd/2), G.h/2, 0, .025, G.h, d, '#dfe3e6');
       // designed graphic on the outside of every end panel: the section's name
       const nm = opts.titleKey && SEC[opts.titleKey] ? SEC[opts.titleKey].name : (SEC[key] ? SEC[key].name : '');
-      if (nm && G === GONDOLA){ const c = F.at(s*(Wd/2 + .014), 0, 0), m = new THREE.Mesh(endGeo, endMat(nm)); m.position.set(c[0], .12 + (G.h-.14)/2, c[2]); m.rotation.y = F.yaw + s*Math.PI/2; scene.add(m); }
+      if (nm){ const c = F.at(s*(Wd/2 + .014), 0, 0), m = new THREE.Mesh(endGeoFor(G), endMat(nm)); m.position.set(c[0], .12 + (G.h-.14)/2, c[2]); m.rotation.y = F.yaw + s*Math.PI/2; scene.add(m); }
     });
     // products
     bays.forEach((bay, b) => {
