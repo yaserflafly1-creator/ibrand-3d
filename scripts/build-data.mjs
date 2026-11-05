@@ -11,7 +11,7 @@ import sharp from 'sharp';
 const STORE_ID = '1972477543';
 const API = 'https://api.salla.dev/store/v1';
 const OUT = process.env.OUT || 'site';
-const CACHE = '.cache/tiles-hd';
+const CACHE = '.cache/tiles3';
 const TILE = 128, HD = 256, PC = 16, PR = 16, PER_PAGE = PC * PR, QR = 4;   // 2048² page (+1024² phone page) and HD quarters of 4 rows at 256 px (4096×1024)
 const PROMO_MAX = 240;
 
@@ -85,7 +85,7 @@ const fullImg = s => s.startsWith('http') ? s : 'https://cdn.salla.sa/yKErG/' + 
 
 // ---------- image cut-out (cached by image URL) ----------
 function cutout(data, w, h){
-  const near = i => data[i] > 236 && data[i+1] > 236 && data[i+2] > 236;
+  const near = i => data[i] > 247 && data[i+1] > 247 && data[i+2] > 247;
   const mark = new Uint8Array(w * h), stack = [];
   for (let x = 0; x < w; x++){ stack.push(x, (h-1)*w + x); }
   for (let y = 0; y < h; y++){ stack.push(y*w, y*w + w - 1); }
@@ -115,10 +115,25 @@ async function makeTile(imgUrl){
   const S = 600;
   const { data, info } = await sharp(buf).rotate().flatten({ background: '#ffffff' }).resize(S, S, { fit: 'contain', background: '#ffffff' }).ensureAlpha().raw().toBuffer({ resolveWithObject: true });
   const res = cutout(data, info.width, info.height);
-  if (!res.box || res.kept < 0.04 || res.kept > 0.97){
-    const png = await sharp(buf).rotate().flatten({ background:'#ffffff' }).resize(HD, HD, { fit:'cover' }).png().toBuffer();
-    return { png, meta: { aspect: 1, card: true, rect: 1, c: '#eeeeee' } };
+  const sig = crypto.createHash('sha1').update(buf).digest('hex').slice(0, 16);
+  // how pink is what survived the cut-out? (identifies the store's "no photo" pink camera card)
+  let pkN = 0, pkP = 0;
+  for (let i = 3; i < data.length; i += 4){
+    if (!data[i]) continue; pkN++;
+    const r = data[i-3], g = data[i-2], bl = data[i-1];
+    if (r > 180 && r - g > 45 && bl >= g - 15) pkP++;
   }
+  const pk = pkN ? +(pkP / pkN).toFixed(2) : 0;
+  const asCard = async () => {
+    const png = await sharp(buf).rotate().flatten({ background:'#ffffff' }).resize(HD, HD, { fit:'cover' }).png().toBuffer();
+    return { png, meta: { aspect: 1, card: true, rect: 1, c: '#eeeeee', sig, pk } };
+  };
+  if (!res.box || res.kept < 0.04 || res.kept > 0.97) return asCard();
+  // the flood leaked into the product itself (white bottles, cream tubs): keep the photo on a card instead
+  { const b = res.box, cx0 = b.left + (b.width*.3|0), cx1 = b.left + (b.width*.7|0), cy0 = b.top + (b.height*.3|0), cy1 = b.top + (b.height*.7|0);
+    let tot = 0, hole = 0;
+    for (let y = cy0; y < cy1; y += 2) for (let x = cx0; x < cx1; x += 2){ tot++; if (data[(y*info.width + x)*4 + 3] === 0) hole++; }
+    if (tot && hole / tot > 0.12) return asCard(); }
   const b = res.box, aspect = b.width / b.height;
   let opaque = 0, er = 0, eg = 0, eb = 0, en = 0;
   const band = Math.max(2, Math.round(Math.min(b.width, b.height) * .08));
@@ -128,7 +143,7 @@ async function makeTile(imgUrl){
   }
   const hex = v => Math.round(v).toString(16).padStart(2, '0');
   const png = await sharp(data, { raw: info }).extract(b).resize(HD, HD, { fit: 'contain', background: { r:0, g:0, b:0, alpha:0 } }).png().toBuffer();
-  return { png, meta: { aspect: +aspect.toFixed(3), card: false, rect: +(opaque / (b.width*b.height)).toFixed(2), c: en ? '#' + hex(er/en) + hex(eg/en) + hex(eb/en) : '#dddddd' } };
+  return { png, meta: { aspect: +aspect.toFixed(3), card: false, rect: +(opaque / (b.width*b.height)).toFixed(2), c: en ? '#' + hex(er/en) + hex(eg/en) + hex(eb/en) : '#dddddd', sig, pk } };
 }
 
 const tileStats = { cached: 0, made: 0, failed: 0 };
@@ -250,8 +265,26 @@ async function main(){
     main[k].sort((a, b) => si(a) - si(b) || (!a.brand) - (!b.brand) || cnt[b.sub + '|' + b.brand] - cnt[a.sub + '|' + a.brand] || a.brand.localeCompare(b.brand, 'ar') || a.name.localeCompare(b.name, 'ar'));
   }
 
+  // 4.5) hide the pink "no photo yet" placeholder: identical image content under many different URLs
+  const everything = [...Object.values(main).flat(), ...Object.values(promo).flat()];
+  const uniqImgs = [...new Set(everything.map(p => p.img))];
+  const metaByImg = new Map();
+  await pool(uniqImgs, 8, async img => { try { metaByImg.set(img, (await tileFor(img)).meta); } catch {} });
+  const bySig = new Map();
+  for (const [img, m] of metaByImg){ if (!m.sig) continue; if (!bySig.has(m.sig)) bySig.set(m.sig, []); bySig.get(m.sig).push(img); }
+  const ph = new Set();
+  for (const imgs of bySig.values()){
+    const m = metaByImg.get(imgs[0]);
+    if (imgs.length >= 4 && (m.pk || 0) >= .5) imgs.forEach(u => ph.add(u));
+  }
+  for (const u of uniqImgs) if (/placeholder|no[-_]?image/i.test(u)) ph.add(u);
+  let hiddenPh = 0;
+  for (const k of Object.keys(main)){ const n0 = main[k].length; main[k] = main[k].filter(p => !ph.has(p.img)); hiddenPh += n0 - main[k].length; }
+  for (const k of Object.keys(promo)) promo[k] = promo[k].filter(p => !ph.has(p.img));
+  console.log('hidden placeholder photos:', hiddenPh);
+
   // 5) textures
-  const result = { v: 2, generated: new Date().toISOString(), tile: TILE, storeUrl: 'https://ibrand.com.sa/ar/', imgBase: 'https://cdn.salla.sa/yKErG/', sections: {}, mainKeys: Object.keys(main), promoKeys: Object.keys(promo) };
+  const result = { v: 2, build: Date.now().toString(36), generated: new Date().toISOString(), tile: TILE, storeUrl: 'https://ibrand.com.sa/ar/', imgBase: 'https://cdn.salla.sa/yKErG/', sections: {}, mainKeys: Object.keys(main), promoKeys: Object.keys(promo) };
   for (const [k, items] of [...Object.entries(main), ...Object.entries(promo)]){
     if (!items.length) continue;
     result.sections[k] = await packSection(k, items);

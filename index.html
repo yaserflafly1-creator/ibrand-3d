@@ -280,7 +280,7 @@ const SEC = Object.fromEntries(SECTIONS.map(s=>[s.key, s]));
 const $ = s => document.querySelector(s);
 const reduceMotion = matchMedia('(prefers-reduced-motion: reduce)').matches;
 const isSmall = Math.min(innerWidth, innerHeight) < 700 || matchMedia('(pointer: coarse)').matches;
-let DATA = null;
+let DATA = null, AV = '';
 const OBSTACLES = [];
 const store = { get(k, d){ try { const v = localStorage.getItem(k); return v ? JSON.parse(v) : d; } catch(e){ return d; } }, set(k, v){ try { localStorage.setItem(k, JSON.stringify(v)); } catch(e){} } };
 const money = v => (Math.round(v*100)/100).toLocaleString('en-US', {minimumFractionDigits:2, maximumFractionDigits:2}) + ' ر.س';
@@ -311,7 +311,9 @@ function normalize(d){
   try { await Promise.race([Promise.all([document.fonts.load('800 80px "Almarai"'), document.fonts.load('400 40px "Almarai"')]), new Promise(r=>setTimeout(r,2500))]); } catch(e){}
   let renderer;
   try { renderer = new THREE.WebGLRenderer({antialias:!isSmall || devicePixelRatio < 2, powerPreference:'high-performance'}); } catch(e){ return showFallback(); }
-  try { const r = await fetch('data/products.json', {cache:'no-cache'}); if (r.ok) DATA = normalize(await r.json()); } catch(e){}
+  try { const r = await fetch('data/products.json?t=' + Date.now(), {cache:'no-store'}); if (r.ok) DATA = normalize(await r.json()); } catch(e){}
+  // pin every atlas image to this data build, so a cached image can never mix with newer data (or the reverse)
+  AV = DATA && DATA.build ? '?v=' + DATA.build : '';
   try { build(renderer); } catch(e){ console.error(e); showFallback(); }
 })();
 
@@ -531,7 +533,7 @@ function build(renderer){
   }
   function srcFor(pm, lvl){
     const sd = DATA.sections[pm.key], pg = sd.pages[pm.pg];
-    return lvl === 2 ? pg.hd[pm.q].src : lvl === 1 ? pg.src : sd.pagesM[pm.pg];
+    return (lvl === 2 ? pg.hd[pm.q].src : lvl === 1 ? pg.src : sd.pagesM[pm.pg]) + AV;
   }
   function updatePages(){
     const cp = camera.position;
@@ -1328,7 +1330,7 @@ function build(renderer){
       scene.add(meshOf(STICK, new THREE.MeshBasicMaterial({map:st, transparent:true, alphaTest:.3, toneMapped:false})));
     }
     scene.add(meshOf(HDR, new THREE.MeshBasicMaterial({vertexColors:true, toneMapped:false})));
-    if (HLOGO.idx.length && BA) scene.add(meshOf(HLOGO, new THREE.MeshBasicMaterial({map:sRGB(texLoader.load(BA.src)), toneMapped:false})));
+    if (HLOGO.idx.length && BA) scene.add(meshOf(HLOGO, new THREE.MeshBasicMaterial({map:sRGB(texLoader.load(BA.src + AV)), toneMapped:false})));
     if (HTITLE.idx.length) scene.add(meshOf(HTITLE, new THREE.MeshBasicMaterial({map:titleTex, toneMapped:false})));
   }
   updatePages(); setInterval(updatePages, 350);
