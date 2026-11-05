@@ -1080,6 +1080,44 @@ function build(renderer){
     gondolaFace(frame(x, zA0 + GONDOLA.d/2 + .05, 0), bay, seg.key, {});
   }
 
+  // ---------- top-selling brand stands along the glass front ----------
+  // the open floor by the windows: one 2-bay stand per brand, ranked by units sold storewide
+  {
+    const G2 = {h:1.7, d:.45, levels:[.15, .55, .95, 1.35]};
+    const soldOf = p => p.sold || 0;
+    const agg = {};
+    mainKeys.forEach(k => { SD(k).products.forEach(p => {
+      if (!p.brandId || !p.brand) return;
+      const a = agg[p.brandId] || (agg[p.brandId] = {id:p.brandId, name:p.brand, sold:0, n:0, per:{}});
+      a.sold += soldOf(p); a.n++; a.per[k] = (a.per[k] || 0) + 1;
+    }); });
+    const ranked = Object.values(agg).sort((a, b) => (b.sold - a.sold) || (b.n - a.n)).slice(0, 12);
+    // slots along the glass, clear of the doors, the nested trolleys and the basket stack
+    const SW = 2*BW + .1, GAP = .95, zS = zF - 1.2;
+    const slots = [];
+    [[DOOR_IN + 5.0, Wx - 1.6], [-(Wx - 1.6), DOOR_OUT - 2.2]].forEach(([a, b]) => {
+      if (b - a < SW) return;
+      const m = Math.floor((b - a + GAP) / (SW + GAP)), pad = (b - a - m*SW - (m - 1)*GAP) / 2;
+      for (let i = 0; i < m; i++) slots.push(a + pad + SW/2 + i*(SW + GAP));
+    });
+    slots.sort((a, b) => Math.abs(a) - Math.abs(b));           // best sellers nearest the entrance
+    const placed = ranked.slice(0, slots.length);
+    placed.forEach((br, i) => {
+      const secKey = Object.entries(br.per).sort((x, y) => y[1] - x[1])[0][0];
+      const list = SD(secKey).products.filter(p => p.brandId === br.id).sort((a, b) => soldOf(b) - soldOf(a));
+      if (!list.length) return;
+      const bays = planogram(secKey, list, G2, {cycle:true, maxBays:2, noBrands:true});
+      const hdr = {id:'b:' + br.id, brandId:br.id, name:br.name, big:true};
+      bays.forEach(b2 => b2.hdr = hdr);
+      gondolaFace(frame(slots[i], zS, Math.PI), bays, secKey, {G:G2});
+    });
+    if (placed.length) [-1, 1].forEach(s => {
+      const xs = slots.slice(0, placed.length).filter(x => s*x > 0); if (!xs.length) return;
+      const cx = xs.reduce((a, b) => a + b, 0) / xs.length;
+      hang(lightbox('ماركاتنا الأكثر مبيعاً ★', 2.8, {bg:PLUM, fg:'#ffffff'}), cx, 3.05, zS - .9, 1.2, 0);
+    });
+  }
+
   // ---------- aisle signs: number + sections, and a sign where each section starts ----------
   for (let a2 = 0; a2 < nA; a2++){
     const segs = SEG.filter(s => s.aisle === a2); if (!segs.length) continue;
@@ -1540,12 +1578,34 @@ function build(renderer){
   function setPano(on){ pano = on && !reduceMotion; panoBtn.setAttribute('aria-pressed', pano ? 'true' : 'false'); if (pano) view.pitch = 0; }
   panoBtn.addEventListener('click', () => { hideHint(); flight = null; setPano(!pano); });
 
+  // ---------- adaptive quality: step the resolution down until the device runs smoothly ----------
+  const DPRS = isSmall ? [1.6, 1.3, 1.05, .85] : [2, 1.6, 1.35, 1.1];
+  let qIdx = 0, fpsN = 0, fpsT = performance.now(), slowRuns = 0;
+  const bootT = performance.now();
+  function applyDpr(){
+    renderer.setPixelRatio(Math.min(devicePixelRatio, DPRS[qIdx]));
+    renderer.setSize(stage.clientWidth, stage.clientHeight);
+    /*V2_PP_RESIZE*/
+  }
+  function degrade(){
+    if (qIdx < DPRS.length - 1){ qIdx++; applyDpr(); return; }
+    /*V2_EXTRA_DEGRADE*/
+  }
+  function fpsTick(now){
+    fpsN++;
+    if (now - fpsT < 1000) return;
+    const fps = fpsN * 1000 / (now - fpsT); fpsN = 0; fpsT = now;
+    if (document.hidden || flight || now - bootT < 5000){ slowRuns = 0; return; }
+    if (fps < 40){ if (++slowRuns >= 2){ slowRuns = 0; degrade(); } } else slowRuns = 0;
+  }
+
   // ---------- loop ----------
   const ease = t => t<.5 ? 4*t*t*t : 1-Math.pow(-2*t+2,3)/2;
   let last = performance.now();
   const headTmp = new THREE.Vector3();
   renderer.setAnimationLoop(now => {
     const dt = Math.min(.05, (now - last)/1000); last = now;
+    fpsTick(now);
     if (flight){
       const k = Math.min(1, (now-flight.start)/flight.dur), e = ease(k);
       camera.position.lerpVectors(flight.p0, flight.p1, e); view.yaw = flight.y0 + flight.dy*e; view.pitch = flight.pt0 + (flight.pt1 - flight.pt0)*e;

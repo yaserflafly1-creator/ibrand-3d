@@ -78,6 +78,7 @@ function toItem(p){
     img: short(p.image && p.image.url, 'https://cdn.salla.sa/yKErG/'),
     brand: (p.brand && p.brand.name || '').trim(), brandId: p.brand && p.brand.id ? String(p.brand.id) : '',
     price: priceOf(p), regular: num(p.regular_price) || num(p.price) || null, onSale: !!p.is_on_sale,
+    sold: num(p.sold_quantity) || 0,
   };
 }
 const fullImg = s => s.startsWith('http') ? s : 'https://cdn.salla.sa/yKErG/' + s;
