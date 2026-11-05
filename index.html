@@ -438,8 +438,8 @@ function build(renderer){
       if (u !== unit){
         const wasBig = unit !== null && unit.startsWith('b:'), newGroup = group !== null && g !== group;
         if (bay.items.length && (wasBig || newGroup || big(p))){
-          let r = 'ok';
-          if (wasBig || newGroup) r = topUp(start, i);
+          // never leave half-empty shelves: fill the rest of the bay with more of what just ended
+          let r = topUp(start, i);
           if (r === 'end') break;
           if (bay.items.length && !newBay()) break;
         }
@@ -451,6 +451,8 @@ function build(renderer){
       if (r === 'ok') i++;
       else if (r === 'bay') bay.hdr = hdrOf(p);
     }
+    // the section's last bay is topped up too
+    if (!opts.cycle && bay && bay.items.length && i >= N) topUp(start, N);
     if (bays.length && !bays[bays.length-1].items.length) bays.pop();
     return bays;
   }

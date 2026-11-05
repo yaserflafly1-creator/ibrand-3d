@@ -9,6 +9,7 @@ on:
 
 permissions:
   contents: read
+  deployments: read
   pages: write
   id-token: write
 
@@ -57,5 +58,13 @@ jobs:
       name: github-pages
       url: ${{ steps.deployment.outputs.page_url }}
     steps:
+      - name: Clear a stuck earlier deployment
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          for sha in $( (gh api "repos/${{ github.repository }}/deployments?environment=github-pages&per_page=10" --jq '.[].sha'; echo fdb8fd118c361dc506296bdbbf07fc52d9a9f741) | sort -u); do
+            [ "$sha" = "${{ github.sha }}" ] && continue
+            gh api -X POST "repos/${{ github.repository }}/pages/deployments/$sha/cancel" >/dev/null 2>&1 || true
+          done
       - id: deployment
         uses: actions/deploy-pages@v4
