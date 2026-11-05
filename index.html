@@ -719,10 +719,10 @@ function build(renderer){
   function priceTag(F, cx, y, z, p){
     if (typeof p.price !== 'number') return;
     const sale = p.onSale && p.regular > p.price, a = F.at, n = F.n(0,0,1);
-    const tw = .11, th = sale ? .066 : .044, top = y - .008, ty = top - th;
+    const tw = .11, th = sale ? .07 : .045, top = y - .014, ty = top - th;
     quad(PTAG, [a(cx-tw/2,ty,z), a(cx+tw/2,ty,z), a(cx+tw/2,top,z), a(cx-tw/2,top,z)], n, sale ? C_SALE : C_TAG);
     quad(PTAG, [a(cx-tw/2,top-.006,z+.0005), a(cx+tw/2,top-.006,z+.0005), a(cx+tw/2,top,z+.0005), a(cx-tw/2,top,z+.0005)], n, sale ? C_SALEBAR : C_TAGBAR);
-    const [ri, hh] = p.price.toFixed(2).split('.'), big = .021, small = .012, cur = .019, zz = z + .001;
+    const [ri, hh] = p.price.toFixed(2).split('.'), big = .021, small = .012, cur = .024, zz = z + .001;
     const total = runW(ri, big) + runW(hh, small) + .003 + cur;
     let xr = cx + total/2, yb = ty + .006;
     // ر.س at the right end
@@ -732,7 +732,7 @@ function build(renderer){
     xr = numRun(a, n, hh, xr, yb + big - small, small, zz);     // halalas: small and raised
     numRun(a, n, ri, xr, yb, big, zz);                          // riyals: big
     if (sale){
-      const os = p.regular.toFixed(2), oc = .011, ow = runW(os, oc), ox = cx + ow/2, oy = top - .006 - .004 - oc;
+      const os = p.regular.toFixed(2), oc = .0135, ow = runW(os, oc), ox = cx + ow/2, oy = top - .006 - .005 - oc;
       numRun(a, n, os, ox, oy, oc, zz);
       quad(PTAG, [a(ox-ow-.002,oy+oc*.42,zz+.0005), a(ox+.002,oy+oc*.42,zz+.0005), a(ox+.002,oy+oc*.58,zz+.0005), a(ox-ow-.002,oy+oc*.58,zz+.0005)], n, C_STRIKE);
     }
@@ -763,7 +763,7 @@ function build(renderer){
       const bx = x0 + b*BW;
       bay.items.forEach(it => {
         putProduct(key, F, bx + it.x, it.y, d/2 - .1 - (it.back || 0), it.w, it.h, it.d, it.p, isBox(it.p) ? ROWS : 1, it.yaw || 0);
-        if (it.first !== false) priceTag(F, bx + it.x, it.y, d/2 - .0375, it.p);
+        if (it.first !== false) priceTag(F, bx + it.x, it.y, d/2 - .025, it.p);
       });
     });
     // headers: merge neighbouring bays that share a brand (or the section name)
