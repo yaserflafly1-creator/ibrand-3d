@@ -261,17 +261,17 @@ async function main(){
     const n = {}; sec.products.forEach(p => { if (p.brandId) n[p.brandId] = (n[p.brandId]||0) + 1; });
     sec.products.forEach(p => { if (p.brandId && n[p.brandId] > 10) want.set(p.brandId, p.brand); });
   }
-  const logoUrl = {};
+  const logoUrl = {}, logoByName = {};
   let burl = `${API}/brands?per_page=100`;
   for (let page = 0; burl && page < 30; page++){
     const j = await getJSON(burl, 2); if (!j) break;
-    for (const b of j.data || []){ const u = b.logo || (b.image && (b.image.url || b.image)) || b.banner; if (b.id && typeof u === 'string' && u.startsWith('http')) logoUrl[String(b.id)] = u; }
+    for (const b of j.data || []){ const u = b.logo || (b.image && (b.image.url || b.image)) || b.banner; if (b.id && typeof u === 'string' && u.startsWith('http')){ logoUrl[String(b.id)] = u; if (b.name) logoByName[String(b.name).trim()] = u; } }
     burl = (j.cursor && j.cursor.next) || null;
     await sleep(150);
   }
   const BW = 320, BH = 128, BCOLS = 10, bcomps = [], brands = {};
   for (const [id, name] of want){
-    const u = logoUrl[id]; if (!u) continue;
+    const u = logoUrl[id] || logoByName[String(name).trim()]; if (!u) continue;   // duplicate brand records: reuse the logo of a same-named brand
     try {
       const r = await fetch(u, { headers: { 'User-Agent': headers['User-Agent'] } }); if (!r.ok) continue;
       const trimmed = await sharp(Buffer.from(await r.arrayBuffer())).flatten({ background:'#ffffff' }).trim({ threshold: 18 }).toBuffer();
