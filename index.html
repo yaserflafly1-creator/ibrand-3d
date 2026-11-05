@@ -534,13 +534,19 @@ function build(renderer){
   const AISLE_W = 2.5, ROW_T = 2*GONDOLA.d + .04, WALL_D = GONDOLA.d;
   // choose aisle count and length so the store stays walkable
   // the back wall behind the counter takes medicines first, the rest goes into the aisles
-  let nA = 6, nb = 12;
+  // Like the category tree: every main category owns whole gondola faces (one side of an aisle, or a full aisle),
+  // and inside it the shelves follow its sub-categories. Aisles stay long (22 m) like the big store; it grows wider only if needed.
+  let nA = 6, nb = 22;
   const medsBays = (plans.meds || []).length;
-  for (nA = 4; nA < 40; nA++){
-    const w = nA*AISLE_W + (nA-1)*ROW_T + 2*WALL_D, back = Math.min(medsBays, Math.floor((w - 1.2) / BW));
-    nb = Math.ceil(Math.max(1, totalBays - back) / (2*nA)); if (nb <= 22) break;
+  const facesFor = (k, back) => Math.ceil(Math.max(0, (k === 'meds' ? medsBays - back : plans[k].length)) / nb);
+  for (let tries = 0; tries < 4; tries++, nb += 4){
+    for (nA = 5; nA <= 26; nA++){
+      const w = nA*AISLE_W + (nA-1)*ROW_T + 2*WALL_D, back = Math.min(medsBays, Math.floor((w - 1.2) / BW));
+      const need = mainKeys.reduce((a, k) => a + facesFor(k, back), 0);
+      if (need <= 2*nA) break;
+    }
+    if (nA <= 26) break;
   }
-  nb = Math.max(8, nb);
   const L = nb * BW;
   const innerW = nA*AISLE_W + (nA-1)*ROW_T + 2*WALL_D;
   const Wx = innerW/2;
@@ -731,20 +737,29 @@ function build(renderer){
   const backBays = new Array(nBack).fill(null);
   let medsLeft = (plans.meds || []).slice();
   for (let i=0; i<nBack && medsLeft.length; i++) backBays[i] = medsLeft.shift();
-  // aisles
-  let a = 0, p = 0;
+  // aisles: faces in order L0, R0, L1, R1 …; each main category takes whole faces, front to back
+  let fi = 0;
   const order = mainKeys.map(k => [k, k === 'meds' ? medsLeft : plans[k]]);
   for (const [k, bays] of order){
     let rest = bays.slice();
-    while (rest.length && a < nA){
-      const seg = Math.min(Math.ceil(rest.length / 2), nb - p);
-      const Lf = faces[2*a], Rf = faces[2*a+1];
-      for (let s=0; s<seg; s++){ const bay = rest.shift(); if (bay) { Lf.slots[slotIdx(Lf, p+s)] = bay; Lf.keys[slotIdx(Lf, p+s)] = k; } }
-      for (let s=seg-1; s>=0; s--){ const bay = rest.shift(); if (bay) { Rf.slots[slotIdx(Rf, p+s)] = bay; Rf.keys[slotIdx(Rf, p+s)] = k; } }
-      SEG.push({key:k, aisle:a, s0:p, s1:p+seg});
-      p += seg; if (p >= nb){ a++; p = 0; }
+    if (!rest.length) continue;
+    // a category needing two or more faces starts on a left face so it gets a whole aisle (the right face it skips is filled later)
+    if (rest.length > nb && fi % 2 === 1 && Math.ceil(rest.length / nb) + fi + 1 <= faces.length && faces.length - fi > Math.ceil(rest.length / nb) + order.slice(order.findIndex(o => o[0] === k) + 1).reduce((a, [, b]) => a + Math.ceil(b.length / nb), 0)) fi++;
+    while (rest.length && fi < faces.length){
+      const f = faces[fi];
+      for (let s2 = 0; s2 < nb; s2++){ const bay = rest.shift(); f.keys[slotIdx(f, s2)] = k; if (bay) f.slots[slotIdx(f, s2)] = bay; }
+      SEG.push({key:k, aisle:f.a, s0:0, s1:nb});
+      fi++;
     }
   }
+  // the last face of a category is topped up with more facings of the same category (not another category)
+  faces.forEach(f => {
+    const k = f.keys.find(Boolean); if (!k || !SD(k)) return;
+    const gaps = []; for (let s2 = 0; s2 < nb; s2++){ const i = slotIdx(f, s2); if (!f.slots[i]) gaps.push(i); }
+    if (!gaps.length) return;
+    const extra = planogram(k, SD(k).products, GONDOLA, {cycle:true, maxBays:gaps.length});
+    gaps.forEach((i, j) => { if (extra[j]) f.slots[i] = extra[j]; });
+  });
   // fill any bays left empty with bulk diapers & baby milk (and more medicine facings behind the counter)
   {
     const empties = []; faces.forEach(f => f.slots.forEach((b, i) => { if (!b) empties.push([f, i]); }));
