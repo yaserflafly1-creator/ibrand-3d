@@ -11,9 +11,30 @@ import sharp from 'sharp';
 const STORE_ID = '1972477543';
 const API = 'https://api.salla.dev/store/v1';
 const OUT = process.env.OUT || 'site';
-const CACHE = '.cache/tiles4';
+const CACHE = '.cache/tiles5';
 // the store's pink "no photo yet" camera card, by content hash (sha1 of the file, first 16 hex)
 const PLACEHOLDER_SIGS = new Set(['4925ec783dc091ec', '8ea18a9f292bfaf6', 'b4b139852ebc0ad5']);
+const PLACEHOLDER_REFS = [
+  'https://cdn.salla.sa/yKErG/2yhDRHn3ckxwcuCJHQ6MMdbcF2J2rsXXRdqNXwWV.jpg',
+  'https://cdn.salla.sa/yKErG/Kna0U1d1PpXkkQXuRprsfKH6FfjVpUQAzE0RK4jt.jpg',
+  'https://cdn.salla.sa/yKErG/WloNpmAeocCofUpIVdKFEsAelcU3FuxrGpyM8tev.jpg',
+  'https://cdn.salla.sa/yKErG/WntfW7079ljQkWCWqHY8ZGpu4ydKsU7vXY7ShCYJ.jpg',
+  'https://cdn.salla.sa/yKErG/dfGGyay6RVx5j0fTSNFONyFVzgx1YXrcubBzjLMS.jpg',
+  'https://cdn.salla.sa/yKErG/qncTARQ1yVcArz7QnoZqDnj6pJh349NhA28h7L8d.jpg',
+];
+// 256-bit perceptual hash (dHash): robust to re-encoding
+async function dHash(buf){
+  const g = await sharp(buf).flatten({ background: '#ffffff' }).grayscale().resize(17, 16, { fit: 'fill' }).raw().toBuffer();
+  let hex = '';
+  for (let r = 0; r < 16; r++) for (let c = 0; c < 16; c += 4){
+    let n = 0;
+    for (let k = 0; k < 4; k++) n = n * 2 + (g[r*17 + c + k] > g[r*17 + c + k + 1] ? 1 : 0);
+    hex += n.toString(16);
+  }
+  return hex;
+}
+const POP = Array.from({ length: 16 }, (_, i) => (i & 1) + ((i >> 1) & 1) + ((i >> 2) & 1) + ((i >> 3) & 1));
+const hamming = (a, b) => { if (!a || !b || a.length !== b.length) return 999; let d = 0; for (let i = 0; i < a.length; i++) d += POP[parseInt(a[i], 16) ^ parseInt(b[i], 16)]; return d; };
 const TILE = 128, HD = 256, PC = 16, PR = 16, PER_PAGE = PC * PR, QR = 4;   // 2048² page (+1024² phone page) and HD quarters of 4 rows at 256 px (4096×1024)
 const PROMO_MAX = 240;
 
@@ -123,6 +144,8 @@ async function makeTile(imgUrl){
     if (r2.box && r2.kept >= 0.04 && r2.kept <= 0.97){ data = d2; res = r2; }
   }
   const sig = crypto.createHash('sha1').update(buf).digest('hex').slice(0, 16);
+  const psig = crypto.createHash('sha1').update(data0).digest('hex').slice(0, 16);
+  const ah = await dHash(buf);
   // how pink is what survived the cut-out? (identifies the store's "no photo" pink camera card)
   let pkN = 0, pkP = 0;
   for (let i = 3; i < data.length; i += 4){
@@ -133,7 +156,7 @@ async function makeTile(imgUrl){
   const pk = pkN ? +(pkP / pkN).toFixed(2) : 0;
   const asCard = async () => {
     const png = await sharp(buf).rotate().flatten({ background:'#ffffff' }).resize(HD, HD, { fit:'cover' }).png().toBuffer();
-    return { png, meta: { aspect: 1, card: true, rect: 1, c: '#eeeeee', sig, pk } };
+    return { png, meta: { aspect: 1, card: true, rect: 1, c: '#eeeeee', sig, pk, psig, ah } };
   };
   if (!res.box || res.kept < 0.04 || res.kept > 0.97) return asCard();
   // the flood leaked into the product itself (white bottles, cream tubs): keep the photo on a card instead
@@ -150,7 +173,7 @@ async function makeTile(imgUrl){
   }
   const hex = v => Math.round(v).toString(16).padStart(2, '0');
   const png = await sharp(data, { raw: info }).extract(b).resize(HD, HD, { fit: 'contain', background: { r:0, g:0, b:0, alpha:0 } }).png().toBuffer();
-  return { png, meta: { aspect: +aspect.toFixed(3), card: false, rect: +(opaque / (b.width*b.height)).toFixed(2), c: en ? '#' + hex(er/en) + hex(eg/en) + hex(eb/en) : '#dddddd', sig, pk } };
+  return { png, meta: { aspect: +aspect.toFixed(3), card: false, rect: +(opaque / (b.width*b.height)).toFixed(2), c: en ? '#' + hex(er/en) + hex(eg/en) + hex(eb/en) : '#dddddd', sig, pk, psig, ah } };
 }
 
 const tileStats = { cached: 0, made: 0, failed: 0 };
@@ -285,6 +308,19 @@ async function main(){
     if (imgs.length >= 4 && (m.pk || 0) >= .5) imgs.forEach(u => ph.add(u));
   }
   for (const [img, m] of metaByImg) if (m.sig && PLACEHOLDER_SIGS.has(m.sig)) ph.add(img);
+  const refPsig = new Set(), refAh = [];
+  for (const u of PLACEHOLDER_REFS){
+    try {
+      const r = await fetch(u, { headers: { 'User-Agent': headers['User-Agent'] } }); if (!r.ok) continue;
+      const rb = Buffer.from(await r.arrayBuffer());
+      const { data: rd } = await sharp(rb).rotate().flatten({ background: '#ffffff' }).resize(600, 600, { fit: 'contain', background: '#ffffff' }).ensureAlpha().raw().toBuffer({ resolveWithObject: true });
+      refPsig.add(crypto.createHash('sha1').update(rd).digest('hex').slice(0, 16));
+      refAh.push(await dHash(rb));
+    } catch (e){ console.warn('placeholder ref', u.slice(-20), e.message); }
+  }
+  console.log('placeholder refs loaded:', refAh.length);
+  for (const [img, m] of metaByImg)
+    if ((m.psig && refPsig.has(m.psig)) || (m.ah && refAh.some(a => hamming(a, m.ah) <= 10))) ph.add(img);
   for (const u of uniqImgs) if (/placeholder|no[-_]?image/i.test(u)) ph.add(u);
   let hiddenPh = 0;
   for (const k of Object.keys(main)){ const n0 = main[k].length; main[k] = main[k].filter(p => !ph.has(p.img)); hiddenPh += n0 - main[k].length; }

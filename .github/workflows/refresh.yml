@@ -29,9 +29,9 @@ jobs:
       - name: Restore product photo cache
         uses: actions/cache/restore@v4
         with:
-          path: .cache/tiles4
-          key: tiles4-${{ github.run_id }}
-          restore-keys: tiles4-
+          path: .cache/tiles5
+          key: tiles5-${{ github.run_id }}
+          restore-keys: tiles5-
       - run: npm install --no-save sharp@0.33.5
       - name: Prepare site
         run: |
@@ -44,8 +44,8 @@ jobs:
         if: always()
         uses: actions/cache/save@v4
         with:
-          path: .cache/tiles4
-          key: tiles4-${{ github.run_id }}
+          path: .cache/tiles5
+          key: tiles5-${{ github.run_id }}
       - uses: actions/configure-pages@v5
       - uses: actions/upload-pages-artifact@v3
         with:
