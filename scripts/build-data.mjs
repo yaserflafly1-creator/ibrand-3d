@@ -288,6 +288,8 @@ async function main(){
   }
   result.brands = brands;
   console.log('brand logos', Object.keys(brands).length, 'of', want.size);
+  const missing = [...want].filter(([id]) => !brands[id]).map(([id, name]) => name).sort((a, b) => a.localeCompare(b, 'ar'));
+  console.log('MISSING LOGOS ' + missing.length + ': ' + missing.join(' | '));
   console.log('ON SHELVES', result.counts.onShelves, 'hidden Rx', rx.size);
   await fs.writeFile(`${OUT}/data/products.json`, JSON.stringify(result));
 }

@@ -317,7 +317,7 @@ function normalize(d){
 
 function build(renderer){
   const stage = $('#stage');
-  renderer.setPixelRatio(Math.min(devicePixelRatio, isSmall ? 1.25 : 2));
+  renderer.setPixelRatio(Math.min(devicePixelRatio, isSmall ? 1.6 : 2));
   renderer.setSize(stage.clientWidth, stage.clientHeight);
   renderer.outputEncoding = THREE.sRGBEncoding;
   renderer.toneMapping = THREE.ACESFilmicToneMapping;
@@ -516,7 +516,7 @@ function build(renderer){
   }
   const productMeshes = [];
   // lazy texture pages: load the pages nearest the shopper, release far ones on phones
-  const MAX_PAGES = isSmall ? 14 : 48, LOAD_R = isSmall ? 16 : 26;
+  const MAX_PAGES = isSmall ? 14 : 48, LOAD_R = isSmall ? 16 : 26, SHARP_N = isSmall ? 6 : 999, SHARP_R = isSmall ? 7 : 999;
   let inflight = 0;
   function updatePages(){
     const cp = camera.position;
@@ -524,12 +524,15 @@ function build(renderer){
     const byDist = pageMeshes.slice().sort((a,b)=>a.dist-b.dist);
     byDist.forEach((pm, i) => {
       const want = i < MAX_PAGES && pm.dist < LOAD_R;
-      if (want && !pm.loaded && !pm.loading && inflight < 3){
-        const sd = DATA.sections[pm.key], src = isSmall && sd.pagesM ? sd.pagesM[pm.pg] : sd.pages[pm.pg].src;
+      const sd = DATA.sections[pm.key], sharp = !isSmall || !sd.pagesM || (i < SHARP_N && pm.dist < SHARP_R);
+      const needLoad = want && !pm.loading && inflight < 3 && (!pm.loaded || (sharp && !pm.sharp) || (!sharp && pm.sharp && i >= SHARP_N + 4));
+      if (needLoad){
+        const src = sharp ? sd.pages[pm.pg].src : sd.pagesM[pm.pg];
         pm.loading = true; inflight++;
         texLoader.load(src, t => {
           inflight--; pm.loading = false; sRGB(t); t.generateMipmaps = true;
-          pm.tex = t; pm.loaded = true;
+          if (pm.loaded){ pm.mesh.material.dispose(); pm.tex.dispose(); }
+          pm.tex = t; pm.loaded = true; pm.sharp = sharp;
           pm.mesh.material = new THREE.MeshStandardMaterial({map:t, alphaTest:.5, roughness:.4, envMapIntensity:.55, side:THREE.DoubleSide});
         }, undefined, () => { inflight--; pm.loading = false; pm.failed = (pm.failed||0) + 1; });
       } else if (!want && pm.loaded && i >= MAX_PAGES + 6){
@@ -846,6 +849,25 @@ function build(renderer){
       s0 = i;
     }
   });
+  // decorated end panels: section name graphics at the counter end of every gondola row
+  {
+    const mk = (names) => canvasTex(320, 576, (x, W, Hh) => {
+      const g = x.createLinearGradient(0, 0, 0, Hh); g.addColorStop(0, '#f08bbb'); g.addColorStop(1, '#c9518b'); x.fillStyle = g; x.fillRect(0, 0, W, Hh);
+      x.fillStyle = 'rgba(255,255,255,.12)'; for (let i = 0; i < 7; i++){ x.beginPath(); x.arc(W*.85, Hh*.12 + i*90, 60 + i*8, 0, 7); x.fill(); }
+      x.fillStyle = '#ffffff'; x.fillRect(W/2-14, 64, 28, 80); x.fillRect(W/2-40, 90, 80, 28);   // cross
+      x.textAlign = 'center'; x.textBaseline = 'middle'; x.direction = 'rtl'; x.fillStyle = '#ffffff';
+      names.forEach((nm, i) => { const words = nm.split(' '), lines = words.length > 2 ? [words.slice(0, Math.ceil(words.length/2)).join(' '), words.slice(Math.ceil(words.length/2)).join(' ')] : [nm];
+        lines.forEach((ln, j) => { fitText(x, ln, W - 40, 800, 46); x.fillText(ln, W/2, 230 + i*150 + j*52); }); });
+      x.fillStyle = 'rgba(255,255,255,.95)'; x.fillRect(30, Hh - 92, W - 60, 56); x.fillStyle = PINK_DEEP; x.font = '800 30px "Almarai", Tahoma'; x.fillText('صيدلية اي براند', W/2, Hh - 63);
+    });
+    const G = GONDOLA, addEnd = (x, z, yaw, w, names) => { const m = new THREE.Mesh(new THREE.PlaneGeometry(w, G.h - .14), new THREE.MeshStandardMaterial({map:mk(names), roughness:.45, envMapIntensity:.5})); m.position.set(x, .12 + (G.h-.14)/2, z); m.rotation.y = yaw; scene.add(m); };
+    const nameOf = f => { const k = f && f.keys.find(Boolean); return k ? (k === 'bulk' ? SEC.bulk.name : SEC[k].name) : null; };
+    for (let r = 0; r < nA - 1; r++){
+      const names = [...new Set([nameOf(faces[2*r+1]), nameOf(faces[2*r+2])].filter(Boolean))];
+      if (names.length){ addEnd(aisleLeftX(r) + AISLE_W + ROW_T/2, zA1 - .075, Math.PI, ROW_T + .06, names); boxInto(STRUCT, frame(aisleLeftX(r) + AISLE_W + ROW_T/2, zA1 - .04, 0), 0, GONDOLA.h/2, 0, ROW_T + .08, GONDOLA.h, .06, '#f3eef1'); }
+    }
+  }
+
   // back wall face
   gondolaFace(frame(0, zB + GONDOLA.d/2 + .02, 0), backBays, 'meds');
 
