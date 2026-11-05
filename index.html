@@ -752,7 +752,7 @@ function build(renderer){
     // POS screens
     [-3.9, 3.9].forEach(x=>{ boxInto(T, frame(x, zC - .6, 0), 0, 1.17, 0, .06, .25, .06, C_UPRIGHT); boxInto(T, frame(x, zC - .62, 0), 0, 1.38, 0, .42, .28, .03, '#1b1b1f'); });
     // brand wall above the medicines: logo + green cross
-    const disc = new THREE.Mesh(new THREE.CylinderGeometry(.54, .54, .08, 64), std('#ffffff',{roughness:.3})); disc.rotation.x = Math.PI/2; disc.position.set(-1.2, 3.55, zB + .06); scene.add(disc);
+    const disc = new THREE.Mesh(new THREE.BoxGeometry(1.25, 1.25, .08), std('#ffffff',{roughness:.3})); disc.position.set(-1.2, 3.55, zB + .06); scene.add(disc);
     const logo = logoPlane(1.04, 1.04); logo.position.set(-1.2, 3.55, zB + .11); scene.add(logo);
     const crossMat = new THREE.MeshBasicMaterial({color:TEAL, toneMapped:false});
     [[.22,.68],[.68,.22]].forEach(([w,h])=>{ const c = new THREE.Mesh(new THREE.BoxGeometry(w,h,.06), crossMat); c.position.set(1.2, 3.55, zB + .1); scene.add(c); });
