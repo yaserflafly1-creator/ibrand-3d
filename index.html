@@ -68,7 +68,8 @@ button{font-family:var(--font)}
 .panel ol em{font-style:normal;font-weight:800;color:var(--pink);font-variant-numeric:tabular-nums;min-width:1.2em}
 .pimg{width:100%;height:190px;object-fit:contain;background:#fff;border:1px solid var(--line);border-radius:12px}
 .price{font-weight:800;font-size:21px;color:var(--pink-deep);font-variant-numeric:tabular-nums}
-.price s{color:var(--muted);font-weight:400;font-size:14px;margin-inline-start:8px}
+.price s{display:block;color:var(--muted);font-weight:400;font-size:14px;margin-bottom:2px}
+.price small{font-size:.6em;vertical-align:.55em}
 .buy{display:flex;gap:8px;align-items:stretch}
 .qty{display:flex;align-items:center;border:1px solid var(--line);border-radius:12px;overflow:hidden;flex:none}
 .qty button{width:38px;height:100%;min-height:46px;border:0;background:var(--ground);font-size:20px;color:var(--plum);cursor:pointer}
@@ -389,7 +390,7 @@ function build(renderer){
       return [w, h, d];
     };
   }
-  const GONDOLA = {h:2.25, d:.5, levels:[.14, .58, 1.02, 1.46, 1.9]};
+  const GONDOLA = {h:1.8, d:.5, levels:[.12, .45, .78, 1.11, 1.44]};   // eye-level gondolas (1.8 m) so you can see across the store
   const shelvesOf = G => G.levels.map((y,i)=>({y:y+.0125, maxH:(i < G.levels.length-1 ? G.levels[i+1] - y - .06 : G.h - y - .05) - .015})).reverse(); // top shelf first
   const BW = 1.0;
 
@@ -706,19 +707,35 @@ function build(renderer){
   const glyphTex = sRGB(new THREE.CanvasTexture(glyphCanvas));
   const GU = i => [i*GW/glyphCanvas.width, (i+1)*GW/glyphCanvas.width];
   const C_TAG = [1,1,1], C_SALE = rgb('#ffe14a'), C_TAGBAR = rgb('#e873a8'), C_SALEBAR = rgb('#d92b3a');
+  // tag layout like real shelf labels: big riyals, small raised halalas, then ر.س; on sale the old price sits above, struck through
+  const C_STRIKE = rgb('#b3202c');
+  function numRun(a, n, str, xRight, yb, ch, z){
+    const gw = ch * GW/GH, adv = gw * .66; let xx = xRight;
+    for (let i = str.length - 1; i >= 0; i--){ const gi = GLY.indexOf(str[i]); if (gi < 0) continue; const [u0,u1] = GU(gi), cx0 = xx - adv/2;
+      quad(PDIG, [a(cx0-gw/2,yb,z), a(cx0+gw/2,yb,z), a(cx0+gw/2,yb+ch,z), a(cx0-gw/2,yb+ch,z)], n, C_WHITE, null, [u0,0, u1,0, u1,1, u0,1]); xx -= adv; }
+    return xx;
+  }
+  const runW = (str, ch) => str.replace(/[^0-9.]/g,'').length * ch * GW/GH * .66;
   function priceTag(F, cx, y, z, p){
     if (typeof p.price !== 'number') return;
-    const sale = p.onSale && p.regular > p.price, tw = .11, th = .046, ty = y - .05, a = F.at, n = F.n(0,0,1);
-    quad(PTAG, [a(cx-tw/2,ty,z), a(cx+tw/2,ty,z), a(cx+tw/2,ty+th,z), a(cx-tw/2,ty+th,z)], n, sale ? C_SALE : C_TAG);
-    quad(PTAG, [a(cx-tw/2,ty+th-.006,z+.0005), a(cx+tw/2,ty+th-.006,z+.0005), a(cx+tw/2,ty+th,z+.0005), a(cx-tw/2,ty+th,z+.0005)], n, sale ? C_SALEBAR : C_TAGBAR);
-    const str = p.price.toFixed(2), cw = Math.min(.0125, (tw - .03) / str.length), chH = cw * GH/GW, total = cw * str.length + .021;
-    let xx = cx + total/2, zz = z + .001, yb = ty + .006;
-    // right-to-left page, but numbers read left-to-right: draw "ر.س" at the right end, digits to its left
-    const cur = GU(GLY.length), cu = [GLY.length*GW/glyphCanvas.width, (GLY.length+2)*GW/glyphCanvas.width];
-    quad(PDIG, [a(xx-.02,yb,zz), a(xx,yb,zz), a(xx,yb+chH*.75,zz), a(xx-.02,yb+chH*.75,zz)], n, C_WHITE, null, [cu[0],0, cu[1],0, cu[1],1, cu[0],1]);
-    xx -= .021;
-    for (let i = str.length - 1; i >= 0; i--){ const gi = GLY.indexOf(str[i]); if (gi < 0) continue; const [u0,u1] = GU(gi);
-      quad(PDIG, [a(xx-cw,yb,zz), a(xx,yb,zz), a(xx,yb+chH,zz), a(xx-cw,yb+chH,zz)], n, C_WHITE, null, [u0,0, u1,0, u1,1, u0,1]); xx -= cw; }
+    const sale = p.onSale && p.regular > p.price, a = F.at, n = F.n(0,0,1);
+    const tw = .11, th = sale ? .066 : .044, top = y - .008, ty = top - th;
+    quad(PTAG, [a(cx-tw/2,ty,z), a(cx+tw/2,ty,z), a(cx+tw/2,top,z), a(cx-tw/2,top,z)], n, sale ? C_SALE : C_TAG);
+    quad(PTAG, [a(cx-tw/2,top-.006,z+.0005), a(cx+tw/2,top-.006,z+.0005), a(cx+tw/2,top,z+.0005), a(cx-tw/2,top,z+.0005)], n, sale ? C_SALEBAR : C_TAGBAR);
+    const [ri, hh] = p.price.toFixed(2).split('.'), big = .021, small = .012, cur = .019, zz = z + .001;
+    const total = runW(ri, big) + runW(hh, small) + .003 + cur;
+    let xr = cx + total/2, yb = ty + .006;
+    // ر.س at the right end
+    const cu = [GLY.length*GW/glyphCanvas.width, (GLY.length+2)*GW/glyphCanvas.width];
+    quad(PDIG, [a(xr-cur,yb,zz), a(xr,yb,zz), a(xr,yb+cur*.55,zz), a(xr-cur,yb+cur*.55,zz)], n, C_WHITE, null, [cu[0],0, cu[1],0, cu[1],1, cu[0],1]);
+    xr -= cur + .003;
+    xr = numRun(a, n, hh, xr, yb + big - small, small, zz);     // halalas: small and raised
+    numRun(a, n, ri, xr, yb, big, zz);                          // riyals: big
+    if (sale){
+      const os = p.regular.toFixed(2), oc = .011, ow = runW(os, oc), ox = cx + ow/2, oy = top - .006 - .004 - oc;
+      numRun(a, n, os, ox, oy, oc, zz);
+      quad(PTAG, [a(ox-ow-.002,oy+oc*.42,zz+.0005), a(ox+.002,oy+oc*.42,zz+.0005), a(ox+.002,oy+oc*.58,zz+.0005), a(ox-ow-.002,oy+oc*.58,zz+.0005)], n, C_STRIKE);
+    }
   }
 
   // build a gondola face of `bays` (array of planogram bays or null for empty) at frame F; local x from 0..n*BW
@@ -1280,7 +1297,9 @@ function build(renderer){
     $('#pName').textContent = p.name;
     const img = $('#pImg'); img.src = p.img; img.alt = p.name; img.hidden = false;
     const pr = $('#pPrice');
-    if (typeof p.price === 'number'){ pr.innerHTML = ''; pr.append(money(p.price)); if (p.onSale && p.regular > p.price){ const st = document.createElement('s'); st.textContent = money(p.regular); pr.append(st); } pr.hidden = false; } else pr.hidden = true;
+    if (typeof p.price === 'number'){ pr.innerHTML = '';
+      if (p.onSale && p.regular > p.price){ const st = document.createElement('s'); st.textContent = 'قبل ' + money(p.regular); pr.append(st); }
+      const [ri, hh] = p.price.toFixed(2).split('.'), sm = document.createElement('small'); sm.textContent = '.' + hh; pr.append(ri, sm, ' ر.س'); pr.hidden = false; } else pr.hidden = true;
     $('#pDesc').hidden = true; $('#pList').hidden = true; $('#pBuy').hidden = false;
     $('#pCta').href = p.url; $('#pCta').textContent = 'عرض المنتج في المتجر ←';
     const sub = $('#pSub'); sub.href = sec.url || STORE; sub.textContent = 'تسوّق ' + (sec.name || 'المتجر'); sub.hidden = !sec.main;
