@@ -339,6 +339,8 @@ function build(renderer){
   const texLoader = new THREE.TextureLoader();
   const tmpC = new THREE.Color();
   const svcTargets = [], doorTargets = [];
+  const AOR = Bucket(true), AOL = Bucket(true), STICK = Bucket(true), PTAG = Bucket(false), PDIG = Bucket(true);
+  const C_WHITE = [1,1,1];
 
   // merged geometry buckets: quads in world space with vertex colours (+ optional uv)
   function Bucket(withUV){ return {pos:[], nor:[], col:[], uv: withUV ? [] : null, idx:[], places:[]}; }
@@ -415,8 +417,11 @@ function build(renderer){
         return 'shelf';
       }
       const facings = w < .075 ? 2 : 1;
-      for (let f=0; f<facings && x + w <= bw - .01; f++){ bay.items.push({p, x:x + w/2, s:k, y:sh.y, w, h, d}); x += w + .005; }
-      x += .012; return 'ok';
+      for (let f=0; f<facings && x + w <= bw - .01; f++){
+        bay.items.push({p, x:x + w/2, s:k, y:sh.y, w, h, d, yaw:(Math.random()-.5)*.07, back:Math.random() < .14 ? .015 + Math.random()*.03 : Math.random()*.006, first:f === 0});
+        x += w + .004 + Math.random()*.004;
+      }
+      x += .009 + Math.random()*.008; return 'ok';
     }
     // repeat the unit that just ended until its bay is full
     function topUp(from, to){
@@ -464,7 +469,8 @@ function build(renderer){
     return [(c+fu0)/C, (c+fu1)/C, 1 - (r+1)/R + fv0/R, 1 - (r+1)/R + fv1/R];
   }
   // put one product at local (cx, y, cz) of frame F (its front faces local +z)
-  function putProduct(key, F, cx, y, cz, w, h, d, p, rowsDeep=1){
+  function putProduct(key, F, cx, y, cz, w, h, d, p, rowsDeep=1, yaw=0){
+    if (yaw){ const c0 = F.at(cx, 0, cz); F = frame(c0[0], c0[2], F.yaw + yaw); cx = 0; cz = 0; }
     const sd = DATA.sections[key], bk = key + ':' + p.pg;
     const T = frontBuckets[bk] || (frontBuckets[bk] = Bucket(true)), S = sideBuckets[key] || (sideBuckets[key] = Bucket(false));
     const [u0,u1,vb,vt] = tileUV(sd, p), hw = w/2, a = F.at, n = F.n, uv = [u0,vb, u1,vb, u1,vt, u0,vt];
@@ -485,6 +491,12 @@ function build(renderer){
         if (!isBox(p)) break;
       }
     }
+    // soft contact shadow on the shelf under the pack(s)
+    { const a2 = F.at, dd = d * rowsDeep + .006*(rowsDeep-1), sw = w*.62 + .012, y0 = y + .0015, z0 = cz + .012, z1 = cz - dd - .015;
+      quad(AOR, [a2(cx-sw,y0,z0), a2(cx+sw,y0,z0), a2(cx+sw,y0,z1), a2(cx-sw,y0,z1)], [0,1,0], C_WHITE, null, [0,0, 1,0, 1,1, 0,1]); }
+    // discount sticker on the front of packs that are on sale
+    if (p.onSale && p.regular > p.price && h > .07){ const a2 = F.at, sz = Math.min(.05, w*.5), sx = cx + w/2 - sz*.6, sy = y + h - sz*.6, sz2 = cz + .004;
+      quad(STICK, [a2(sx-sz/2,sy-sz/2,sz2), a2(sx+sz/2,sy-sz/2,sz2), a2(sx+sz/2,sy+sz/2,sz2), a2(sx-sz/2,sy+sz/2,sz2)], F.n(0,0,1), C_WHITE, null, [0,0, 1,0, 1,1, 0,1]); }
     if (!PLACE.has(p.id) || (SEC[key].main && !SEC[PLACE.get(p.id).key].main)){
       PLACE.set(p.id, {key, pos:new THREE.Vector3(...a(cx, y + h/2, cz)), normal:new THREE.Vector3(...n(0,0,1))});
     }
@@ -590,7 +602,7 @@ function build(renderer){
     x.strokeStyle='rgba(150,128,110,.6)'; x.lineWidth=4; x.strokeRect(1.5,1.5,w-3,h-3);
   });
   tileTex.wrapS = tileTex.wrapT = THREE.RepeatWrapping; tileTex.repeat.set(fw/.6, fl/.6);
-  const floor = new THREE.Mesh(new THREE.PlaneGeometry(fw, fl), new THREE.MeshStandardMaterial({map:tileTex, roughness:.2, envMapIntensity:.6}));
+  const floor = new THREE.Mesh(new THREE.PlaneGeometry(fw, fl), new THREE.MeshStandardMaterial({map:tileTex, roughness:.16, metalness:.02, envMapIntensity:.75}));
   floor.rotation.x = -Math.PI/2; floor.position.z = zMid; floor.receiveShadow = true; scene.add(floor);
   const wallMat = std('#efe6dd',{roughness:.9, envMapIntensity:.4});
   const pinkMat = std('#d64f8e',{roughness:.4});
@@ -612,9 +624,12 @@ function build(renderer){
       if (Math.hypot(x, z-ZP) < 2.7) continue;
       ((Math.round(x/1.8) % 3 === 0) && (Math.round(z/1.8) % 3 === 0) ? panels : spots).push([x, z]);
     }
-    const inst = (geo, mat, list, y, s=1) => { const im = new THREE.InstancedMesh(geo, mat, list.length), m4 = new THREE.Matrix4(), q = new THREE.Quaternion().setFromEuler(new THREE.Euler(Math.PI/2,0,0)); list.forEach(([x,z],i)=>{ m4.compose(new THREE.Vector3(x,y,z), q, new THREE.Vector3(s,s,s)); im.setMatrixAt(i, m4); }); scene.add(im); };
+    const inst = (geo, mat, list, y, s=1, up=false) => { const im = new THREE.InstancedMesh(geo, mat, list.length), m4 = new THREE.Matrix4(), q = new THREE.Quaternion().setFromEuler(new THREE.Euler(up ? -Math.PI/2 : Math.PI/2,0,0)); list.forEach(([x,z],i)=>{ m4.compose(new THREE.Vector3(x,y,z), q, new THREE.Vector3(s,s,s)); im.setMatrixAt(i, m4); }); scene.add(im); };
     inst(new THREE.PlaneGeometry(1.18,.58), panelMat, panels, H-.005); inst(new THREE.PlaneGeometry(2.4,1.4), haloMat, panels, H-.008);
     inst(new THREE.CircleGeometry(.11, 20), panelMat, spots, H-.006); inst(new THREE.PlaneGeometry(.9,.9), haloMat, spots, H-.009);
+    // reflections of the lights in the polished floor
+    const poolMat = new THREE.MeshBasicMaterial({map:haloTex, transparent:true, opacity:isSmall ? .1 : .16, depthWrite:false, blending:THREE.AdditiveBlending, toneMapped:false});
+    inst(new THREE.PlaneGeometry(1.6, 1.0), poolMat, panels, .004, 1, true); inst(new THREE.PlaneGeometry(.75, .75), poolMat, spots, .004, 1, true);
     // feature ring above the best-seller stand
     const ringGlow = new THREE.MeshBasicMaterial({color:'#ff9fca', toneMapped:false});
     const drop = new THREE.Mesh(new THREE.CylinderGeometry(2.3, 2.3, .28, 64, 1, true), std('#ffffff',{side:THREE.DoubleSide})); drop.position.set(0, H-.14, ZP); scene.add(drop);
@@ -646,8 +661,8 @@ function build(renderer){
 
   // ---------- fixtures: powder-coated steel gondolas, merged into a few meshes ----------
   const steelMat = std('#9aa1a6',{roughness:.35, metalness:.75});
-  const STRUCT = Bucket(false), PEG = Bucket(true), TAGS = Bucket(true), HDR = Bucket(false), HLOGO = Bucket(true), HTITLE = Bucket(true);
-  const C_STEEL = rgb('#aab1b6'), C_SHELF = rgb('#e9ecee'), C_UPRIGHT = rgb('#6d757b'), C_KICK = rgb('#7e868c'), C_PINK = rgb('#e873a8'), C_WHITE = [1,1,1];
+  const STRUCT = Bucket(false), PEG = Bucket(true), HDR = Bucket(false), HLOGO = Bucket(true), HTITLE = Bucket(true);
+  const C_STEEL = rgb('#aab1b6'), C_SHELF = rgb('#e9ecee'), C_UPRIGHT = rgb('#6d757b'), C_KICK = rgb('#7e868c'), C_PINK = rgb('#e873a8');
   const clickables = [];  // [{box, sec}] for collisions and section focus
   // section-title atlas for the shared headers
   const LABELS = [...new Set([...SECTIONS.map(s => s.name), ...(DATA ? Object.values(DATA.sections).flatMap(sd => sd.products.map(p => p.sub).filter(Boolean)) : [])])];
@@ -682,6 +697,30 @@ function build(renderer){
     const tw = Math.min(w - .1, (hh - .1) * 512/96), m = new THREE.Mesh(new THREE.PlaneGeometry(tw, tw*96/512), new THREE.MeshBasicMaterial({map:t, toneMapped:false}));
     const p = F.at(cx, yc, z); m.position.set(p[0], p[1], p[2]); m.rotation.y = F.yaw; scene.add(m);
   }
+  // price tags: white (or yellow when on sale) label with the real price, built from digit glyphs
+  const GLY = '0123456789.', GW = 48, GH = 64;
+  const glyphCanvas = document.createElement('canvas'); glyphCanvas.width = GW * (GLY.length + 2); glyphCanvas.height = GH;
+  { const x = glyphCanvas.getContext('2d'); x.fillStyle = '#2a1b27'; x.textAlign = 'center'; x.textBaseline = 'middle'; x.font = '800 54px Arial, sans-serif';
+    [...GLY].forEach((ch, i) => x.fillText(ch, i*GW + GW/2, GH/2 + 3));
+    x.direction = 'rtl'; x.font = '700 34px "Almarai", Tahoma'; x.fillText('ر.س', GLY.length*GW + GW, GH/2 + 4); }
+  const glyphTex = sRGB(new THREE.CanvasTexture(glyphCanvas));
+  const GU = i => [i*GW/glyphCanvas.width, (i+1)*GW/glyphCanvas.width];
+  const C_TAG = [1,1,1], C_SALE = rgb('#ffe14a'), C_TAGBAR = rgb('#e873a8'), C_SALEBAR = rgb('#d92b3a');
+  function priceTag(F, cx, y, z, p){
+    if (typeof p.price !== 'number') return;
+    const sale = p.onSale && p.regular > p.price, tw = .11, th = .046, ty = y - .05, a = F.at, n = F.n(0,0,1);
+    quad(PTAG, [a(cx-tw/2,ty,z), a(cx+tw/2,ty,z), a(cx+tw/2,ty+th,z), a(cx-tw/2,ty+th,z)], n, sale ? C_SALE : C_TAG);
+    quad(PTAG, [a(cx-tw/2,ty+th-.006,z+.0005), a(cx+tw/2,ty+th-.006,z+.0005), a(cx+tw/2,ty+th,z+.0005), a(cx-tw/2,ty+th,z+.0005)], n, sale ? C_SALEBAR : C_TAGBAR);
+    const str = p.price.toFixed(2), cw = Math.min(.0125, (tw - .03) / str.length), chH = cw * GH/GW, total = cw * str.length + .021;
+    let xx = cx + total/2, zz = z + .001, yb = ty + .006;
+    // right-to-left page, but numbers read left-to-right: draw "ر.س" at the right end, digits to its left
+    const cur = GU(GLY.length), cu = [GLY.length*GW/glyphCanvas.width, (GLY.length+2)*GW/glyphCanvas.width];
+    quad(PDIG, [a(xx-.02,yb,zz), a(xx,yb,zz), a(xx,yb+chH*.75,zz), a(xx-.02,yb+chH*.75,zz)], n, C_WHITE, null, [cu[0],0, cu[1],0, cu[1],1, cu[0],1]);
+    xx -= .021;
+    for (let i = str.length - 1; i >= 0; i--){ const gi = GLY.indexOf(str[i]); if (gi < 0) continue; const [u0,u1] = GU(gi);
+      quad(PDIG, [a(xx-cw,yb,zz), a(xx,yb,zz), a(xx,yb+chH,zz), a(xx-cw,yb+chH,zz)], n, C_WHITE, null, [u0,0, u1,0, u1,1, u0,1]); xx -= cw; }
+  }
+
   // build a gondola face of `bays` (array of planogram bays or null for empty) at frame F; local x from 0..n*BW
   function gondolaFace(F, bays, key, opts={}){
     const G = opts.G || GONDOLA, n = bays.length, Wd = n * BW, d = G.d, x0 = -Wd/2;
@@ -695,14 +734,20 @@ function build(renderer){
     G.levels.forEach(y => {
       boxInto(STRUCT, F, 0, y, .01, Wd - .04, .022, d - .08, C_SHELF);                       // shelf deck
       boxInto(STRUCT, F, 0, y - .022, d/2 - .045, Wd - .04, .05, .012, [0.97,0.97,0.97]);       // price strip
-      quad(TAGS, [F.at(x0+.02, y-.045, d/2-.038), F.at(x0+Wd-.02, y-.045, d/2-.038), F.at(x0+Wd-.02, y+.002, d/2-.038), F.at(x0+.02, y+.002, d/2-.038)], F.n(0,0,1), C_WHITE, null, [0,0, Wd/.6,0, Wd/.6,1, 0,1]);
+      // shade cast by the shelf deck onto the back panel just below it
+      { const z = -d/2 + .057; quad(AOL, [F.at(x0+.02, y-.16, z), F.at(x0+Wd-.02, y-.16, z), F.at(x0+Wd-.02, y-.012, z), F.at(x0+.02, y-.012, z)], F.n(0,0,1), C_WHITE, null, [0,0, 1,0, 1,1, 0,1]); }
     });
+    // ambient occlusion on the floor along the kick plate
+    { const z0 = d/2 + .32, z1 = d/2 - .02; quad(AOL, [F.at(x0-.05, .002, z0), F.at(x0+Wd+.05, .002, z0), F.at(x0+Wd+.05, .002, z1), F.at(x0-.05, .002, z1)], [0,1,0], C_WHITE, null, [0,0, 1,0, 1,1, 0,1]); }
     if (opts.endPanels !== false) [-1,1].forEach(s => boxInto(STRUCT, F, s*(Wd/2), G.h/2, 0, .025, G.h, d, '#dfe3e6'));
     // products
     bays.forEach((bay, b) => {
       if (!bay) return;
       const bx = x0 + b*BW;
-      bay.items.forEach(it => putProduct(key, F, bx + it.x, it.y, d/2 - .1, it.w, it.h, it.d, it.p, isBox(it.p) ? ROWS : 1));
+      bay.items.forEach(it => {
+        putProduct(key, F, bx + it.x, it.y, d/2 - .1 - (it.back || 0), it.w, it.h, it.d, it.p, isBox(it.p) ? ROWS : 1, it.yaw || 0);
+        if (it.first !== false) priceTag(F, bx + it.x, it.y, d/2 - .0375, it.p);
+      });
     });
     // headers: merge neighbouring bays that share a brand (or the section name)
     if (opts.headers !== false){
@@ -1149,9 +1194,19 @@ function build(renderer){
     const pegTex = canvasTex(128, 128, (x,w,h)=>{ x.fillStyle='#d9dde0'; x.fillRect(0,0,w,h); x.fillStyle='#8f969b'; for (let i=0;i<4;i++) for (let j=0;j<4;j++){ x.beginPath(); x.arc(16+i*32, 16+j*32, 4.5, 0, 7); x.fill(); } });
     pegTex.wrapS = pegTex.wrapT = THREE.RepeatWrapping;
     const pg = meshOf(PEG, new THREE.MeshStandardMaterial({map:pegTex, roughness:.5, metalness:.35, envMapIntensity:.6})); pg.receiveShadow = true; scene.add(pg);
-    const tagTex = canvasTex(256, 32, (x,w,h)=>{ x.fillStyle='#fbfbfb'; x.fillRect(0,0,w,h); for (let i=0;i<4;i++){ x.fillStyle='#ffffff'; x.fillRect(i*64+6, 4, 50, 24); x.fillStyle=PINK; x.fillRect(i*64+6, 4, 50, 5); x.fillStyle='#4a3a46'; x.fillRect(i*64+14, 15, 34, 6); } });
-    tagTex.wrapS = THREE.RepeatWrapping;
-    scene.add(meshOf(TAGS, new THREE.MeshBasicMaterial({map:tagTex, toneMapped:false})));
+    // soft shadows (fake ambient occlusion): linear for shelf/floor edges, radial for packs
+    const aoLin = canvasTex(8, 64, (x,w,h)=>{ const g = x.createLinearGradient(0,0,0,h); g.addColorStop(0,'rgba(0,0,0,0)'); g.addColorStop(1,'rgba(0,0,0,1)'); x.fillStyle = g; x.fillRect(0,0,w,h); });
+    const aoRad = canvasTex(64, 64, (x,w,h)=>{ const g = x.createRadialGradient(w/2,h/2,2,w/2,h/2,w/2); g.addColorStop(0,'rgba(0,0,0,1)'); g.addColorStop(.55,'rgba(0,0,0,.55)'); g.addColorStop(1,'rgba(0,0,0,0)'); x.fillStyle = g; x.fillRect(0,0,w,h); });
+    const aoMat = (t, op) => new THREE.MeshBasicMaterial({map:t, color:'#2a1a20', transparent:true, opacity:op, depthWrite:false, polygonOffset:true, polygonOffsetFactor:-2, side:THREE.DoubleSide, toneMapped:false});
+    if (AOL.idx.length){ const m = meshOf(AOL, aoMat(aoLin, .28)); m.renderOrder = 1; scene.add(m); }
+    if (AOR.idx.length){ const m = meshOf(AOR, aoMat(aoRad, .36)); m.renderOrder = 1; scene.add(m); }
+    if (PTAG.idx.length) scene.add(meshOf(PTAG, new THREE.MeshBasicMaterial({vertexColors:true, toneMapped:false})));
+    if (PDIG.idx.length){ const m = meshOf(PDIG, new THREE.MeshBasicMaterial({map:glyphTex, transparent:true, alphaTest:.15, toneMapped:false})); scene.add(m); }
+    if (STICK.idx.length){
+      const st = canvasTex(128, 128, (x,w,h)=>{ x.fillStyle='#d92b3a'; x.beginPath(); for (let i=0;i<24;i++){ const r = i%2 ? 52 : 63, a = i/24*Math.PI*2; x.lineTo(w/2+Math.cos(a)*r, h/2+Math.sin(a)*r); } x.closePath(); x.fill();
+        x.fillStyle='#fff'; x.textAlign='center'; x.textBaseline='middle'; x.direction='rtl'; x.font='800 40px "Almarai", Tahoma'; x.fillText('خصم', w/2, h/2+3); });
+      scene.add(meshOf(STICK, new THREE.MeshBasicMaterial({map:st, transparent:true, alphaTest:.3, toneMapped:false})));
+    }
     scene.add(meshOf(HDR, new THREE.MeshBasicMaterial({vertexColors:true, toneMapped:false})));
     if (HLOGO.idx.length && BA) scene.add(meshOf(HLOGO, new THREE.MeshBasicMaterial({map:sRGB(texLoader.load(BA.src)), toneMapped:false})));
     if (HTITLE.idx.length) scene.add(meshOf(HTITLE, new THREE.MeshBasicMaterial({map:titleTex, toneMapped:false})));
