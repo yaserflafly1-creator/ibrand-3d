@@ -393,13 +393,20 @@ function build(renderer){
 
   // Fill virtual bays shelf by shelf (top to bottom). Brands with 10+ items get their own bays under their logo.
   // opts.cycle → keep repeating the list until `maxBays` bays are full (promo fixtures); otherwise each product once.
+  // Products arrive ordered by sub-category, then brand. Each sub-category starts on its own bay (like a real
+  // planogram: deodorants, feminine care, lotions… each in their own run); inside it, brands with 10+ items get
+  // their own bays under their logo. A run that ends part-way through a bay is topped up with more facings.
+  // opts.cycle → keep repeating the list until `maxBays` bays are full (promo fixtures).
   function planogram(key, products, G, opts={}){
     const size = sizer(key), shelves = shelvesOf(G), bw = opts.bw || BW, maxBays = opts.maxBays || Infinity;
-    const cnt = {}; products.forEach(p=>{ cnt[p.brandId || p.brand] = (cnt[p.brandId || p.brand]||0) + 1; });
-    const big = p => !!(p.brandId || p.brand) && cnt[p.brandId || p.brand] > 10 && !opts.noBrands;
+    const grp = p => opts.noBrands ? '' : (p.sub || '');
+    const bkey = p => grp(p) + '|' + (p.brandId || p.brand || '');
+    const cnt = {}; products.forEach(p => { cnt[bkey(p)] = (cnt[bkey(p)]||0) + 1; });
+    const big = p => !opts.noBrands && !!(p.brandId || p.brand) && cnt[bkey(p)] > 10;
+    const unitOf = p => big(p) ? 'b:' + bkey(p) : 's:' + grp(p);
+    const hdrOf = p => big(p) ? {id:'b:' + bkey(p), brandId:p.brandId || p.brand, name:p.brand, big:true} : {id:'s:' + grp(p), label:p.sub || null, big:false};
     const bays = []; let bay = null, k = 0, x = 0;
     const newBay = () => { if (bays.length >= maxBays) return false; bay = {items:[], hdr:null}; bays.push(bay); k = 0; x = .015; return true; };
-    // place p at the cursor; returns 'ok' | 'shelf' | 'bay' | 'end'
     function tryPlace(p){
       const sh = shelves[k], [w,h,d] = size(p, sh.maxH, opts.scale || 1);
       if (x + w > bw - .01){
@@ -411,27 +418,32 @@ function build(renderer){
       for (let f=0; f<facings && x + w <= bw - .01; f++){ bay.items.push({p, x:x + w/2, s:k, y:sh.y, w, h, d}); x += w + .005; }
       x += .012; return 'ok';
     }
+    // repeat the unit that just ended until its bay is full
+    function topUp(from, to){
+      const n = to - from; if (n <= 0) return 'ok'; let j = 0, g = 0, r = 'ok';
+      while (g++ < 400 && (r = tryPlace(products[(from + (j % n)) % products.length])) !== 'bay' && r !== 'end'){ if (r === 'ok') j++; }
+      return r;
+    }
     if (!newBay()) return bays;
-    let i = 0, guard = 0, cur = null, start = 0;
+    let i = 0, guard = 0, unit = null, group = null, start = 0;
     const N = products.length, limit = opts.cycle ? Infinity : N;
-    while (i < limit && guard++ < 200000){
-      const p = products[i % N], id = p.brandId || p.brand, isBig = big(p);
-      if (id !== cur){
-        const prevBig = cur !== null && bay.hdr && bay.hdr.big;
-        if (prevBig && bay.items.length){
-          // top the bay up with more facings of the brand that just ended, then start the next brand on a fresh bay
-          const n = i - start; let j = 0, g = 0, r;
-          while (n > 0 && g++ < 400 && (r = tryPlace(products[(start + (j % n)) % N])) !== 'bay' && r !== 'end'){ if (r === 'ok') j++; }
+    while (i < limit && guard++ < 300000){
+      const p = products[i % N], u = unitOf(p), g = grp(p);
+      if (u !== unit){
+        const wasBig = unit !== null && unit.startsWith('b:'), newGroup = group !== null && g !== group;
+        if (bay.items.length && (wasBig || newGroup || big(p))){
+          let r = 'ok';
+          if (wasBig || newGroup) r = topUp(start, i);
           if (r === 'end') break;
           if (bay.items.length && !newBay()) break;
-        } else if (isBig && bay.items.length){ if (!newBay()) break; }
-        cur = id; start = i;
+        }
+        unit = u; group = g; start = i;
       }
-      if (!bay.hdr) bay.hdr = isBig ? {id, name:p.brand, big:true} : {id:'_sec', big:false};
+      if (!bay.hdr) bay.hdr = hdrOf(p);
       const r = tryPlace(p);
       if (r === 'end') break;
       if (r === 'ok') i++;
-      else if (r === 'bay'){ bay.hdr = isBig ? {id, name:p.brand, big:true} : {id:'_sec', big:false}; }
+      else if (r === 'bay') bay.hdr = hdrOf(p);
     }
     if (bays.length && !bays[bays.length-1].items.length) bays.pop();
     return bays;
@@ -533,8 +545,8 @@ function build(renderer){
   const innerW = nA*AISLE_W + (nA-1)*ROW_T + 2*WALL_D;
   const Wx = innerW/2;
   const zF = 0;                     // glass front
-  const zA0 = zF - 9.5;             // front end of the aisles
-  const ZP = zF - 6;                // promotion row
+  const zA0 = zF - 11.5;            // front end of the aisles
+  const ZP = zF - 6.8;              // promotion row
   const zA1 = zA0 - L;              // back end of the aisles
   const zC = zA1 - 3.6;             // front edge of the pharmacist counter
   const zB = zC - 2.7;              // back wall
@@ -632,25 +644,27 @@ function build(renderer){
   const C_STEEL = rgb('#aab1b6'), C_SHELF = rgb('#e9ecee'), C_UPRIGHT = rgb('#6d757b'), C_KICK = rgb('#7e868c'), C_PINK = rgb('#e873a8'), C_WHITE = [1,1,1];
   const clickables = [];  // [{box, sec}] for collisions and section focus
   // section-title atlas for the shared headers
-  const TITLE_ROWS = SECTIONS.length;
-  const titleCanvas = document.createElement('canvas'); titleCanvas.width = 1024; titleCanvas.height = 96 * TITLE_ROWS;
-  { const x = titleCanvas.getContext('2d'); SECTIONS.forEach((s,i)=>{ x.fillStyle='#ffffff'; x.fillRect(0, i*96, 1024, 96); x.fillStyle = PINK_DEEP; x.textAlign='center'; x.textBaseline='middle'; x.direction='rtl'; fitText(x, s.name, 960, 800, 64); x.fillText(s.name, 512, i*96 + 50); }); }
+  const LABELS = [...new Set([...SECTIONS.map(s => s.name), ...(DATA ? Object.values(DATA.sections).flatMap(sd => sd.products.map(p => p.sub).filter(Boolean)) : [])])];
+  const TROWS = Math.ceil(LABELS.length / 2), TRH = 80;
+  const titleCanvas = document.createElement('canvas'); titleCanvas.width = 2048; titleCanvas.height = Math.min(4096, TROWS * TRH);
+  { const x = titleCanvas.getContext('2d'); x.fillStyle = '#ffffff'; x.fillRect(0, 0, 2048, titleCanvas.height);
+    LABELS.forEach((t, i) => { const c = i % 2, r = Math.floor(i / 2); x.fillStyle = PINK_DEEP; x.textAlign='center'; x.textBaseline='middle'; x.direction='rtl'; fitText(x, t, 960, 800, 54); x.fillText(t, c*1024 + 512, r*TRH + TRH/2 + 3); }); }
   const titleTex = sRGB(new THREE.CanvasTexture(titleCanvas));
-  const titleUV = key => { const i = SECTIONS.findIndex(s=>s.key===key), v1 = 1 - i/TITLE_ROWS, v0 = 1 - (i+1)/TITLE_ROWS; return [0,v0, 1,v0, 1,v1, 0,v1]; };
+  const titleUV = label => { const i = Math.max(0, LABELS.indexOf(label)), c = i % 2, r = Math.floor(i / 2), R = titleCanvas.height / TRH, v1 = 1 - r/R, v0 = 1 - (r+1)/R, u0 = c/2, u1 = (c+1)/2; return [u0,v0, u1,v0, u1,v1, u0,v1]; };
   const BA = DATA && DATA.brandAtlas;
   function header(F, x0, x1, y, z, hdr, key){
     const w = x1 - x0 - .04, cx = (x0 + x1)/2, hh = .42, a = F.at, n = F.n;
     quad(HDR, [a(cx-w/2,y,z), a(cx+w/2,y,z), a(cx+w/2,y+hh,z), a(cx-w/2,y+hh,z)], n(0,0,1), C_WHITE);
     quad(HDR, [a(cx-w/2,y-.001,z+.002), a(cx+w/2,y-.001,z+.002), a(cx+w/2,y+.035,z+.002), a(cx-w/2,y+.035,z+.002)], n(0,0,1), C_PINK);
     boxInto(STRUCT, F, cx, y + hh/2, z - .05, w, hh, .09, '#f3f3f3');
-    const info = hdr && hdr.big && DATA.brands && DATA.brands[hdr.id];
+    const info = hdr && hdr.big && DATA.brands && DATA.brands[hdr.brandId];
     if (info && BA){
       const lw = Math.min(w - .1, (hh - .08) * BA.w / BA.h), lh = lw * BA.h / BA.w, c = info.tile % BA.cols, r = Math.floor(info.tile / BA.cols);
       const u0 = c/BA.cols, u1 = (c+1)/BA.cols, v0 = 1 - (r+1)/BA.rows, v1 = 1 - r/BA.rows, yc = y + hh/2 + .01;
       quad(HLOGO, [a(cx-lw/2,yc-lh/2,z+.004), a(cx+lw/2,yc-lh/2,z+.004), a(cx+lw/2,yc+lh/2,z+.004), a(cx-lw/2,yc+lh/2,z+.004)], n(0,0,1), C_WHITE, null, [u0,v0, u1,v0, u1,v1, u0,v1]);
     } else {
-      const label = hdr && hdr.big ? null : key;
-      const tw = Math.min(w - .1, (hh - .12) * 1024/96), th = tw * 96/1024, yc = y + hh/2 + .01;
+      const label = hdr && hdr.big ? null : (hdr && hdr.force ? SEC[hdr.force].name : (hdr && hdr.label) || (SEC[key] ? SEC[key].name : ''));
+      const tw = Math.min(w - .1, (hh - .12) * 1024/TRH), th = tw * TRH/1024, yc = y + hh/2 + .01;
       if (label) quad(HTITLE, [a(cx-tw/2,yc-th/2,z+.004), a(cx+tw/2,yc-th/2,z+.004), a(cx+tw/2,yc+th/2,z+.004), a(cx-tw/2,yc+th/2,z+.004)], n(0,0,1), C_WHITE, null, titleUV(label));
       else brandNameHeader(F, cx, yc, z+.004, w, hh, hdr.name);
     }
@@ -690,7 +704,7 @@ function build(renderer){
       for (let b=1; b<=n; b++){
         const prev = bays[b-1] && bays[b-1].hdr, curH = b < n && bays[b] && bays[b].hdr;
         const same = curH && prev && prev.id === curH.id;
-        if (!same){ if (prev) header(F, x0 + s0*BW, x0 + b*BW, G.h + .06, -d/2 + .1, prev, opts.titleKey || key); s0 = b; }
+        if (!same){ if (prev) header(F, x0 + s0*BW, x0 + b*BW, G.h + .06, -d/2 + .1, opts.titleKey && !prev.big ? {...prev, force:opts.titleKey} : prev, key); s0 = b; }
       }
     }
     // collision box in world space
@@ -858,29 +872,35 @@ function build(renderer){
 
   // ---------- promotion zone near the entrance ----------
   const PG = {h:1.6, d:.45, levels:[.12, .5, .88, 1.26]};
+  // promotion islands run front-to-back (3 bays each side) so the walkways between them stay wide
+  const PROMO_BAYS = 3;
   function promoIsland(key, x, z){
     if (!SD(key)) return;
-    const bays = planogram(key, SD(key).products, PG, {cycle:true, maxBays:8, noBrands:true});
-    gondolaFace(frame(x, z + PG.d/2 + .02, 0), bays.slice(0,4), key, {G:PG});
-    gondolaFace(frame(x, z - PG.d/2 - .02, Math.PI), bays.slice(4,8).length ? bays.slice(4,8) : bays.slice(0,4), key, {G:PG});
-    const s = lightbox(SEC[key].name, 2.6, {bg:PINK, fg:'#ffffff'}); hang(s, x, 3.1, z, 1.1);
-    const s2 = lightbox(SEC[key].name, 2.6, {bg:PINK, fg:'#ffffff'}); hang(s2, x, 3.1, z - .02, 1.1, Math.PI);
-    SEC[key].focus = {pos:new THREE.Vector3(x, EYE, z + 3.2), target:new THREE.Vector3(x, 1.0, z)};
+    const bays = planogram(key, SD(key).products, PG, {cycle:true, maxBays:PROMO_BAYS*2, noBrands:true});
+    const half = PG.d/2 + .02;
+    gondolaFace(frame(x + half, z, Math.PI/2), bays.slice(0, PROMO_BAYS), key, {G:PG, titleKey:key});
+    gondolaFace(frame(x - half, z, -Math.PI/2), bays.slice(PROMO_BAYS).length ? bays.slice(PROMO_BAYS) : bays.slice(0, PROMO_BAYS), key, {G:PG, titleKey:key});
+    const s1 = lightbox(SEC[key].name, 2.2, {bg:PINK, fg:'#ffffff'}); hang(s1, x, 3.1, z + PROMO_BAYS*BW/2 + .1, .9);
+    const s2 = lightbox(SEC[key].name, 2.2, {bg:PINK, fg:'#ffffff'}); hang(s2, x, 3.1, z + PROMO_BAYS*BW/2 + .08, .9, Math.PI);
+    SEC[key].focus = {pos:new THREE.Vector3(x + 2.0, EYE, z + 2.6), target:new THREE.Vector3(x + .5, 1.0, z)};
     spotAt(x, z, .6, .7, .5);
   }
   {
-    const inner = 4.3, outer = Math.max(inner + 4.8, Math.min(Wx - 3.6, 11));
-    promoIsland('excl', -inner, ZP); promoIsland('trend', inner, ZP);
-    promoIsland('offers', -outer, ZP); promoIsland('import', outer, ZP);
+    // walkway of at least 2 m between every fixture; islands that don't fit the store width are left out
+    const foot = PG.d + .04 + .7, walk = 2.0, limit = Wx - 2.9;
+    let x = 1.7 + walk + foot/2;
+    const order = [['excl','trend'], ['offers','import']];
+    order.forEach(([l, r]) => { if (x + foot/2 <= limit){ promoIsland(l, -x, ZP); promoIsland(r, x, ZP); } x += foot + walk; });
   }
   // milk bundle table and the best-seller stand
   if (SD('milk')){
-    const x = 0, z = zF - 3.2, Fm = frame(x, z, 0);
+    const x = 0, z = zF - 3.0, Fm = frame(x, z, 0), Fb = frame(x, z, Math.PI);
     boxInto(STRUCT, Fm, 0, .36, 0, 2.6, .72, 1.3, C_PINK); boxInto(STRUCT, Fm, 0, .74, 0, 2.7, .04, 1.4, '#ffffff');
-    boxInto(STRUCT, Fm, 0, .9, -.1, 1.8, .3, .6, '#ffffff'); boxInto(STRUCT, Fm, 0, 1.2, -.1, 1.0, .3, .38, '#ffffff');
+    boxInto(STRUCT, Fm, 0, .9, 0, 1.8, .3, .62, '#ffffff'); boxInto(STRUCT, Fm, 0, 1.2, 0, 1.0, .3, .4, '#ffffff');
     const size = sizer('milk'), P = SD('milk').products; let i = 0;
-    [[-1.25, 1.25, .76, .55], [-1.25, 1.25, .76, -.5], [-.85, .85, 1.05, .12], [-.45, .45, 1.35, .02]].forEach(([x0, x1, y, zz]) => {
-      let xx = x0; while (true){ const p = P[i % P.length], [w,h,d] = size(p, .36, 1.05); if (xx + w > x1) break; putProduct('milk', Fm, xx + w/2, y, zz, w, h, d, p, 1); xx += w + .01; i++; }
+    // double-sided: every row has a twin facing the other way, so the table looks full from both sides
+    [[-1.25, 1.25, .76, .52, .36], [-.85, .85, 1.05, .2, .3], [-.45, .45, 1.35, .12, .28]].forEach(([x0, x1, y, zz, mh]) => {
+      [Fm, Fb].forEach(F => { let xx = x0; while (true){ const p = P[i % P.length], [w,h,d0] = size(p, mh, 1.05), d = Math.min(d0, zz - .03); if (xx + w > x1) break; putProduct('milk', F, xx + w/2, y, zz, w, h, Math.max(.02, d), p, 1); xx += w + .01; i++; } });
     });
     OBSTACLES.push({box:{x0:x-1.7, x1:x+1.7, z0:z-1.1, z1:z+1.1}});
     const s = lightbox(SEC.milk.name, 2.4, {bg:PINK, fg:'#ffffff'}); hang(s, x, 3.1, z, 1);
@@ -913,7 +933,7 @@ function build(renderer){
     const used = new Set(); const id = ids.find(i => !used.has(i)); if (!id) continue;
     const list = sd.products.filter(p => p.brandId === id);
     const bay = planogram(seg.key, list, GONDOLA, {cycle:true, maxBays:1, bw:1.0});
-    if (bay[0]) bay[0].hdr = {id, name:list[0].brand, big:true};
+    if (bay[0]) bay[0].hdr = {id:'b:' + id, brandId:id, name:list[0].brand, big:true};
     const x = aisleLeftX(r) + AISLE_W + ROW_T/2;
     gondolaFace(frame(x, zA0 + GONDOLA.d/2 + .05, 0), bay, seg.key, {});
   }

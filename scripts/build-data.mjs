@@ -188,18 +188,33 @@ async function main(){
   for (const c of RX_CATS) (await listAll(catQuery(c))).forEach(p => rx.add(String(p.id)));
   console.log('hidden prescription products:', rx.size);
 
-  // 2) main sections, deduplicated
-  const seen = new Set(), main = {};
+  // 2) main sections, deduplicated, grouped by the store's own sub-categories (deepest level)
+  const tree = ((await getJSON(`${API}/categories`)) || {}).data || [];
+  const nodes = new Map();
+  const walk = n => { if (n.id_ !== undefined) nodes.set(String(n.id_), n); (n.sub_categories || []).forEach(walk); };
+  tree.forEach(walk);
+  const leavesOf = id => {
+    const n = nodes.get(String(id)); if (!n) return [{ id, name: null }];
+    const out = [], rec = m => { const subs = (m.sub_categories || []).filter(c => c.id_ !== undefined); if (!subs.length) out.push({ id: m.id_, name: m.name }); else subs.forEach(rec); };
+    rec(n); return out;
+  };
+  const seen = new Set(), main = {}, subOrder = {};
   for (const sec of MAIN){
-    const list = [];
+    const list = [], order = [];
+    const take = (p, sub) => {
+      const id = String(p.id);
+      if (seen.has(id) || rx.has(id) || !inStock(p) || !(p.image && p.image.url)) return;
+      seen.add(id); list.push({ ...toItem(p), sub: sub || '' });
+    };
     for (const c of sec.cats){
-      for (const p of await listAll(catQuery(c))){
-        const id = String(p.id);
-        if (seen.has(id) || rx.has(id) || !inStock(p) || !(p.image && p.image.url)) continue;
-        seen.add(id); list.push(toItem(p));
+      for (const leaf of leavesOf(c)){
+        if (leaf.name && !order.includes(leaf.name)) order.push(leaf.name);
+        for (const p of await listAll(catQuery(leaf.id))) take(p, leaf.name);
       }
+      for (const p of await listAll(catQuery(c))) take(p, '');   // anything filed only at the top level
     }
-    main[sec.key] = list; console.log(sec.key, list.length);
+    main[sec.key] = list; subOrder[sec.key] = order;
+    console.log(sec.key, list.length, 'sub-categories', order.length);
   }
   // 3) everything else that is in stock → "منتجات متنوعة"
   const other = [];
@@ -221,10 +236,11 @@ async function main(){
   promo.quick = allMain.filter(p => QUICK.test(p.name)).slice(0, 120);
   console.log('quick-grab items:', promo.quick.length);
 
-  // group each main section by brand (big brands first) so the planogram reads like a real store
+  // shelf order: sub-category (store order) → brand (biggest first) → shape → name
   for (const k of Object.keys(main)){
-    const cnt = {}; main[k].forEach(p => { cnt[p.brand] = (cnt[p.brand]||0) + 1; });
-    main[k].sort((a, b) => (!a.brand) - (!b.brand) || cnt[b.brand] - cnt[a.brand] || a.brand.localeCompare(b.brand, 'ar') || (a.aspect||1) - (b.aspect||1) || a.name.localeCompare(b.name, 'ar'));
+    const ord = subOrder[k] || [], si = p => { const i = ord.indexOf(p.sub); return i < 0 ? 9999 : i; };
+    const cnt = {}; main[k].forEach(p => { const key = p.sub + '|' + p.brand; cnt[key] = (cnt[key]||0) + 1; });
+    main[k].sort((a, b) => si(a) - si(b) || (!a.brand) - (!b.brand) || cnt[b.sub + '|' + b.brand] - cnt[a.sub + '|' + a.brand] || a.brand.localeCompare(b.brand, 'ar') || a.name.localeCompare(b.name, 'ar'));
   }
 
   // 5) textures
