@@ -474,7 +474,7 @@ function build(renderer){
   // put one product at local (cx, y, cz) of frame F (its front faces local +z)
   function putProduct(key, F, cx, y, cz, w, h, d, p, rowsDeep=1, yaw=0){
     if (yaw){ const c0 = F.at(cx, 0, cz); F = frame(c0[0], c0[2], F.yaw + yaw); cx = 0; cz = 0; }
-    const sd = DATA.sections[key], bk = key + ':' + p.pg;
+    const sd = DATA.sections[key], bk = key + ':' + p.pg + ':' + Math.floor(p.tile / ((sd.cols || 16) * 4));
     const T = frontBuckets[bk] || (frontBuckets[bk] = Bucket(true)), S = sideBuckets[key] || (sideBuckets[key] = Bucket(false));
     const [u0,u1,vb,vt] = tileUV(sd, p), hw = w/2, a = F.at, n = F.n, uv = [u0,vb, u1,vb, u1,vt, u0,vt];
     const c = rgb(p.c || '#dddddd'), dk = k => [c[0]*k, c[1]*k, c[2]*k];
@@ -507,9 +507,9 @@ function build(renderer){
   function finishProducts(){
     for (const [bk, T] of Object.entries(frontBuckets)){
       if (!T.idx.length) continue;
-      const [key, pg] = bk.split(':'); const mesh = meshOf(T, placeholderMat); mesh.receiveShadow = true;
+      const [key, pg, q] = bk.split(':'); const mesh = meshOf(T, placeholderMat); mesh.receiveShadow = true;
       mesh.userData.sec = SEC[key]; scene.add(mesh); productMeshes.push(mesh);
-      pageMeshes.push({key, pg:+pg, mesh, loaded:false, loading:false, tex:null, center:mesh.geometry.boundingSphere.center, radius:mesh.geometry.boundingSphere.radius});
+      pageMeshes.push({key, pg:+pg, q:+q, mesh, loaded:false, loading:false, tex:null, center:mesh.geometry.boundingSphere.center, radius:mesh.geometry.boundingSphere.radius});
     }
     for (const [key, S] of Object.entries(sideBuckets)){
       if (!S.idx.length) continue;
@@ -518,28 +518,44 @@ function build(renderer){
   }
   const productMeshes = [];
   // lazy texture pages: load the pages nearest the shopper, release far ones on phones
-  const MAX_PAGES = isSmall ? 14 : 48, LOAD_R = isSmall ? 16 : 26, SHARP_N = isSmall ? 6 : 999, SHARP_R = isSmall ? 7 : 999;
+  // Three levels of photo quality, chosen by distance: HD (256 px per product) for the shelves right next to you,
+  // normal (128 px) for the aisle around you, light (64 px, phones only) further away.
+  const MAX_PAGES = isSmall ? 40 : 160, LOAD_R = isSmall ? 16 : 26;
+  const HD_N = isSmall ? 5 : 14, HD_R = isSmall ? 4.5 : 7, FULL_N = isSmall ? 16 : 999, FULL_R = isSmall ? 9 : 999;
   let inflight = 0;
+  function levelFor(pm, i){
+    const sd = DATA.sections[pm.key], pg = sd.pages[pm.pg];
+    if (pg.hd && pg.hd[pm.q] && i < HD_N && pm.dist < HD_R) return 2;
+    if (!isSmall || !sd.pagesM || (i < FULL_N && pm.dist < FULL_R)) return 1;
+    return 0;
+  }
+  function srcFor(pm, lvl){
+    const sd = DATA.sections[pm.key], pg = sd.pages[pm.pg];
+    return lvl === 2 ? pg.hd[pm.q].src : lvl === 1 ? pg.src : sd.pagesM[pm.pg];
+  }
   function updatePages(){
     const cp = camera.position;
     pageMeshes.forEach(pm => pm.dist = Math.max(0, pm.center.distanceTo(cp) - pm.radius));
     const byDist = pageMeshes.slice().sort((a,b)=>a.dist-b.dist);
     byDist.forEach((pm, i) => {
       const want = i < MAX_PAGES && pm.dist < LOAD_R;
-      const sd = DATA.sections[pm.key], sharp = !isSmall || !sd.pagesM || (i < SHARP_N && pm.dist < SHARP_R);
-      const needLoad = want && !pm.loading && inflight < 3 && (!pm.loaded || (sharp && !pm.sharp) || (!sharp && pm.sharp && i >= SHARP_N + 4));
-      if (needLoad){
-        const src = sharp ? sd.pages[pm.pg].src : sd.pagesM[pm.pg];
-        pm.loading = true; inflight++;
-        texLoader.load(src, t => {
-          inflight--; pm.loading = false; sRGB(t); t.generateMipmaps = true;
-          if (pm.loaded){ pm.mesh.material.dispose(); pm.tex.dispose(); }
-          pm.tex = t; pm.loaded = true; pm.sharp = sharp;
-          pm.mesh.material = new THREE.MeshStandardMaterial({map:t, alphaTest:.5, roughness:.4, envMapIntensity:.55, side:THREE.DoubleSide});
-        }, undefined, () => { inflight--; pm.loading = false; pm.failed = (pm.failed||0) + 1; });
-      } else if (!want && pm.loaded && i >= MAX_PAGES + 6){
-        pm.mesh.material.dispose(); pm.tex.dispose(); pm.tex = null; pm.loaded = false; pm.mesh.material = placeholderMat;
-      }
+      if (!want){ if (pm.loaded && i >= MAX_PAGES + 10){ pm.mesh.material.dispose(); pm.tex.dispose(); pm.tex = null; pm.loaded = false; pm.lvl = -1; pm.mesh.material = placeholderMat; } return; }
+      const lvl = levelFor(pm, i);
+      // go up a level right away; drop down only when clearly out of range (avoids flicker)
+      const change = !pm.loaded || lvl > pm.lvl || (lvl < pm.lvl && (pm.lvl === 2 ? (i >= HD_N + 3 || pm.dist > HD_R + 2) : (i >= FULL_N + 4 || pm.dist > FULL_R + 3)));
+      if (!change || pm.loading || inflight >= 4) return;
+      pm.loading = true; inflight++;
+      texLoader.load(srcFor(pm, lvl), t => {
+        inflight--; pm.loading = false; sRGB(t); t.generateMipmaps = true;
+        if (lvl === 2){
+          // the mesh UVs address the whole page; map them onto this quarter (rows 4q..4q+3)
+          const R = DATA.sections[pm.key].pages[pm.pg].rows, qr = DATA.sections[pm.key].pages[pm.pg].hd[pm.q].rows;
+          t.repeat.set(1, R / qr); t.offset.set(0, -(1 - (4*pm.q + qr) / R) * R / qr);
+        }
+        if (pm.loaded){ pm.mesh.material.dispose(); pm.tex.dispose(); }
+        pm.tex = t; pm.loaded = true; pm.lvl = lvl;
+        pm.mesh.material = new THREE.MeshStandardMaterial({map:t, alphaTest:.5, roughness:.4, envMapIntensity:.55, side:THREE.DoubleSide});
+      }, undefined, () => { inflight--; pm.loading = false; pm.failed = (pm.failed||0) + 1; });
     });
   }
 
@@ -1275,7 +1291,7 @@ function build(renderer){
     if (HLOGO.idx.length && BA) scene.add(meshOf(HLOGO, new THREE.MeshBasicMaterial({map:sRGB(texLoader.load(BA.src)), toneMapped:false})));
     if (HTITLE.idx.length) scene.add(meshOf(HTITLE, new THREE.MeshBasicMaterial({map:titleTex, toneMapped:false})));
   }
-  updatePages(); setInterval(updatePages, 600);
+  updatePages(); setInterval(updatePages, 350);
 
   // ---------- cart (kept in this browser; checkout moves it into the ibrand.com.sa cart) ----------
   let cart = store.get('ib3d-cart', {});

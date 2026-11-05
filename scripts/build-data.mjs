@@ -11,8 +11,8 @@ import sharp from 'sharp';
 const STORE_ID = '1972477543';
 const API = 'https://api.salla.dev/store/v1';
 const OUT = process.env.OUT || 'site';
-const CACHE = '.cache/tiles';
-const TILE = 128, PC = 16, PR = 16, PER_PAGE = PC * PR;   // 2048×2048 desktop page, 1024×1024 phone page
+const CACHE = '.cache/tiles-hd';
+const TILE = 128, HD = 256, PC = 16, PR = 16, PER_PAGE = PC * PR, QR = 4;   // 2048² page (+1024² phone page) and HD quarters of 4 rows at 256 px (4096×1024)
 const PROMO_MAX = 240;
 
 // Main sections: each product lands in the FIRST one it belongs to (no duplicates on the shelves)
@@ -111,11 +111,11 @@ async function makeTile(imgUrl){
   const r = await fetch(imgUrl, { headers: { 'User-Agent': headers['User-Agent'] } });
   if (!r.ok) throw new Error('img ' + r.status);
   const buf = Buffer.from(await r.arrayBuffer());
-  const S = 360;
+  const S = 600;
   const { data, info } = await sharp(buf).rotate().flatten({ background: '#ffffff' }).resize(S, S, { fit: 'contain', background: '#ffffff' }).ensureAlpha().raw().toBuffer({ resolveWithObject: true });
   const res = cutout(data, info.width, info.height);
   if (!res.box || res.kept < 0.04 || res.kept > 0.97){
-    const png = await sharp(buf).rotate().flatten({ background:'#ffffff' }).resize(TILE, TILE, { fit:'cover' }).png().toBuffer();
+    const png = await sharp(buf).rotate().flatten({ background:'#ffffff' }).resize(HD, HD, { fit:'cover' }).png().toBuffer();
     return { png, meta: { aspect: 1, card: true, rect: 1, c: '#eeeeee' } };
   }
   const b = res.box, aspect = b.width / b.height;
@@ -126,7 +126,7 @@ async function makeTile(imgUrl){
     if (x - b.left < band || b.left + b.width - x <= band || y - b.top < band || b.top + b.height - y <= band){ er += data[i]; eg += data[i+1]; eb += data[i+2]; en++; }
   }
   const hex = v => Math.round(v).toString(16).padStart(2, '0');
-  const png = await sharp(data, { raw: info }).extract(b).resize(TILE, TILE, { fit: 'contain', background: { r:0, g:0, b:0, alpha:0 } }).png().toBuffer();
+  const png = await sharp(data, { raw: info }).extract(b).resize(HD, HD, { fit: 'contain', background: { r:0, g:0, b:0, alpha:0 } }).png().toBuffer();
   return { png, meta: { aspect: +aspect.toFixed(3), card: false, rect: +(opaque / (b.width*b.height)).toFixed(2), c: en ? '#' + hex(er/en) + hex(eg/en) + hex(eb/en) : '#dddddd' } };
 }
 
@@ -159,13 +159,19 @@ async function packSection(key, items){
   for (let pg = 0; pg * PER_PAGE < ok.length; pg++){
     const chunk = ok.slice(pg * PER_PAGE, (pg + 1) * PER_PAGE);
     const rows = Math.ceil(chunk.length / PC);
-    const comps = chunk.map(({ t }, i) => ({ input: t.png, left: (i % PC) * TILE, top: Math.floor(i / PC) * TILE }));
     const big = `atlas/${key}-${pg}.webp`, small = `atlas/${key}-${pg}-m.webp`;
-    const img = sharp({ create: { width: PC*TILE, height: rows*TILE, channels: 4, background: { r:0, g:0, b:0, alpha:0 } } }).composite(comps);
-    const buf = await img.png().toBuffer();
-    await sharp(buf).webp({ quality: 76, alphaQuality: 82 }).toFile(`${OUT}/${big}`);
-    await sharp(buf).resize(PC*TILE/2, rows*TILE/2).webp({ quality: 72, alphaQuality: 78 }).toFile(`${OUT}/${small}`);
-    pages.push({ src: big, rows }); pagesM.push(small);
+    // HD quarters (rows 4q..4q+3 at 256 px), then the normal page is the HD layout scaled down
+    const hd = [];
+    const full = await sharp({ create: { width: PC*HD, height: rows*HD, channels: 4, background: { r:0, g:0, b:0, alpha:0 } } })
+      .composite(chunk.map(({ t }, i) => ({ input: t.png, left: (i % PC) * HD, top: Math.floor(i / PC) * HD }))).png().toBuffer();
+    for (let q = 0; q * QR < rows; q++){
+      const qr = Math.min(QR, rows - q*QR), src = `atlas/${key}-${pg}-hd${q}.webp`;
+      await sharp(full).extract({ left: 0, top: q*QR*HD, width: PC*HD, height: qr*HD }).webp({ quality: 74, alphaQuality: 80 }).toFile(`${OUT}/${src}`);
+      hd.push({ src, rows: qr });
+    }
+    await sharp(full).resize(PC*TILE, rows*TILE).webp({ quality: 76, alphaQuality: 82 }).toFile(`${OUT}/${big}`);
+    await sharp(full).resize(PC*TILE/2, rows*TILE/2).webp({ quality: 72, alphaQuality: 78 }).toFile(`${OUT}/${small}`);
+    pages.push({ src: big, rows, hd }); pagesM.push(small);
     chunk.forEach(({ it, t }, i) => products.push({ ...it, pg, tile: i, ...t.meta }));
   }
   return { cols: PC, pages, pagesM, products };
