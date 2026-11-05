@@ -11,7 +11,9 @@ import sharp from 'sharp';
 const STORE_ID = '1972477543';
 const API = 'https://api.salla.dev/store/v1';
 const OUT = process.env.OUT || 'site';
-const CACHE = '.cache/tiles3';
+const CACHE = '.cache/tiles4';
+// the store's pink "no photo yet" camera card, by content hash (sha1 of the file, first 16 hex)
+const PLACEHOLDER_SIGS = new Set(['4925ec783dc091ec', '8ea18a9f292bfaf6', 'b4b139852ebc0ad5']);
 const TILE = 128, HD = 256, PC = 16, PR = 16, PER_PAGE = PC * PR, QR = 4;   // 2048² page (+1024² phone page) and HD quarters of 4 rows at 256 px (4096×1024)
 const PROMO_MAX = 240;
 
@@ -84,8 +86,8 @@ function toItem(p){
 const fullImg = s => s.startsWith('http') ? s : 'https://cdn.salla.sa/yKErG/' + s;
 
 // ---------- image cut-out (cached by image URL) ----------
-function cutout(data, w, h){
-  const near = i => data[i] > 247 && data[i+1] > 247 && data[i+2] > 247;
+function cutout(data, w, h, thr = 247){
+  const near = i => data[i] >= thr && data[i+1] >= thr && data[i+2] >= thr;
   const mark = new Uint8Array(w * h), stack = [];
   for (let x = 0; x < w; x++){ stack.push(x, (h-1)*w + x); }
   for (let y = 0; y < h; y++){ stack.push(y*w, y*w + w - 1); }
@@ -113,8 +115,13 @@ async function makeTile(imgUrl){
   if (!r.ok) throw new Error('img ' + r.status);
   const buf = Buffer.from(await r.arrayBuffer());
   const S = 600;
-  const { data, info } = await sharp(buf).rotate().flatten({ background: '#ffffff' }).resize(S, S, { fit: 'contain', background: '#ffffff' }).ensureAlpha().raw().toBuffer({ resolveWithObject: true });
-  const res = cutout(data, info.width, info.height);
+  const { data: data0, info } = await sharp(buf).rotate().flatten({ background: '#ffffff' }).resize(S, S, { fit: 'contain', background: '#ffffff' }).ensureAlpha().raw().toBuffer({ resolveWithObject: true });
+  let data = Buffer.from(data0);
+  let res = cutout(data, info.width, info.height, 247);
+  if (!res.box || res.kept > 0.97){
+    const d2 = Buffer.from(data0), r2 = cutout(d2, info.width, info.height, 239);
+    if (r2.box && r2.kept >= 0.04 && r2.kept <= 0.97){ data = d2; res = r2; }
+  }
   const sig = crypto.createHash('sha1').update(buf).digest('hex').slice(0, 16);
   // how pink is what survived the cut-out? (identifies the store's "no photo" pink camera card)
   let pkN = 0, pkP = 0;
@@ -277,6 +284,7 @@ async function main(){
     const m = metaByImg.get(imgs[0]);
     if (imgs.length >= 4 && (m.pk || 0) >= .5) imgs.forEach(u => ph.add(u));
   }
+  for (const [img, m] of metaByImg) if (m.sig && PLACEHOLDER_SIGS.has(m.sig)) ph.add(img);
   for (const u of uniqImgs) if (/placeholder|no[-_]?image/i.test(u)) ph.add(u);
   let hiddenPh = 0;
   for (const k of Object.keys(main)){ const n0 = main[k].length; main[k] = main[k].filter(p => !ph.has(p.img)); hiddenPh += n0 - main[k].length; }

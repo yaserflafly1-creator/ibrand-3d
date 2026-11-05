@@ -68,12 +68,12 @@ rep('<script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/environ
 <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/postprocessing/UnrealBloomPass.js"></script>''')
 
 # 8) lower initial dpr on desktop (composer + mirror cost)
-rep('renderer.setPixelRatio(Math.min(devicePixelRatio, isSmall ? 1.6 : 2));',
-    'renderer.setPixelRatio(Math.min(devicePixelRatio, isSmall ? 1.6 : 1.75));')
+rep('renderer.setPixelRatio(Math.min(devicePixelRatio, isSmall ? 1.5 : (weakGPU ? 1.5 : 2)));',
+    'renderer.setPixelRatio(Math.min(devicePixelRatio, isSmall ? 1.5 : (weakGPU ? 1.4 : 1.75)));')
 
 # 9) floor mirror (named, so the governor can turn it off)
 rep("  const floor = new THREE.Mesh(new THREE.PlaneGeometry(fw, fl), new THREE.MeshStandardMaterial({map:tileTex, roughness:.16, metalness:.02, envMapIntensity:.75}));",
-    '''  const useMirror = !isSmall && !!THREE.Reflector;
+    '''  const useMirror = !isSmall && !weakGPU && !!THREE.Reflector;
   let floorMirror = null;
   if (useMirror){
     floorMirror = new THREE.Reflector(new THREE.PlaneGeometry(fw, fl), {textureWidth: Math.min(1280, innerWidth), textureHeight: Math.min(720, innerHeight), color: 0x9a9a9a, clipBias: 0.003});
@@ -106,8 +106,8 @@ else:
     s = s[:m.start()] + '\n  const vel = {x:0, z:0}; let walkAmt = 0, bobT = 0;' + s[m.start():]
 
 # 11) governor: v2 desktop dpr steps + mirror/composer degrade stages + composer resize hook
-rep('const DPRS = isSmall ? [1.6, 1.3, 1.05, .85] : [2, 1.6, 1.35, 1.1];',
-    'const DPRS = isSmall ? [1.6, 1.3, 1.05, .85] : [1.75, 1.45, 1.2, 1];')
+rep('const DPRS = isSmall ? [1.5, 1.25, 1.0, .85] : (weakGPU ? [1.5, 1.25, 1.05, .9] : [2, 1.6, 1.35, 1.1]);',
+    'const DPRS = isSmall ? [1.5, 1.25, 1.0, .85] : (weakGPU ? [1.4, 1.2, 1.0, .9] : [1.75, 1.45, 1.2, 1]);')
 rep('    /*V2_PP_RESIZE*/', '    if (ppResize) ppResize();')
 rep('    /*V2_EXTRA_DEGRADE*/',
     '''    if (floorMirror && floorMirror.visible){ floorMirror.visible = false; floor.material.transparent = false; floor.material.opacity = 1; floor.material.needsUpdate = true; return; }
