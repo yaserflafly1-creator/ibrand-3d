@@ -1636,7 +1636,7 @@ function build(renderer){
 
   // ---------- adaptive quality: step the resolution down until the device runs smoothly ----------
   const DPRS = isSmall ? [1.5, 1.25, 1.0, .85] : (weakGPU ? [1.4, 1.2, 1.0, .9] : [1.75, 1.45, 1.2, 1]);
-  let qIdx = 0, fpsN = 0, fpsT = performance.now(), slowRuns = 0;
+  let qIdx = 0, fpsN = 0, fpsT = performance.now(), slowRuns = 0, goodRuns = 0, qMin = 0, lastUp = -1e9;
   const bootT = performance.now();
   function applyDpr(){
     renderer.setPixelRatio(Math.min(devicePixelRatio, DPRS[qIdx]));
@@ -1644,7 +1644,12 @@ function build(renderer){
     if (ppResize) ppResize();
   }
   function degrade(){
-    if (qIdx < DPRS.length - 1){ qIdx++; applyDpr(); return; }
+    goodRuns = 0;
+    if (qIdx < DPRS.length - 1){
+      // if we only just recovered, this level clearly doesn't hold: stop recovering past the next one
+      if (performance.now() - lastUp < 12000) qMin = Math.min(DPRS.length - 1, qIdx + 1);
+      qIdx++; applyDpr(); return;
+    }
     if (floorMirror && floorMirror.visible){ floorMirror.visible = false; floor.material.transparent = false; floor.material.opacity = 1; floor.material.needsUpdate = true; return; }
     if (composer){ composer = null; return; }
     if (renderer.shadowMap.enabled){
@@ -1657,10 +1662,17 @@ function build(renderer){
     fpsN++;
     if (now - fpsT < 700) return;
     const fps = fpsN * 1000 / (now - fpsT); fpsN = 0; fpsT = now;
-    if (document.hidden || flight || now - bootT < 3000){ slowRuns = 0; return; }
+    if (document.hidden || flight || now - bootT < 3000){ slowRuns = 0; goodRuns = 0; return; }
+    // texture downloads/uploads cause brief dips that aren't real slowness: only react to a hard stall
+    if (inflight > 0 && fps >= 28){ slowRuns = 0; return; }
     if (fps < 34){ slowRuns = 0; degrade(); }
-    else if (fps < 46){ if (++slowRuns >= 2){ slowRuns = 0; degrade(); } }
-    else slowRuns = 0;
+    else if (fps < 46){ goodRuns = 0; if (++slowRuns >= 2){ slowRuns = 0; degrade(); } }
+    else {
+      slowRuns = 0;
+      // recover: after ~4s of comfortably smooth frames, step the resolution back up
+      if (fps > 56 && qIdx > qMin){ if (++goodRuns >= 6){ goodRuns = 0; qIdx--; applyDpr(); lastUp = now; } }
+      else goodRuns = 0;
+    }
   }
 
   // ---------- v2: cinematic bloom + FXAA on desktop ----------
