@@ -44,7 +44,7 @@ jobs:
         if: steps.basisu-cache.outputs.cache-hit != 'true'
         run: |
           git clone --depth 1 --branch 1.16.4 https://github.com/BinomialLLC/basis_universal.git /tmp/bu
-          cmake -S /tmp/bu -B /tmp/bu/build -DCMAKE_BUILD_TYPE=Release
+          cmake -S /tmp/bu -B /tmp/bu/build -DCMAKE_BUILD_TYPE=Release -DCMAKE_POLICY_VERSION_MINIMUM=3.5
           cmake --build /tmp/bu/build -j
           mkdir -p .tools
           cp "$(find /tmp/bu -name basisu -type f | head -1)" .tools/basisu
