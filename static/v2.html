@@ -353,7 +353,25 @@ function build(renderer){
 
   const scene = new THREE.Scene();
   scene.background = new THREE.Color('#f7efe6');
-  if (THREE.RoomEnvironment){ const pm = new THREE.PMREMGenerator(renderer); scene.environment = pm.fromScene(new THREE.RoomEnvironment(), 0.04).texture; }
+  let buildEnv = () => {};
+  if (THREE.RoomEnvironment){
+    buildEnv = () => {
+      const pm = new THREE.PMREMGenerator(renderer);
+      scene.environment = pm.fromScene(new THREE.RoomEnvironment(), 0.04).texture;
+      pm.dispose();
+      scene.traverse(o => { if (o.material) (Array.isArray(o.material) ? o.material : [o.material]).forEach(m => m.needsUpdate = true); });
+    };
+    buildEnv();
+  }
+  // phones drop the WebGL context when the tab goes to the background; the environment
+  // lighting lives in a render target that is lost with it, so rebuild it on restore
+  renderer.domElement.addEventListener('webglcontextrestored', () => setTimeout(buildEnv, 60));
+  document.addEventListener('visibilitychange', () => {
+    if (document.hidden) return;
+    const gl = renderer.getContext();
+    if (gl && gl.isContextLost && gl.isContextLost()) return; // the restore event above will rebuild
+    setTimeout(buildEnv, 120);
+  });
 
   // ---------- helpers ----------
   const aniso = renderer.capabilities.getMaxAnisotropy();
@@ -568,7 +586,7 @@ function build(renderer){
       const lvl = levelFor(pm, i);
       // go up a level right away; drop down only when clearly out of range (avoids flicker)
       const change = !pm.loaded || lvl > pm.lvl || (lvl < pm.lvl && (pm.lvl === 2 ? (i >= HD_N + 3 || pm.dist > HD_R + 2) : (i >= FULL_N + 4 || pm.dist > FULL_R + 3)));
-      if (!change || pm.loading || inflight >= 4) return;
+      if (!change || pm.loading || inflight >= 8) return;
       pm.loading = true; inflight++;
       texLoader.load(srcFor(pm, lvl), t => {
         inflight--; pm.loading = false; sRGB(t); t.generateMipmaps = !isSmall; if (isSmall) t.minFilter = THREE.LinearFilter;
