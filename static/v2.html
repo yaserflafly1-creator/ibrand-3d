@@ -545,8 +545,8 @@ function build(renderer){
   // lazy texture pages: load the pages nearest the shopper, release far ones on phones
   // Three levels of photo quality, chosen by distance: HD (256 px per product) for the shelves right next to you,
   // normal (128 px) for the aisle around you, light (64 px, phones only) further away.
-  const MAX_PAGES = isSmall ? 20 : (weakGPU ? 36 : 56), LOAD_R = isSmall ? 14 : 24;
-  const HD_N = isSmall ? 4 : 12, HD_R = isSmall ? 4.5 : 7, FULL_N = isSmall ? 10 : (weakGPU ? 18 : 30), FULL_R = isSmall ? 7 : 14;
+  const MAX_PAGES = isSmall ? 30 : (weakGPU ? 36 : 56), LOAD_R = isSmall ? 20 : 24;
+  const HD_N = isSmall ? 5 : 12, HD_R = isSmall ? 5 : 7, FULL_N = isSmall ? 16 : (weakGPU ? 18 : 30), FULL_R = isSmall ? 10 : 14;
   let inflight = 0;
   function levelFor(pm, i){
     const sd = DATA.sections[pm.key], pg = sd.pages[pm.pg];
