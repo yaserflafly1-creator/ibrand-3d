@@ -11,7 +11,7 @@ import sharp from 'sharp';
 const STORE_ID = '1972477543';
 const API = 'https://api.salla.dev/store/v1';
 const OUT = process.env.OUT || 'site';
-const CACHE = '.cache/tiles5';
+const CACHE = '.cache/tiles6';
 // the store's pink "no photo yet" camera card, by content hash (sha1 of the file, first 16 hex)
 const PLACEHOLDER_SIGS = new Set(['4925ec783dc091ec', '8ea18a9f292bfaf6', 'b4b139852ebc0ad5']);
 const PLACEHOLDER_REFS = [
@@ -170,6 +170,16 @@ async function makeTile(imgUrl){
     let tot = 0, hole = 0;
     for (let y = cy0; y < cy1; y += 2) for (let x = cx0; x < cx1; x += 2){ tot++; if (data[(y*info.width + x)*4 + 3] === 0) hole++; }
     if (tot && hole / tot > 0.12) return asCard(); }
+  // bites eaten into the product from its sides/top (white boxes on white background):
+  // inside each row, holes between the leftmost and rightmost kept pixels mean the flood ate into the body
+  { const b = res.box; let span = 0, hole = 0;
+    for (let y = b.top; y < b.top + b.height; y += 2){
+      let x0 = -1, x1 = -1;
+      for (let x = b.left; x < b.left + b.width; x++){ if (data[(y*info.width + x)*4 + 3]){ if (x0 < 0) x0 = x; x1 = x; } }
+      if (x0 < 0) continue;
+      for (let x = x0; x <= x1; x += 2){ span++; if (!data[(y*info.width + x)*4 + 3]) hole++; }
+    }
+    if (span && hole / span > 0.08){ tileStats.bitten = (tileStats.bitten || 0) + 1; return asCard(); } }
   const b = res.box, aspect = b.width / b.height;
   let opaque = 0, er = 0, eg = 0, eb = 0, en = 0;
   const band = Math.max(2, Math.round(Math.min(b.width, b.height) * .08));
