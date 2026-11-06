@@ -566,6 +566,14 @@ function build(renderer){
   const MAX_PAGES = isSmall ? 30 : (weakGPU ? 36 : 56), LOAD_R = isSmall ? 20 : 24;
   const HD_N = isSmall ? 5 : 12, HD_R = isSmall ? 5 : 7, FULL_N = isSmall ? 16 : (weakGPU ? 18 : 30), FULL_R = isSmall ? 10 : 14;
   let inflight = 0;
+  // phones: decode images off the main thread and upload to the GPU one per frame,
+  // so new shelf photos never freeze the walk (game-engine style streaming)
+  const texQ = [];
+  const bmLoader = (isSmall && typeof createImageBitmap === 'function' && THREE.ImageBitmapLoader) ? new THREE.ImageBitmapLoader().setOptions({imageOrientation: 'flipY'}) : null;
+  function loadPageTex(src, ok, err){
+    if (!bmLoader) return texLoader.load(src, ok, undefined, err);
+    bmLoader.load(src, bm => { const t = new THREE.CanvasTexture(bm); t.flipY = false; texQ.push(() => ok(t)); }, undefined, err);
+  }
   function levelFor(pm, i){
     const sd = DATA.sections[pm.key], pg = sd.pages[pm.pg];
     if (pg.hd && pg.hd[pm.q] && i < HD_N && pm.dist < HD_R) return 2;
@@ -588,13 +596,14 @@ function build(renderer){
       const change = !pm.loaded || lvl > pm.lvl || (lvl < pm.lvl && (pm.lvl === 2 ? (i >= HD_N + 3 || pm.dist > HD_R + 2) : (i >= FULL_N + 4 || pm.dist > FULL_R + 3)));
       if (!change || pm.loading || inflight >= 8) return;
       pm.loading = true; inflight++;
-      texLoader.load(srcFor(pm, lvl), t => {
+      loadPageTex(srcFor(pm, lvl), t => {
         inflight--; pm.loading = false; sRGB(t); t.generateMipmaps = !isSmall; if (isSmall) t.minFilter = THREE.LinearFilter;
         if (lvl === 2){
           // the mesh UVs address the whole page; map them onto this quarter (rows 4q..4q+3)
           const R = DATA.sections[pm.key].pages[pm.pg].rows, qr = DATA.sections[pm.key].pages[pm.pg].hd[pm.q].rows;
           t.repeat.set(1, R / qr); t.offset.set(0, -(1 - (4*pm.q + qr) / R) * R / qr);
         }
+        try{ renderer.initTexture(t); }catch(_){}
         if (pm.loaded){ pm.mesh.material.dispose(); pm.tex.dispose(); }
         pm.tex = t; pm.loaded = true; pm.lvl = lvl;
         pm.mesh.material = new THREE.MeshStandardMaterial({map:t, alphaTest:.5, roughness:.4, envMapIntensity:.55, side:THREE.DoubleSide});
@@ -1591,15 +1600,26 @@ function build(renderer){
   el.addEventListener('pointermove', e => { if (e.pointerId === joyId) joyMove(e); }, true);
   const floatEnd = e => { if (e.pointerId !== joyId) return; joyId = null; joy.x = joy.y = 0; knob.style.transform = ''; joyEl.classList.remove('on'); joyHome(); };
   el.addEventListener('pointerup', floatEnd, true); el.addEventListener('pointercancel', floatEnd, true);
-  const lookers = new Map();
-  el.addEventListener('pointerdown', e => { if (e.pointerId === joyId) return; lookers.set(e.pointerId, {x:e.clientX, y:e.clientY}); if (pano) setPano(false); try{ el.setPointerCapture(e.pointerId); }catch(_){} });
+  const lookers = new Map(), lookV = {y:0, p:0};
+  el.addEventListener('pointerdown', e => { if (e.pointerId === joyId) return; lookers.set(e.pointerId, {x:e.clientX, y:e.clientY}); lookV.y = lookV.p = 0; if (pano) setPano(false); try{ el.setPointerCapture(e.pointerId); }catch(_){} });
   el.addEventListener('pointermove', e => {
     const Lk = lookers.get(e.pointerId); if (!Lk || lookers.size > 1 || e.pointerId === joyId) return;
     const sens = e.pointerType === 'mouse' ? .0042 : .0068;
-    view.yaw -= (e.clientX - Lk.x) * sens; view.pitch = clampPitch(view.pitch - (e.clientY - Lk.y) * sens * .8);
+    const dy = -(e.clientX - Lk.x) * sens, dp = -(e.clientY - Lk.y) * sens * .8;
+    view.yaw += dy; view.pitch = clampPitch(view.pitch + dp);
+    // remember the flick speed so the view keeps gliding after the finger lifts (game feel)
+    if (e.pointerType !== 'mouse'){
+      const nowT = performance.now(), dtm = Math.max(8, nowT - (Lk.t || nowT - 16));
+      lookV.y = Math.max(-3.2, Math.min(3.2, dy / dtm * 1000));
+      lookV.p = Math.max(-2.2, Math.min(2.2, dp / dtm * 1000));
+      Lk.t = nowT;
+    }
     Lk.x = e.clientX; Lk.y = e.clientY;
   });
-  const lookEnd = e => lookers.delete(e.pointerId);
+  const lookEnd = e => {
+    const Lk = lookers.get(e.pointerId); lookers.delete(e.pointerId);
+    if (!Lk || !Lk.t || performance.now() - Lk.t > 120){ lookV.y = lookV.p = 0; }
+  };
   el.addEventListener('pointerup', lookEnd); el.addEventListener('pointercancel', lookEnd);
   function tryMove(dx, dz){
     const cx = camera.position.x, cz = camera.position.z, inside = blocked(cx, cz);
@@ -1726,6 +1746,11 @@ function build(renderer){
   renderer.setAnimationLoop(now => {
     const dt = Math.min(.05, (now - last)/1000); last = now;
     fpsTick(now);
+    if (texQ.length){ const f = texQ.shift(); f(); }
+    if (!lookers.size && (Math.abs(lookV.y) > .02 || Math.abs(lookV.p) > .02)){
+      view.yaw += lookV.y * dt; view.pitch = clampPitch(view.pitch + lookV.p * dt);
+      const d = Math.exp(-dt * 4.2); lookV.y *= d; lookV.p *= d;
+    }
     if (flight){
       const k = Math.min(1, (now-flight.start)/flight.dur), e = ease(k);
       camera.position.lerpVectors(flight.p0, flight.p1, e); view.yaw = flight.y0 + flight.dy*e; view.pitch = flight.pt0 + (flight.pt1 - flight.pt0)*e;

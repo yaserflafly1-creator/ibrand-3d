@@ -81,29 +81,8 @@ rep("  const floor = new THREE.Mesh(new THREE.PlaneGeometry(fw, fl), new THREE.M
   }
   const floor = new THREE.Mesh(new THREE.PlaneGeometry(fw, fl), new THREE.MeshStandardMaterial({map:tileTex, roughness:.16, metalness:.02, envMapIntensity:.75, transparent:useMirror, opacity:useMirror ? .88 : 1}));''')
 
-# 10) smooth walk + head-bob state
-rep('''    const len = Math.hypot(mv, st); if (len < .08) return;
-    if (len > 1){ mv /= len; st /= len; }
-    const speed = (2.2 + (len > .92 ? .9 : 0)) * dt;''',
-    '''    let len = Math.hypot(mv, st);
-    if (len > 1){ mv /= len; st /= len; len = 1; }''')
-rep('    tryMove((fx*mv + rx*st*.85) * speed, (fz*mv + rz*st*.85) * speed);',
-    '''    const sp = len < .08 ? 0 : (2.2 + (len > .92 ? .9 : 0));
-    const tx = (fx*mv + rx*st*.85) * sp, tz = (fz*mv + rz*st*.85) * sp;
-    const k = Math.min(1, dt * (sp ? 9 : 7));
-    vel.x += (tx - vel.x) * k; vel.z += (tz - vel.z) * k;
-    const v = Math.hypot(vel.x, vel.z);
-    if (v > .03) tryMove(vel.x * dt, vel.z * dt);
-    walkAmt += (Math.min(1, v / 2.2) - walkAmt) * Math.min(1, dt * 5);
-    bobT += dt * (5 + 4 * walkAmt);''')
+# 10) smooth walk now lives in index.html itself; v2 only adds the head bob
 
-# the vel/walkAmt/bobT declarations go right before the walk function
-import re
-m = re.search(r'\n(  function walk\(dt\)\{)', s)
-if not m:
-    n_fail.append((0, 'function walk(dt){'))
-else:
-    s = s[:m.start()] + '\n  const vel = {x:0, z:0}; let walkAmt = 0, bobT = 0;' + s[m.start():]
 
 # 11) governor: v2 desktop dpr steps + mirror/composer degrade stages + composer resize hook
 rep('const DPRS = isSmall ? [1.5, 1.25, 1.0, .85] : (weakGPU ? [1.5, 1.25, 1.05, .9] : [2, 1.6, 1.35, 1.1]);',
