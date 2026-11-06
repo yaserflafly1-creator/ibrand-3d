@@ -6,12 +6,32 @@
 // Output: site/data/products.json, site/atlas/*.webp, site/assets/logo.png
 import fs from 'node:fs/promises';
 import crypto from 'node:crypto';
+import { execFile } from 'node:child_process';
 import sharp from 'sharp';
 
 const STORE_ID = '1972477543';
 const API = 'https://api.salla.dev/store/v1';
 const OUT = process.env.OUT || 'site';
 const CACHE = '.cache/tiles6';
+
+// GPU-compressed atlas pages (.basis, ETC1S + mipmaps): same download size as webp,
+// ~4x less GPU memory and no decode jank — set BASISU to the encoder binary to enable
+const BCACHE = '.cache/basis6';
+const BASISU = process.env.BASISU || '';
+const bStats = { cached: 0, made: 0, failed: 0 };
+async function toBasis(pngBuf, outPath){
+  if (!BASISU) return false;
+  const h = crypto.createHash('sha1').update(pngBuf).digest('hex').slice(0, 20);
+  const c = `${BCACHE}/${h}.basis`;
+  try{ await fs.copyFile(c, outPath); bStats.cached++; return true; }catch(e){}
+  const tmp = `${BCACHE}/t-${h}.png`;
+  try{
+    await fs.writeFile(tmp, pngBuf);
+    await new Promise((res, rej) => execFile(BASISU, ['-q', '230', '-mipmap', '-y_flip', tmp, '-output_file', c], { timeout: 600000 }, e => e ? rej(e) : res()));
+    await fs.copyFile(c, outPath); bStats.made++; return true;
+  }catch(e){ bStats.failed++; return false; }
+  finally{ fs.unlink(tmp).catch(() => {}); }
+}
 // the store's pink "no photo yet" camera card, by content hash (sha1 of the file, first 16 hex)
 const PLACEHOLDER_SIGS = new Set(['4925ec783dc091ec', '8ea18a9f292bfaf6', 'b4b139852ebc0ad5']);
 const PLACEHOLDER_REFS = [
@@ -228,12 +248,18 @@ async function packSection(key, items){
       .composite(chunk.map(({ t }, i) => ({ input: t.png, left: (i % PC) * HD, top: Math.floor(i / PC) * HD }))).png().toBuffer();
     for (let q = 0; q * QR < rows; q++){
       const qr = Math.min(QR, rows - q*QR), src = `atlas/${key}-${pg}-hd${q}.webp`;
-      await sharp(full).extract({ left: 0, top: q*QR*HD, width: PC*HD, height: qr*HD }).webp({ quality: 74, alphaQuality: 80 }).toFile(`${OUT}/${src}`);
-      hd.push({ src, rows: qr });
+      const qPng = await sharp(full).extract({ left: 0, top: q*QR*HD, width: PC*HD, height: qr*HD }).png().toBuffer();
+      await sharp(qPng).webp({ quality: 74, alphaQuality: 80 }).toFile(`${OUT}/${src}`);
+      const hdE = { src, rows: qr }, qB = src.replace('.webp', '.basis');
+      if (await toBasis(qPng, `${OUT}/${qB}`)) hdE.srcB = qB;
+      hd.push(hdE);
     }
-    await sharp(full).resize(PC*TILE, rows*TILE).webp({ quality: 76, alphaQuality: 82 }).toFile(`${OUT}/${big}`);
+    const bigPng = await sharp(full).resize(PC*TILE, rows*TILE).png().toBuffer();
+    await sharp(bigPng).webp({ quality: 76, alphaQuality: 82 }).toFile(`${OUT}/${big}`);
     await sharp(full).resize(PC*TILE/2, rows*TILE/2).webp({ quality: 72, alphaQuality: 78 }).toFile(`${OUT}/${small}`);
-    pages.push({ src: big, rows, hd }); pagesM.push(small);
+    const page = { src: big, rows, hd }, bigB = big.replace('.webp', '.basis');
+    if (await toBasis(bigPng, `${OUT}/${bigB}`)) page.srcB = bigB;
+    pages.push(page); pagesM.push(small);
     chunk.forEach(({ it, t }, i) => products.push({ ...it, pg, tile: i, ...t.meta }));
   }
   return { cols: PC, pages, pagesM, products };
@@ -241,6 +267,7 @@ async function packSection(key, items){
 
 async function main(){
   await fs.mkdir(`${OUT}/atlas`, { recursive: true });
+  await fs.mkdir(BCACHE, { recursive: true });
   await fs.mkdir(`${OUT}/data`, { recursive: true });
   await fs.mkdir(`${OUT}/assets`, { recursive: true });
   await fs.mkdir(CACHE, { recursive: true });
@@ -356,6 +383,7 @@ async function main(){
     console.log('packed', k, result.sections[k].products.length, 'pages', result.sections[k].pages.length);
   }
   console.log('tiles', tileStats);
+  console.log('basis pages', BASISU ? bStats : 'disabled (no BASISU)');
   if (!Object.keys(result.sections).length) throw new Error('No products fetched — storefront API unreachable?');
   result.counts = { onShelves: Object.keys(main).reduce((a, k) => a + (result.sections[k] ? result.sections[k].products.length : 0), 0), hiddenRx: rx.size };
 

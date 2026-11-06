@@ -255,6 +255,7 @@ button{font-family:var(--font)}
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/environments/RoomEnvironment.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/loaders/BasisTextureLoader.js"></script>
 <script>
 const TEAL = '#2fbcb2', PINK = '#e873a8', PINK_DEEP = '#c9518b', PLUM = '#3b1d36';
 const STORE = 'https://ibrand.com.sa/ar/';
@@ -556,8 +557,23 @@ function build(renderer){
   // phones: decode images off the main thread and upload to the GPU one per frame,
   // so new shelf photos never freeze the walk (game-engine style streaming)
   const texQ = [];
+  // GPU-compressed pages (.basis): 4x less texture memory, mipmaps included, upload with no decode jank
+  let basisLoader = null;
+  if (THREE.BasisTextureLoader){
+    try{
+      basisLoader = new THREE.BasisTextureLoader();
+      basisLoader.setTranscoderPath('https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/libs/basis/');
+      basisLoader.detectSupport(renderer);
+    }catch(e){ basisLoader = null; }
+  }
   const bmLoader = (isSmall && typeof createImageBitmap === 'function' && THREE.ImageBitmapLoader) ? new THREE.ImageBitmapLoader().setOptions({imageOrientation: 'flipY'}) : null;
   function loadPageTex(src, ok, err){
+    if (basisLoader && src.indexOf('.basis') !== -1){
+      // if the compressed page fails on this device, fall back to the webp copy once
+      const fb = () => { const w = src.replace('.basis', '.webp'); if (!bmLoader) return texLoader.load(w, ok, undefined, err); bmLoader.load(w, bm => { const t = new THREE.CanvasTexture(bm); t.flipY = false; texQ.push(() => ok(t)); }, undefined, err); };
+      basisLoader.load(src, t => texQ.push(() => ok(t)), undefined, () => { try{ fb(); }catch(e){ err && err(); } });
+      return;
+    }
     if (!bmLoader) return texLoader.load(src, ok, undefined, err);
     bmLoader.load(src, bm => { const t = new THREE.CanvasTexture(bm); t.flipY = false; texQ.push(() => ok(t)); }, undefined, err);
   }
@@ -569,7 +585,9 @@ function build(renderer){
   }
   function srcFor(pm, lvl){
     const sd = DATA.sections[pm.key], pg = sd.pages[pm.pg];
-    return (lvl === 2 ? pg.hd[pm.q].src : lvl === 1 ? pg.src : sd.pagesM[pm.pg]) + AV;
+    if (lvl === 2) return ((basisLoader && pg.hd[pm.q].srcB) || pg.hd[pm.q].src) + AV;
+    if (lvl === 1) return ((basisLoader && pg.srcB) || pg.src) + AV;
+    return sd.pagesM[pm.pg] + AV;
   }
   function updatePages(){
     const cp = camera.position;
@@ -584,7 +602,8 @@ function build(renderer){
       if (!change || pm.loading || inflight >= 8) return;
       pm.loading = true; inflight++;
       loadPageTex(srcFor(pm, lvl), t => {
-        inflight--; pm.loading = false; sRGB(t); t.generateMipmaps = !isSmall; if (isSmall) t.minFilter = THREE.LinearFilter;
+        inflight--; pm.loading = false; sRGB(t);
+        if (!t.isCompressedTexture){ t.generateMipmaps = !isSmall; if (isSmall) t.minFilter = THREE.LinearFilter; }
         if (lvl === 2){
           // the mesh UVs address the whole page; map them onto this quarter (rows 4q..4q+3)
           const R = DATA.sections[pm.key].pages[pm.pg].rows, qr = DATA.sections[pm.key].pages[pm.pg].hd[pm.q].rows;

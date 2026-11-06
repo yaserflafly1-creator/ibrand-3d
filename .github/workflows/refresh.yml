@@ -29,9 +29,26 @@ jobs:
       - name: Restore product photo cache
         uses: actions/cache/restore@v4
         with:
-          path: .cache/tiles6
+          path: |
+            .cache/tiles6
+            .cache/basis6
           key: tiles6-${{ github.run_id }}
           restore-keys: tiles6-
+      - name: Cache basisu encoder
+        id: basisu-cache
+        uses: actions/cache@v4
+        with:
+          path: .tools/basisu
+          key: basisu-1.16.4-${{ runner.os }}
+      - name: Build basisu encoder if missing
+        if: steps.basisu-cache.outputs.cache-hit != 'true'
+        run: |
+          git clone --depth 1 --branch 1.16.4 https://github.com/BinomialLLC/basis_universal.git /tmp/bu
+          cmake -S /tmp/bu -B /tmp/bu/build -DCMAKE_BUILD_TYPE=Release
+          cmake --build /tmp/bu/build -j
+          mkdir -p .tools
+          cp "$(find /tmp/bu -name basisu -type f | head -1)" .tools/basisu
+          chmod +x .tools/basisu
       - run: npm install --no-save sharp@0.33.5
       - name: Prepare site
         run: |
@@ -40,11 +57,15 @@ jobs:
           cp -r static/. site/ 2>/dev/null || true
       - name: Pull products from the store
         run: node scripts/build-data.mjs
+        env:
+          BASISU: ${{ github.workspace }}/.tools/basisu
       - name: Save product photo cache
         if: always()
         uses: actions/cache/save@v4
         with:
-          path: .cache/tiles6
+          path: |
+            .cache/tiles6
+            .cache/basis6
           key: tiles6-${{ github.run_id }}
       - uses: actions/configure-pages@v5
       - uses: actions/upload-pages-artifact@v3
