@@ -46,6 +46,12 @@ button{font-family:var(--font)}
   background:rgba(59,29,54,.82);color:#fff;font-size:13px;border-radius:999px;padding:9px 16px;white-space:nowrap;pointer-events:none;transition:opacity .6s}
 .hint.gone{opacity:0}
 
+.goCart{position:fixed;z-index:6;left:50%;transform:translateX(-50%);bottom:calc(env(safe-area-inset-bottom,0px) + 74px);
+  display:flex;align-items:center;gap:9px;border:0;border-radius:999px;background:var(--pink);color:#fff;
+  font:800 14.5px var(--font);padding:12px 22px;box-shadow:0 12px 28px rgba(201,81,139,.42);cursor:pointer}
+.goCart b{font-size:13px;background:rgba(255,255,255,.18);border-radius:999px;padding:3px 10px}
+.goCart svg{width:17px;height:17px}
+@media (max-width:640px){ .goCart{bottom:calc(env(safe-area-inset-bottom,0px) + 86px);padding:11px 18px} }
 .aisles{position:fixed;left:0;right:0;bottom:0;z-index:5;padding-bottom:calc(env(safe-area-inset-bottom,0px) + 12px);padding-top:18px;
   padding-left:max(16px, env(safe-area-inset-left,0px));padding-right:max(16px, env(safe-area-inset-right,0px));
   background:linear-gradient(to top, rgba(247,242,245,.97) 50%, rgba(247,242,245,0))}
@@ -244,6 +250,7 @@ button{font-family:var(--font)}
 <div class="toast" id="toast" hidden></div>
 <div class="joy" id="joy" aria-label="عصا التحرك: اسحبها للمشي"><div class="knob"></div><small>تحرّك</small></div>
 <nav class="aisles" aria-label="أقسام الصيدلية"><div class="row" id="chips"></div></nav>
+<button class="goCart" id="goCart" type="button" hidden>متابعة للدفع <b></b><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M19 12H5m6-6-6 6 6 6"/></svg></button>
 <div class="loading" id="loading"><div>جاري تجهيز الصيدلية…<small id="loadingSub">نرتب المنتجات على الرفوف</small></div></div>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
@@ -1154,15 +1161,18 @@ function build(renderer){
   for (let a2 = 0; a2 < nA; a2++){
     const segs = SEG.filter(s => s.aisle === a2); if (!segs.length) continue;
     const names = [...new Set(segs.map(s => SEC[s.key].name))];
+    // bold department portal over each aisle entrance (supermarket style: number block + big name)
     const t = canvasTex(1024, 300, (x,W,Hh)=>{
-      x.fillStyle = '#ffffff'; x.fillRect(0,0,W,Hh); x.fillStyle = PINK; x.fillRect(0,0,240,Hh);
-      x.fillStyle = '#ffffff'; x.textAlign='center'; x.textBaseline='middle'; x.font = '800 150px Arial'; x.fillText(String(a2+1), 120, Hh/2+6);
-      x.fillStyle = PLUM; x.direction='rtl'; x.textAlign='right';
-      names.slice(0,3).forEach((nm, i)=>{ fitText(x, nm, W-300, 800, names.length > 1 ? 70 : 96); x.fillText(nm, W-36, names.length > 1 ? 62 + i*88 : Hh/2+4); });
+      x.fillStyle = PINK; x.fillRect(0,0,W,Hh);
+      x.fillStyle = PLUM; x.fillRect(0,0,280,Hh);
+      x.fillStyle = '#ffffff'; x.textAlign='center'; x.textBaseline='middle'; x.font = '800 170px Arial'; x.fillText(String(a2+1).padStart(2,'0'), 140, Hh/2+8);
+      x.fillStyle = 'rgba(255,255,255,.35)'; x.fillRect(0, Hh-12, W, 12);
+      x.fillStyle = '#ffffff'; x.direction='rtl'; x.textAlign='right';
+      names.slice(0,2).forEach((nm, i)=>{ fitText(x, nm, W-360, 800, names.length > 1 ? 86 : 118); x.fillText(nm, W-44, names.length > 1 ? 80 + i*120 : Hh/2+6); });
     });
-    const face = new THREE.MeshBasicMaterial({map:t, toneMapped:false}), side = std('#ffffff');
-    const box = new THREE.Mesh(new THREE.BoxGeometry(2.3, 2.3*300/1024, .08), [side,side,side,side,face,face]);
-    hang(box, aisleCX(a2), 3.35, zA0 + .4, .9);
+    const face = new THREE.MeshBasicMaterial({map:t, toneMapped:false}), side = std(PINK);
+    const box = new THREE.Mesh(new THREE.BoxGeometry(3.4, 3.4*300/1024, .1), [side,side,side,side,face,face]);
+    hang(box, aisleCX(a2), 3.3, zA0 + .4, .9);
     segs.forEach(sg => {
       if (sg.s0 === 0) return;
       const z = zA0 - sg.s0*BW - .2, s = lightbox(SEC[sg.key].name, 2.0, {bg:PINK, fg:'#ffffff'}); hang(s, aisleCX(a2), 3.3, z, .8);
@@ -1299,6 +1309,42 @@ function build(renderer){
     [-1, 1].forEach(s => { bin(s*(Wx - .7), zA1 - 1.0, -s*Math.PI/2); bin(s*(Wx - .7), zC + 1.1, -s*Math.PI/2); });
   }
 
+  // ---------- the cart you push ahead of you (game feel, like real shopping) ----------
+  const pushCart = new THREE.Group();
+  {
+    const T = Bucket(false), F0 = frame(0, 0, 0), L = .85, W = .55, y0 = .42, y1 = .88;
+    [[-W/2],[W/2]].forEach(([x]) => { boxInto(T, F0, x, (y0+y1)/2, 0, .012, y1-y0, L, C_CHROME); });
+    // open top rim (a frame, not a plate, so you can see your items inside)
+    [-L/2, L/2].forEach(zz => boxInto(T, F0, 0, y1, zz, W + .02, .022, .03, C_CHROME));
+    [-W/2, W/2].forEach(xx => boxInto(T, F0, xx, y1, 0, .03, .022, L, C_CHROME));
+    boxInto(T, F0, 0, y0, 0, W, .012, L, C_CHROME);
+    for (let z = -L/2; z <= L/2 + .01; z += .085) [-W/2, W/2].forEach(x => boxInto(T, F0, x, (y0+y1)/2, z, .008, y1-y0, .008, C_CHROME));
+    for (let x = -W/2; x <= W/2 + .01; x += .085) boxInto(T, F0, x, (y0+y1)/2, L/2, .008, y1-y0, .008, C_CHROME);
+    boxInto(T, F0, 0, 1.0, -L/2 - .08, W + .06, .03, .03, C_PINK);
+    [-1,1].forEach(s => boxInto(T, F0, s*W/2, .95, -L/2 - .04, .015, .14, .1, C_CHROME));
+    [-1,1].forEach(s => { boxInto(T, F0, s*.22, .2, 0, .02, .02, L*.95, C_CHROME); boxInto(T, F0, s*.22, .22, -L/2+.05, .02, .4, .02, C_CHROME); boxInto(T, F0, s*.22, .22, L/2-.08, .02, .4, .02, C_CHROME); });
+    boxInto(T, F0, 0, .18, 0, .42, .01, L*.8, C_CHROME);
+    boxInto(T, F0, 0, .44, 0, W - .08, .015, L - .08, '#e9ecee');
+    [[-.22,-L/2+.05],[.22,-L/2+.05],[-.22,L/2-.08],[.22,L/2-.08]].forEach(([x,z]) => boxInto(T, F0, x, .05, z, .03, .09, .09, C_WHEEL));
+    pushCart.add(meshOf(T, new THREE.MeshStandardMaterial({vertexColors:true, roughness:.38, metalness:.45, envMapIntensity:.8})));
+    pushCart.scale.setScalar(.82);
+  }
+  const cartItemsMesh = new THREE.InstancedMesh(new THREE.BoxGeometry(.13, .15, .1), new THREE.MeshStandardMaterial({color:'#f0b7cf', roughness:.55, envMapIntensity:.6}), 18);
+  cartItemsMesh.count = 0; pushCart.add(cartItemsMesh);
+  scene.add(pushCart);
+  let cartYaw = 0;
+  const cartDummy = new THREE.Object3D();
+  function cartItemsSync(){
+    const total = Math.min(18, Object.values(cart).reduce((a, it) => a + it.qty, 0));
+    for (let i = 0; i < total; i++){
+      cartDummy.position.set(((i % 3) - 1) * .14, .52 + Math.floor(i / 6) * .13, ((Math.floor(i / 3) % 2) - .5) * .3);
+      cartDummy.rotation.y = (i * .7) % 1.2;
+      const s = .85 + ((i * 37) % 10) * .035; cartDummy.scale.set(s, s, s);
+      cartDummy.updateMatrix(); cartItemsMesh.setMatrixAt(i, cartDummy.matrix);
+    }
+    cartItemsMesh.count = total; cartItemsMesh.instanceMatrix.needsUpdate = true;
+  }
+
   // ---------- digital signage screens ----------
   const screenCanvas = document.createElement('canvas'); screenCanvas.width = 1024; screenCanvas.height = 576;
   const screenTex = sRGB(new THREE.CanvasTexture(screenCanvas));
@@ -1369,7 +1415,11 @@ function build(renderer){
   let cart = store.get('ib3d-cart', {});
   const cartCount = () => Object.values(cart).reduce((a, it) => a + it.qty, 0);
   const cartTotal = () => Object.values(cart).reduce((a, it) => a + (it.price || 0) * it.qty, 0);
-  function saveCart(){ store.set('ib3d-cart', cart); const n = cartCount(), b = $('#cartCount'); b.textContent = n; b.hidden = !n; renderCart(); }
+  function saveCart(){
+    store.set('ib3d-cart', cart); const n = cartCount(), b = $('#cartCount'); b.textContent = n; b.hidden = !n; renderCart();
+    try{ cartItemsSync(); }catch(e){}
+    const go = $('#goCart'); if (go){ go.hidden = !n; const s = go.querySelector('b'); if (s) s.textContent = money(cartTotal()); }
+  }
   function addToCart(p, qty){
     const cur = cart[p.id] || {id:p.id, name:p.name, price:p.price, img:p.img, url:p.url, qty:0};
     cur.qty = Math.min(10, cur.qty + qty); cur.price = p.price; cart[p.id] = cur; saveCart();
@@ -1394,6 +1444,7 @@ function build(renderer){
   }
   saveCart();
   $('#cartBtn').addEventListener('click', () => { closeAll(); $('#cart').hidden = false; });
+  $('#goCart').addEventListener('click', () => { closeAll(); $('#cart').hidden = false; });
   $('#cCheckout').addEventListener('click', checkout); $('#aCheckout').addEventListener('click', () => { $('#added').hidden = true; checkout(); }); $('#xCheckout').addEventListener('click', checkout);
   document.querySelectorAll('[data-close]').forEach(b => b.addEventListener('click', () => { $('#' + b.dataset.close).hidden = true; }));
   function closeAll(){ ['added','cart','search','service','exit'].forEach(id => $('#' + id).hidden = true); }
@@ -1679,6 +1730,16 @@ function build(renderer){
     if (!lookers.size && (Math.abs(lookV.y) > .02 || Math.abs(lookV.p) > .02)){
       view.yaw += lookV.y * dt; view.pitch = clampPitch(view.pitch + lookV.p * dt);
       const d = Math.exp(-dt * 4.2); lookV.y *= d; lookV.p *= d;
+    }
+    { // the pushed cart follows just ahead of the shopper
+      const fx = -Math.sin(view.yaw), fz = -Math.cos(view.yaw);
+      const tx = camera.position.x + fx * 1.28, tz = camera.position.z + fz * 1.28;
+      const k = 1 - Math.exp(-dt * 8);
+      pushCart.position.x += (tx - pushCart.position.x) * k;
+      pushCart.position.z += (tz - pushCart.position.z) * k;
+      cartYaw += (((view.yaw - cartYaw + Math.PI * 3) % (Math.PI * 2)) - Math.PI) * Math.min(1, dt * 8);
+      pushCart.rotation.y = cartYaw + Math.PI;
+      pushCart.position.y = reduceMotion ? 0 : Math.sin(bobT * 2 + 1.3) * .008 * walkAmt;
     }
     if (flight){
       const k = Math.min(1, (now-flight.start)/flight.dur), e = ease(k);
