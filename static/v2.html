@@ -630,6 +630,21 @@ function build(renderer){
     if (lvl === 1) return ((basisLoader && pg.srcB) || pg.src) + AV;
     return sd.pagesM[pm.pg] + AV;
   }
+  // idle prefetcher: quietly warm the browser's HTTP cache with every atlas image right after
+  // boot, one at a time, so walking anywhere finds its photos already downloaded (no GPU memory used)
+  function prefetchAtlas(){
+    const urls = [];
+    Object.values(DATA.sections).forEach(sd => {
+      (sd.pagesM || []).forEach(s => urls.push(s));
+      (sd.pages || []).forEach(pg => { urls.push(pg.src); (pg.hd || []).forEach(h => urls.push(h.src)); });
+    });
+    let i = 0;
+    const next = () => {
+      if (i >= urls.length || document.hidden) { if (i < urls.length) setTimeout(next, 4000); return; }
+      fetch(urls[i++] + AV, { priority: 'low' }).catch(() => {}).finally(() => setTimeout(next, 90));
+    };
+    setTimeout(next, 5000);
+  }
   function updatePages(){
     const cp = camera.position;
     pageMeshes.forEach(pm => pm.dist = Math.max(0, pm.center.distanceTo(cp) - pm.radius));
@@ -1875,6 +1890,7 @@ function build(renderer){
     if (composer) composer.render(); else renderer.render(scene, camera);
   });
   $('#loading').classList.add('done');
+  prefetchAtlas();
   window.__ib3d = {plans, totalBays, nA, nb, Wx, products: allProducts.length, pages: pageMeshes.length, camera, aimAt, goToProduct, SEC, zC, zA0, staff};
 }
 </script>
