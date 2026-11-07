@@ -597,7 +597,7 @@ function build(renderer){
   let inflight = 0;
   // phones: decode images off the main thread and upload to the GPU one per frame,
   // so new shelf photos never freeze the walk (game-engine style streaming)
-  const texQ = [];
+  const texQ = []; let lastTexUp = 0;
   // GPU-compressed pages (.basis): 4x less texture memory, mipmaps included, upload with no decode jank
   let basisLoader = null;
   const BASIS_ON = /[?&]basis=1/.test(location.search);   // compressed pages are opt-in until approved
@@ -643,9 +643,14 @@ function build(renderer){
   }
   // shared texture pool: every piece of a page reuses ONE GPU copy of that page's image
   const texPool = {};   // url -> {tex, refs, loading, waiters}
-  function prepTex(t){
+  function prepTex(t, hd){
     sRGB(t);
-    if (!t.isCompressedTexture){ t.generateMipmaps = !isSmall; if (isSmall) t.minFilter = THREE.LinearFilter; }
+    if (!t.isCompressedTexture){
+      // HD pieces are only ever viewed close (magnified), so skip mipmap generation:
+      // halves their upload cost and desktops stop hitching while they stream in
+      const mips = !isSmall && !hd;
+      t.generateMipmaps = mips; if (!mips) t.minFilter = THREE.LinearFilter;
+    }
     try{ renderer.initTexture(t); }catch(_){}
   }
   function acquireTex(url, cb){
@@ -655,8 +660,9 @@ function build(renderer){
     e.waiters.push(cb);
     if (e.loading) return;
     e.loading = true; inflight++;
+    const isHD = /-h\d+[ab]\.webp/.test(url);
     loadPageTex(url, t => {
-      inflight--; e.loading = false; prepTex(t);
+      inflight--; e.loading = false; prepTex(t, isHD);
       if (e.refs <= 0){ t.dispose(); if (texPool[url] === e) delete texPool[url]; return; }
       e.tex = t; e.waiters.splice(0).forEach(f => f(t));
     }, () => { inflight--; e.loading = false; e.waiters.length = 0; if (texPool[url] === e) delete texPool[url]; });
@@ -1891,7 +1897,12 @@ function build(renderer){
   renderer.setAnimationLoop(now => {
     const dt = Math.min(.05, (now - last)/1000); last = now;
     fpsTick(now);
-    if (texQ.length){ const f = texQ.shift(); f(); }
+    if (texQ.length){
+      // motion-aware streaming: trickle GPU uploads while walking/looking (no hitches),
+      // burst-fill the moment the shopper pauses
+      const busy = Math.hypot(vel.x, vel.z) > .3 || Math.abs(lookV.y) + Math.abs(lookV.p) > .4 || lookers.size > 0;
+      if (now - lastTexUp > (busy ? 130 : 25)){ lastTexUp = now; texQ.shift()(); }
+    }
     if (!lookers.size && (Math.abs(lookV.y) > .02 || Math.abs(lookV.p) > .02)){
       view.yaw += lookV.y * dt; view.pitch = clampPitch(view.pitch + lookV.p * dt);
       const d = Math.exp(-dt * 4.2); lookV.y *= d; lookV.p *= d;
