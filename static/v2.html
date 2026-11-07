@@ -620,12 +620,6 @@ function build(renderer){
     if (!bmLoader) return texLoader.load(src, ok, undefined, err);
     bmLoader.load(src, bm => { const t = new THREE.CanvasTexture(bm); t.flipY = false; texQ.push(() => ok(t)); }, undefined, err);
   }
-  function levelFor(pm, i){
-    const sd = DATA.sections[pm.key], pg = sd.pages[pm.pg];
-    if (pg.hd && pg.hd[pm.q] && i < HD_N && pm.dist < HD_R) return 2;
-    if (!sd.pagesM || (i < FULL_N && pm.dist < FULL_R)) return 1;
-    return 0;
-  }
   function srcFor(pm, lvl){
     const sd = DATA.sections[pm.key], pg = sd.pages[pm.pg];
     if (lvl === 2){ const pc = pg.hd[pm.q]; return (pm.h ? pc.b : pc.a) + AV; }   // nearest shelves: uncompressed 512px photos
@@ -638,7 +632,7 @@ function build(renderer){
     const urls = [];
     Object.values(DATA.sections).forEach(sd => {
       (sd.pagesM || []).forEach(s => urls.push(s));
-      (sd.pages || []).forEach(pg => { urls.push(pg.src); (pg.hd || []).forEach(h => urls.push(h.src)); });
+      (sd.pages || []).forEach(pg => { urls.push(pg.src); (pg.hd || []).forEach(h => { urls.push(h.a); urls.push(h.b); }); });
     });
     let i = 0;
     const next = () => {
@@ -647,31 +641,74 @@ function build(renderer){
     };
     setTimeout(next, 5000);
   }
+  // shared texture pool: every piece of a page reuses ONE GPU copy of that page's image
+  const texPool = {};   // url -> {tex, refs, loading, waiters}
+  function prepTex(t){
+    sRGB(t);
+    if (!t.isCompressedTexture){ t.generateMipmaps = !isSmall; if (isSmall) t.minFilter = THREE.LinearFilter; }
+    try{ renderer.initTexture(t); }catch(_){}
+  }
+  function acquireTex(url, cb){
+    const e = texPool[url] || (texPool[url] = { tex: null, refs: 0, loading: false, waiters: [] });
+    e.refs++;
+    if (e.tex){ cb(e.tex); return; }
+    e.waiters.push(cb);
+    if (e.loading) return;
+    e.loading = true; inflight++;
+    loadPageTex(url, t => {
+      inflight--; e.loading = false; prepTex(t);
+      if (e.refs <= 0){ t.dispose(); if (texPool[url] === e) delete texPool[url]; return; }
+      e.tex = t; e.waiters.splice(0).forEach(f => f(t));
+    }, () => { inflight--; e.loading = false; e.waiters.length = 0; if (texPool[url] === e) delete texPool[url]; });
+  }
+  function releaseTex(url){
+    const e = texPool[url]; if (!e) return;
+    if (--e.refs <= 0 && !e.loading){ if (e.tex) e.tex.dispose(); delete texPool[url]; }
+  }
+  function dropPm(pm){
+    pm.pendingUrl = null;
+    if (pm.url){ releaseTex(pm.url); pm.url = null; pm.lvl = -1; }
+    if (pm.mesh.material !== placeholderMat){ pm.mesh.material.dispose(); pm.mesh.material = placeholderMat; }
+  }
   function updatePages(){
     const cp = camera.position;
     pageMeshes.forEach(pm => pm.dist = Math.max(0, pm.center.distanceTo(cp) - pm.radius));
     const byDist = pageMeshes.slice().sort((a,b)=>a.dist-b.dist);
-    byDist.forEach((pm, i) => {
-      const want = i < MAX_PAGES && pm.dist < LOAD_R;
-      if (!want){ if (pm.loaded && i >= MAX_PAGES + 10){ pm.mesh.material.dispose(); pm.tex.dispose(); pm.tex = null; pm.loaded = false; pm.lvl = -1; pm.mesh.material = placeholderMat; } return; }
-      const lvl = levelFor(pm, i);
-      // go up a level right away; drop down only when clearly out of range (avoids flicker)
-      const change = !pm.loaded || lvl > pm.lvl || (lvl < pm.lvl && (pm.lvl === 2 ? (i >= HD_N + 3 || pm.dist > HD_R + 2) : (i >= FULL_N + 4 || pm.dist > FULL_R + 3)));
-      if (!change || pm.loading || inflight >= 8) return;
-      pm.loading = true; inflight++;
-      loadPageTex(srcFor(pm, lvl), t => {
-        inflight--; pm.loading = false; sRGB(t);
-        if (!t.isCompressedTexture){ t.generateMipmaps = !isSmall; if (isSmall) t.minFilter = THREE.LinearFilter; }
+    // budgets count real texture pages, not pieces: all pieces of a near page share its photo for free
+    const pageIdx = new Map(); let hdCount = 0;
+    byDist.forEach(pm => {
+      const pk = pm.key + ':' + pm.pg;
+      if (!pageIdx.has(pk)) pageIdx.set(pk, pageIdx.size);
+      const pi = pageIdx.get(pk);
+      if (pm.pendingUrl && !texPool[pm.pendingUrl]) pm.pendingUrl = null;   // failed load: retry later
+      const want = pi < MAX_PAGES && pm.dist < LOAD_R;
+      if (!want){ if (pm.url && (pi >= MAX_PAGES + 3 || pm.dist > LOAD_R + 6)) dropPm(pm); return; }
+      const sd = DATA.sections[pm.key], pg = sd.pages[pm.pg];
+      let lvl = 0;
+      if (pg.hd && pg.hd[pm.q] && hdCount < HD_N && pm.dist < HD_R){ lvl = 2; hdCount++; }
+      else if (!sd.pagesM || (pi < FULL_N && pm.dist < FULL_R)) lvl = 1;
+      // go up right away; drop down only when clearly out of range (avoids flicker)
+      const change = pm.lvl === undefined || pm.lvl === null || pm.lvl < 0 || lvl > pm.lvl
+        || (lvl < pm.lvl && (pm.lvl === 2 ? pm.dist > HD_R + 1.5 : (pi >= FULL_N + 3 || pm.dist > FULL_R + 3)));
+      if (!change) return;
+      const url = srcFor(pm, lvl);
+      if (url === pm.url || url === pm.pendingUrl) return;
+      if (inflight >= 8 && !(texPool[url] && texPool[url].tex)) return;   // no free slot; next pass retries
+      pm.pendingUrl = url;
+      acquireTex(url, t => {
+        if (pm.pendingUrl !== url){ releaseTex(url); return; }   // superseded meanwhile
+        pm.pendingUrl = null;
         if (lvl === 2){
-          // the mesh UVs address the whole page; map them onto this quarter (rows 4q..4q+3)
-          const R = DATA.sections[pm.key].pages[pm.pg].rows, qr = DATA.sections[pm.key].pages[pm.pg].hd[pm.q].rows;
+          // mesh UVs address the whole page; map them onto this piece (2 rows × half width)
+          const R = pg.rows, qr = pg.hd[pm.q].rows;
           t.repeat.set(2, R / qr); t.offset.set(-pm.h, -(1 - (2*pm.q + qr) / R) * R / qr);
         }
-        try{ renderer.initTexture(t); }catch(_){}
-        if (pm.loaded){ pm.mesh.material.dispose(); pm.tex.dispose(); }
-        pm.tex = t; pm.loaded = true; pm.lvl = lvl;
+        const old = pm.url;
+        pm.url = url; pm.lvl = lvl;
+        if (pm.mesh.material !== placeholderMat) pm.mesh.material.dispose();
         pm.mesh.material = new THREE.MeshStandardMaterial({map:t, alphaTest: t.isCompressedTexture ? .28 : .5, roughness:.4, envMapIntensity:.55, side:THREE.DoubleSide});
-      }, undefined, () => { inflight--; pm.loading = false; pm.failed = (pm.failed||0) + 1; });
+        if (old) releaseTex(old);
+      });
     });
   }
 
