@@ -90,7 +90,15 @@ const headers = { 'Store-Identifier': STORE_ID, 'Accept-Language': 'ar', 'Accept
 const sleep = ms => new Promise(r => setTimeout(r, ms));
 const num = v => typeof v === 'number' ? v : (v && typeof v.amount === 'number' ? v.amount : null);
 const priceOf = p => { const sale = num(p.sale_price), base = num(p.price); const v = p.is_on_sale && sale > 0 ? sale : base; return v > 0 ? v : null; };
-const inStock = p => p.is_available !== false && p.is_out_of_stock !== true && !(p.quantity === 0 && !p.unlimited_quantity);
+let skippedUnavail = 0;
+const inStock = p => {
+  const ok = (p.status ? p.status === 'sale' : true)         // hidden / sale-ended statuses are out
+    && p.is_hidden !== true && p.is_published !== false
+    && p.is_available !== false && p.is_out_of_stock !== true
+    && !(typeof p.quantity === 'number' && p.quantity <= 0 && !p.unlimited_quantity);
+  if (!ok) skippedUnavail++;
+  return ok;
+};
 const short = (u, pre) => (u || '').startsWith(pre) ? u.slice(pre.length) : (u || '');
 
 async function getJSON(url, tries = 4){
@@ -339,11 +347,16 @@ async function main(){
   promo.quick = allMain.filter(p => QUICK.test(p.name)).slice(0, 120);
   console.log('quick-grab items:', promo.quick.length);
 
-  // shelf order: sub-category (store order) → brand (biggest first) → shape → name
+  // merchandiser shelf order: sub-category (store order) → strongest-selling brand blocks first
+  // (front of the aisle) → inside each block best sellers first, so they land on the eye-level shelves
   for (const k of Object.keys(main)){
     const ord = subOrder[k] || [], si = p => { const i = ord.indexOf(p.sub); return i < 0 ? 9999 : i; };
-    const cnt = {}; main[k].forEach(p => { const key = p.sub + '|' + p.brand; cnt[key] = (cnt[key]||0) + 1; });
-    main[k].sort((a, b) => si(a) - si(b) || (!a.brand) - (!b.brand) || cnt[b.sub + '|' + b.brand] - cnt[a.sub + '|' + a.brand] || a.brand.localeCompare(b.brand, 'ar') || a.name.localeCompare(b.name, 'ar'));
+    const soldSum = {}; main[k].forEach(p => { const key = p.sub + '|' + p.brand; soldSum[key] = (soldSum[key]||0) + (p.sold || 0); });
+    main[k].sort((a, b) => si(a) - si(b) || (!a.brand) - (!b.brand)
+      || soldSum[b.sub + '|' + b.brand] - soldSum[a.sub + '|' + a.brand]
+      || a.brand.localeCompare(b.brand, 'ar')
+      || (b.sold || 0) - (a.sold || 0)
+      || a.name.localeCompare(b.name, 'ar'));
   }
 
   // 4.5) hide the pink "no photo yet" placeholder: identical image content under many different URLs
@@ -431,7 +444,7 @@ async function main(){
   console.log('brand logos', Object.keys(brands).length, 'of', want.size);
   const missing = [...want].filter(([id]) => !brands[id]).map(([id, name]) => name).sort((a, b) => a.localeCompare(b, 'ar'));
   console.log('MISSING LOGOS ' + missing.length + ': ' + missing.join(' | '));
-  console.log('ON SHELVES', result.counts.onShelves, 'hidden Rx', rx.size);
+  console.log('ON SHELVES', result.counts.onShelves, 'hidden Rx', rx.size, 'skipped hidden/out-of-stock', skippedUnavail);
   await fs.writeFile(`${OUT}/data/products.json`, JSON.stringify(result));
 }
 
