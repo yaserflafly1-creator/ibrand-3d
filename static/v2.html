@@ -544,7 +544,9 @@ function build(renderer){
   // put one product at local (cx, y, cz) of frame F (its front faces local +z)
   function putProduct(key, F, cx, y, cz, w, h, d, p, rowsDeep=1, yaw=0){
     if (yaw){ const c0 = F.at(cx, 0, cz); F = frame(c0[0], c0[2], F.yaw + yaw); cx = 0; cz = 0; }
-    const sd = DATA.sections[key], bk = key + ':' + p.pg + ':' + Math.floor(p.tile / ((sd.cols || 16) * 4));
+    const sd = DATA.sections[key], C2 = sd.cols || 16;
+    // mesh granularity = one HD piece: two rows × half the page width (512 px close-up photos)
+    const bk = key + ':' + p.pg + ':' + Math.floor(p.tile / (C2 * 2)) + ':' + ((p.tile % C2) < C2 / 2 ? 0 : 1);
     const T = frontBuckets[bk] || (frontBuckets[bk] = Bucket(true)), S = sideBuckets[key] || (sideBuckets[key] = Bucket(false));
     const [u0,u1,vb,vt] = tileUV(sd, p), hw = w/2, a = F.at, n = F.n, uv = [u0,vb, u1,vb, u1,vt, u0,vt];
     const c = rgb(p.c || '#dddddd'), dk = k => [c[0]*k, c[1]*k, c[2]*k];
@@ -577,9 +579,9 @@ function build(renderer){
   function finishProducts(){
     for (const [bk, T] of Object.entries(frontBuckets)){
       if (!T.idx.length) continue;
-      const [key, pg, q] = bk.split(':'); const mesh = meshOf(T, placeholderMat); mesh.receiveShadow = true;
+      const [key, pg, q, hh] = bk.split(':'); const mesh = meshOf(T, placeholderMat); mesh.receiveShadow = true;
       mesh.userData.sec = SEC[key]; scene.add(mesh); productMeshes.push(mesh);
-      pageMeshes.push({key, pg:+pg, q:+q, mesh, loaded:false, loading:false, tex:null, center:mesh.geometry.boundingSphere.center, radius:mesh.geometry.boundingSphere.radius});
+      pageMeshes.push({key, pg:+pg, q:+q, h:+hh, mesh, loaded:false, loading:false, tex:null, center:mesh.geometry.boundingSphere.center, radius:mesh.geometry.boundingSphere.radius});
     }
     for (const [key, S] of Object.entries(sideBuckets)){
       if (!S.idx.length) continue;
@@ -591,7 +593,7 @@ function build(renderer){
   // Three levels of photo quality, chosen by distance: HD (256 px per product) for the shelves right next to you,
   // normal (128 px) for the aisle around you, light (64 px, phones only) further away.
   const MAX_PAGES = isSmall ? 30 : (weakGPU ? 36 : 56), LOAD_R = isSmall ? 20 : 24;
-  const HD_N = isSmall ? 5 : 12, HD_R = isSmall ? 5 : 7, FULL_N = isSmall ? 16 : (weakGPU ? 18 : 30), FULL_R = isSmall ? 10 : 14;
+  const HD_N = isSmall ? 6 : (weakGPU ? 10 : 20), HD_R = isSmall ? 5 : 7, FULL_N = isSmall ? 16 : (weakGPU ? 18 : 30), FULL_R = isSmall ? 10 : 14;
   let inflight = 0;
   // phones: decode images off the main thread and upload to the GPU one per frame,
   // so new shelf photos never freeze the walk (game-engine style streaming)
@@ -626,7 +628,7 @@ function build(renderer){
   }
   function srcFor(pm, lvl){
     const sd = DATA.sections[pm.key], pg = sd.pages[pm.pg];
-    if (lvl === 2) return pg.hd[pm.q].src + AV;   // nearest shelves always get the uncompressed photos
+    if (lvl === 2){ const pc = pg.hd[pm.q]; return (pm.h ? pc.b : pc.a) + AV; }   // nearest shelves: uncompressed 512px photos
     if (lvl === 1) return ((basisLoader && pg.srcB) || pg.src) + AV;
     return sd.pagesM[pm.pg] + AV;
   }
@@ -663,7 +665,7 @@ function build(renderer){
         if (lvl === 2){
           // the mesh UVs address the whole page; map them onto this quarter (rows 4q..4q+3)
           const R = DATA.sections[pm.key].pages[pm.pg].rows, qr = DATA.sections[pm.key].pages[pm.pg].hd[pm.q].rows;
-          t.repeat.set(1, R / qr); t.offset.set(0, -(1 - (4*pm.q + qr) / R) * R / qr);
+          t.repeat.set(2, R / qr); t.offset.set(-pm.h, -(1 - (2*pm.q + qr) / R) * R / qr);
         }
         try{ renderer.initTexture(t); }catch(_){}
         if (pm.loaded){ pm.mesh.material.dispose(); pm.tex.dispose(); }

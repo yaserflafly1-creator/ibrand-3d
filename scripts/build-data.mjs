@@ -12,7 +12,7 @@ import sharp from 'sharp';
 const STORE_ID = '1972477543';
 const API = 'https://api.salla.dev/store/v1';
 const OUT = process.env.OUT || 'site';
-const CACHE = '.cache/tiles7';
+const CACHE = '.cache/tiles8';
 
 // GPU-compressed atlas pages (.basis, ETC1S + mipmaps): same download size as webp,
 // ~4x less GPU memory and no decode jank — set BASISU to the encoder binary to enable
@@ -61,7 +61,7 @@ async function dHash(buf){
 }
 const POP = Array.from({ length: 16 }, (_, i) => (i & 1) + ((i >> 1) & 1) + ((i >> 2) & 1) + ((i >> 3) & 1));
 const hamming = (a, b) => { if (!a || !b || a.length !== b.length) return 999; let d = 0; for (let i = 0; i < a.length; i++) d += POP[parseInt(a[i], 16) ^ parseInt(b[i], 16)]; return d; };
-const TILE = 128, HD = 256, PC = 16, PR = 16, PER_PAGE = PC * PR, QR = 4;   // 2048² page (+1024² phone page) and HD quarters of 4 rows at 256 px (4096×1024)
+const TILE = 128, TPX = 512, PC = 16, PR = 16, PER_PAGE = PC * PR, HQ = 2, HC = PC / 2;   // 2048² page (+1024² phone page); HD pieces = 2 rows × half width at 512 px (4096×1024)
 const PROMO_MAX = 240;
 
 // Main sections: each product lands in the FIRST one it belongs to (no duplicates on the shelves)
@@ -189,7 +189,7 @@ async function makeTile(imgUrl){
   }
   const pk = pkN ? +(pkP / pkN).toFixed(2) : 0;
   const asCard = async () => {
-    const png = await sharp(buf).rotate().flatten({ background:'#ffffff' }).resize(HD, HD, { fit:'cover' }).png().toBuffer();
+    const png = await sharp(buf).rotate().flatten({ background:'#ffffff' }).resize(TPX, TPX, { fit:'cover' }).png().toBuffer();
     return { png, meta: { aspect: 1, card: true, rect: 1, c: '#eeeeee', sig, pk, psig, ah } };
   };
   if (!res.box || res.kept < 0.04 || res.kept > 0.97) return asCard();
@@ -224,7 +224,7 @@ async function makeTile(imgUrl){
     if (x - b.left < band || b.left + b.width - x <= band || y - b.top < band || b.top + b.height - y <= band){ er += data[i]; eg += data[i+1]; eb += data[i+2]; en++; }
   }
   const hex = v => Math.round(v).toString(16).padStart(2, '0');
-  const png = await sharp(data, { raw: info }).extract(b).resize(HD, HD, { fit: 'contain', background: { r:0, g:0, b:0, alpha:0 } }).png().toBuffer();
+  const png = await sharp(data, { raw: info }).extract(b).resize(TPX, TPX, { fit: 'contain', background: { r:0, g:0, b:0, alpha:0 } }).png().toBuffer();
   return { png, meta: { aspect: +aspect.toFixed(3), card: false, rect: +(opaque / (b.width*b.height)).toFixed(2), c: en ? '#' + hex(er/en) + hex(eg/en) + hex(eb/en) : '#dddddd', sig, pk, psig, ah } };
 }
 
@@ -258,17 +258,18 @@ async function packSection(key, items){
     const chunk = ok.slice(pg * PER_PAGE, (pg + 1) * PER_PAGE);
     const rows = Math.ceil(chunk.length / PC);
     const big = `atlas/${key}-${pg}.webp`, small = `atlas/${key}-${pg}-m.webp`;
-    // HD quarters (rows 4q..4q+3 at 256 px), then the normal page is the HD layout scaled down
+    // HD pieces: 2 rows x half width at 512 px per product (crisp close-ups within 4096-wide textures)
     const hd = [];
-    const full = await sharp({ create: { width: PC*HD, height: rows*HD, channels: 4, background: { r:0, g:0, b:0, alpha:0 } } })
-      .composite(chunk.map(({ t }, i) => ({ input: t.png, left: (i % PC) * HD, top: Math.floor(i / PC) * HD }))).png().toBuffer();
-    for (let q = 0; q * QR < rows; q++){
-      const qr = Math.min(QR, rows - q*QR), src = `atlas/${key}-${pg}-hd${q}.webp`;
-      const qPng = await sharp(full).extract({ left: 0, top: q*QR*HD, width: PC*HD, height: qr*HD }).png().toBuffer();
-      await sharp(qPng).webp({ quality: 74, alphaQuality: 80 }).toFile(`${OUT}/${src}`);
-      const hdE = { src, rows: qr }, qB = src.replace('.webp', '.basis');
-      if (await toBasis(qPng, `${OUT}/${qB}`)) hdE.srcB = qB;
-      hd.push(hdE);
+    const full = await sharp({ create: { width: PC*TPX, height: rows*TPX, channels: 4, background: { r:0, g:0, b:0, alpha:0 } } })
+      .composite(chunk.map(({ t }, i) => ({ input: t.png, left: (i % PC) * TPX, top: Math.floor(i / PC) * TPX }))).png().toBuffer();
+    for (let rp = 0; rp * HQ < rows; rp++){
+      const qr = Math.min(HQ, rows - rp*HQ), piece = { rows: qr };
+      for (const [hk, hx] of [['a', 0], ['b', 1]]){
+        const src = `atlas/${key}-${pg}-h${rp}${hk}.webp`;
+        await sharp(full).extract({ left: hx*HC*TPX, top: rp*HQ*TPX, width: HC*TPX, height: qr*TPX }).webp({ quality: 76, alphaQuality: 82 }).toFile(`${OUT}/${src}`);
+        piece[hk] = src;
+      }
+      hd.push(piece);
     }
     const bigPng = await sharp(full).resize(PC*TILE, rows*TILE).png().toBuffer();
     await sharp(bigPng).webp({ quality: 76, alphaQuality: 82 }).toFile(`${OUT}/${big}`);
