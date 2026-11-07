@@ -12,7 +12,7 @@ import sharp from 'sharp';
 const STORE_ID = '1972477543';
 const API = 'https://api.salla.dev/store/v1';
 const OUT = process.env.OUT || 'site';
-const CACHE = '.cache/tiles6';
+const CACHE = '.cache/tiles7';
 
 // GPU-compressed atlas pages (.basis, ETC1S + mipmaps): same download size as webp,
 // ~4x less GPU memory and no decode jank — set BASISU to the encoder binary to enable
@@ -200,6 +200,14 @@ async function makeTile(imgUrl){
       for (let x = x0; x <= x1; x += 2){ span++; if (!data[(y*info.width + x)*4 + 3]) hole++; }
     }
     if (span && hole / span > 0.08){ tileStats.bitten = (tileStats.bitten || 0) + 1; return asCard(); } }
+  // white/transparent products (white tubes, clear serum bottles) survive the cut-out intact but
+  // dissolve visually against the white shelves: show those as framed photo cards instead
+  { let op = 0, wh = 0;
+    for (let i = 3; i < data.length; i += 8){
+      if (!data[i]) continue; op++;
+      if (data[i-3] >= 233 && data[i-2] >= 233 && data[i-1] >= 233) wh++;
+    }
+    if (op > 40 && wh / op > 0.62){ tileStats.white = (tileStats.white || 0) + 1; return asCard(); } }
   const b = res.box, aspect = b.width / b.height;
   let opaque = 0, er = 0, eg = 0, eb = 0, en = 0;
   const band = Math.max(2, Math.round(Math.min(b.width, b.height) * .08));
