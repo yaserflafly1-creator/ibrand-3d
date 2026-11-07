@@ -1432,10 +1432,21 @@ function build(renderer){
   const cartItemsMesh = new THREE.InstancedMesh(new THREE.BoxGeometry(.15, .17, .12), new THREE.MeshStandardMaterial({color:'#eeb2cb', roughness:.55, envMapIntensity:.6}), 18);
   cartItemsMesh.count = 0; pushCart.add(cartItemsMesh);
   scene.add(pushCart);
-  let cartYaw = 0;
+  let cartYaw = 0, cartPulse = 0;
+  // items leap off the shelf, arc through the air and drop into the moving cart
+  const flyers = [];
+  const flyBoxGeo = new THREE.BoxGeometry(.16, .18, .13);
+  function flyToCart(from, count){
+    const n = Math.min(count || 1, 3);
+    for (let i = 0; i < n; i++){
+      const m = new THREE.Mesh(flyBoxGeo, new THREE.MeshStandardMaterial({color:'#eeb2cb', roughness:.5, envMapIntensity:.6}));
+      m.position.copy(from); scene.add(m);
+      flyers.push({ m, from: from.clone(), t0: performance.now() + i * 130, dur: 680 });
+    }
+  }
   const cartDummy = new THREE.Object3D();
   function cartItemsSync(){
-    const total = Math.min(18, Object.values(cart).reduce((a, it) => a + it.qty, 0));
+    const total = Math.max(0, Math.min(18, Object.values(cart).reduce((a, it) => a + it.qty, 0) - flyers.length));
     for (let i = 0; i < total; i++){
       cartDummy.position.set([0, -.14, .14][i % 3], .54 + Math.floor(i / 6) * .14, [0, .2, -.22][Math.floor(i / 3) % 3] || 0);
       cartDummy.rotation.y = (i * .7) % 1.2;
@@ -1594,10 +1605,15 @@ function build(renderer){
   $('#qMinus').addEventListener('click', () => { qty = Math.max(1, qty - 1); $('#qVal').textContent = qty; });
   $('#qPlus').addEventListener('click', () => { qty = Math.min(10, qty + 1); $('#qVal').textContent = qty; });
   $('#pAdd').addEventListener('click', () => {
-    if (!current) return; addToCart(current, qty);
+    if (!current) return;
+    const src = highlight.visible
+      ? highlight.position.clone()
+      : camera.position.clone().add(new THREE.Vector3(-Math.sin(view.yaw), -.25, -Math.cos(view.yaw)).multiplyScalar(1.1));
+    flyToCart(src, qty);
+    addToCart(current, qty);
     $('#aImg').src = current.img; $('#aName').textContent = (qty > 1 ? qty + ' × ' : '') + current.name;
     $('#aSum').textContent = cartCount() + ' منتج في السلة • ' + money(cartTotal());
-    $('#added').hidden = false;
+    setTimeout(() => { $('#added').hidden = false; }, reduceMotion ? 0 : 780);
   });
   $('#close').addEventListener('click', () => { panel.hidden = true; current = null; document.body.classList.remove('sheet'); markChip(null); highlight.visible = false; });
   addEventListener('keydown', e => { if (e.key === 'Escape'){ if (![...document.querySelectorAll('.modal,.drawer,.search')].every(m => m.hidden)) closeAll(); else if (!panel.hidden) $('#close').click(); } });
@@ -1845,6 +1861,20 @@ function build(renderer){
       cartYaw += (((view.yaw - cartYaw + Math.PI * 3) % (Math.PI * 2)) - Math.PI) * Math.min(1, dt * 8);
       pushCart.rotation.y = cartYaw + Math.PI;
       pushCart.position.y = reduceMotion ? 0 : Math.sin(bobT * 2 + 1.3) * .008 * walkAmt;
+      if (cartPulse){ const q = (now - cartPulse) / 280; pushCart.scale.setScalar(.82 * (q < 1 ? 1 + .08 * Math.sin(Math.PI * q) : 1)); if (q >= 1) cartPulse = 0; }
+    }
+    for (let i = flyers.length - 1; i >= 0; i--){
+      const f = flyers[i], k = (now - f.t0) / f.dur;
+      if (k < 0) continue;
+      if (k >= 1){ scene.remove(f.m); f.m.material.dispose(); flyers.splice(i, 1); cartItemsSync(); cartPulse = now; continue; }
+      const e2 = k * k * (3 - 2 * k);
+      f.m.position.set(
+        f.from.x + (pushCart.position.x - f.from.x) * e2,
+        f.from.y + (.6 - f.from.y) * e2 + Math.sin(Math.PI * k) * 1.05,
+        f.from.z + (pushCart.position.z - f.from.z) * e2
+      );
+      f.m.rotation.x += .13; f.m.rotation.y += .1;
+      f.m.scale.setScalar(1 - .2 * k);
     }
     if (flight){
       const k = Math.min(1, (now-flight.start)/flight.dur), e = ease(k);
