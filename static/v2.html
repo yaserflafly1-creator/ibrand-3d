@@ -376,14 +376,28 @@ function build(renderer){
     };
     buildEnv();
   }
-  // phones drop the WebGL context when the tab goes to the background; the environment
-  // lighting lives in a render target that is lost with it, so rebuild it on restore
-  renderer.domElement.addEventListener('webglcontextrestored', () => setTimeout(buildEnv, 60));
+  // phones drop the WebGL context when the tab goes to the background. the environment
+  // lighting (a render target) AND every uploaded texture are lost with it, so on return
+  // we resurrect the lot: re-upload all material textures from their sources + rebuild the env
+  const TEXKEYS = ['map', 'emissiveMap', 'alphaMap', 'aoMap', 'roughnessMap', 'metalnessMap', 'normalMap', 'envMap'];
+  function resurrect(){
+    scene.traverse(o => {
+      if (!o.material) return;
+      (Array.isArray(o.material) ? o.material : [o.material]).forEach(m => {
+        TEXKEYS.forEach(k => { const t = m[k]; if (t && !t.isRenderTargetTexture) t.needsUpdate = true; });
+        m.needsUpdate = true;
+      });
+    });
+    buildEnv();
+  }
+  let needRes = false;
+  renderer.domElement.addEventListener('webglcontextlost', () => { needRes = true; });
+  renderer.domElement.addEventListener('webglcontextrestored', () => { setTimeout(() => { needRes = false; resurrect(); }, 60); });
   document.addEventListener('visibilitychange', () => {
     if (document.hidden) return;
     const gl = renderer.getContext();
-    if (gl && gl.isContextLost && gl.isContextLost()) return; // the restore event above will rebuild
-    setTimeout(buildEnv, 120);
+    if (gl && gl.isContextLost && gl.isContextLost()) return; // the restore event above will handle it
+    if (needRes){ needRes = false; setTimeout(resurrect, 120); }
   });
 
   // ---------- helpers ----------
