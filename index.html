@@ -564,7 +564,8 @@ function build(renderer){
   const texQ = [];
   // GPU-compressed pages (.basis): 4x less texture memory, mipmaps included, upload with no decode jank
   let basisLoader = null;
-  if (THREE.BasisTextureLoader){
+  const BASIS_ON = /[?&]basis=1/.test(location.search);   // compressed pages are opt-in until approved
+  if (BASIS_ON && THREE.BasisTextureLoader){
     try{
       basisLoader = new THREE.BasisTextureLoader();
       basisLoader.setTranscoderPath('https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/libs/basis/');
@@ -590,7 +591,7 @@ function build(renderer){
   }
   function srcFor(pm, lvl){
     const sd = DATA.sections[pm.key], pg = sd.pages[pm.pg];
-    if (lvl === 2) return ((basisLoader && pg.hd[pm.q].srcB) || pg.hd[pm.q].src) + AV;
+    if (lvl === 2) return pg.hd[pm.q].src + AV;   // nearest shelves always get the uncompressed photos
     if (lvl === 1) return ((basisLoader && pg.srcB) || pg.src) + AV;
     return sd.pagesM[pm.pg] + AV;
   }
@@ -617,7 +618,7 @@ function build(renderer){
         try{ renderer.initTexture(t); }catch(_){}
         if (pm.loaded){ pm.mesh.material.dispose(); pm.tex.dispose(); }
         pm.tex = t; pm.loaded = true; pm.lvl = lvl;
-        pm.mesh.material = new THREE.MeshStandardMaterial({map:t, alphaTest:.5, roughness:.4, envMapIntensity:.55, side:THREE.DoubleSide});
+        pm.mesh.material = new THREE.MeshStandardMaterial({map:t, alphaTest: t.isCompressedTexture ? .28 : .5, roughness:.4, envMapIntensity:.55, side:THREE.DoubleSide});
       }, undefined, () => { inflight--; pm.loading = false; pm.failed = (pm.failed||0) + 1; });
     });
   }
