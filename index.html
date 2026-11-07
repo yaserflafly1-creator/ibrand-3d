@@ -1349,12 +1349,12 @@ function build(renderer){
     [-1,1].forEach(s => boxInto(T, F0, s*W/2, .95, -L/2 - .04, .015, .14, .1, C_CHROME));
     [-1,1].forEach(s => { boxInto(T, F0, s*.22, .2, 0, .02, .02, L*.95, C_CHROME); boxInto(T, F0, s*.22, .22, -L/2+.05, .02, .4, .02, C_CHROME); boxInto(T, F0, s*.22, .22, L/2-.08, .02, .4, .02, C_CHROME); });
     boxInto(T, F0, 0, .18, 0, .42, .01, L*.8, C_CHROME);
-    boxInto(T, F0, 0, .44, 0, W - .08, .015, L - .08, '#e9ecee');
+    boxInto(T, F0, 0, .44, 0, W - .08, .015, L - .08, '#d3d8db');
     [[-.22,-L/2+.05],[.22,-L/2+.05],[-.22,L/2-.08],[.22,L/2-.08]].forEach(([x,z]) => boxInto(T, F0, x, .05, z, .03, .09, .09, C_WHEEL));
     pushCart.add(meshOf(T, new THREE.MeshStandardMaterial({vertexColors:true, roughness:.38, metalness:.45, envMapIntensity:.8})));
     pushCart.scale.setScalar(.82);
   }
-  const cartItemsMesh = new THREE.InstancedMesh(new THREE.BoxGeometry(.13, .15, .1), new THREE.MeshStandardMaterial({color:'#f0b7cf', roughness:.55, envMapIntensity:.6}), 18);
+  const cartItemsMesh = new THREE.InstancedMesh(new THREE.BoxGeometry(.15, .17, .12), new THREE.MeshStandardMaterial({color:'#eeb2cb', roughness:.55, envMapIntensity:.6}), 18);
   cartItemsMesh.count = 0; pushCart.add(cartItemsMesh);
   scene.add(pushCart);
   let cartYaw = 0;
@@ -1362,7 +1362,7 @@ function build(renderer){
   function cartItemsSync(){
     const total = Math.min(18, Object.values(cart).reduce((a, it) => a + it.qty, 0));
     for (let i = 0; i < total; i++){
-      cartDummy.position.set(((i % 3) - 1) * .14, .52 + Math.floor(i / 6) * .13, ((Math.floor(i / 3) % 2) - .5) * .3);
+      cartDummy.position.set([0, -.14, .14][i % 3], .54 + Math.floor(i / 6) * .14, [0, .2, -.22][Math.floor(i / 3) % 3] || 0);
       cartDummy.rotation.y = (i * .7) % 1.2;
       const s = .85 + ((i * 37) % 10) * .035; cartDummy.scale.set(s, s, s);
       cartDummy.updateMatrix(); cartItemsMesh.setMatrixAt(i, cartDummy.matrix);
