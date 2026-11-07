@@ -606,7 +606,8 @@ function build(renderer){
       basisLoader.detectSupport(renderer);
     }catch(e){ basisLoader = null; }
   }
-  const bmLoader = (isSmall && typeof createImageBitmap === 'function' && THREE.ImageBitmapLoader) ? new THREE.ImageBitmapLoader().setOptions({imageOrientation: 'flipY'}) : null;
+  // decode page photos off the main thread on every device (stutter-free walking)
+  const bmLoader = (typeof createImageBitmap === 'function' && THREE.ImageBitmapLoader) ? new THREE.ImageBitmapLoader().setOptions({imageOrientation: 'flipY'}) : null;
   function loadPageTex(src, ok, err){
     if (basisLoader && src.indexOf('.basis') !== -1){
       // if the compressed page fails on this device, fall back to the webp copy once
