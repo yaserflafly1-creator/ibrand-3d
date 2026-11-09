@@ -588,7 +588,7 @@ function build(renderer){
       const mesh = meshOf(S, sideMat); mesh.receiveShadow = true; mesh.userData.sec = SEC[key]; scene.add(mesh); productMeshes.push(mesh);
     }
   }
-  const productMeshes = [];
+  const productMeshes = [], navTargets = [];
   // lazy texture pages: load the pages nearest the shopper, release far ones on phones
   // Three levels of photo quality, chosen by distance: HD (256 px per product) for the shelves right next to you,
   // normal (128 px) for the aisle around you, light (64 px, phones only) further away.
@@ -1188,7 +1188,9 @@ function build(renderer){
     gondolaFace(frame(x + half, z, Math.PI/2), bays.slice(0, PROMO_BAYS), key, {G:PG, titleKey:key});
     gondolaFace(frame(x - half, z, -Math.PI/2), bays.slice(PROMO_BAYS).length ? bays.slice(PROMO_BAYS) : bays.slice(0, PROMO_BAYS), key, {G:PG, titleKey:key});
     const s1 = lightbox(SEC[key].name, 2.2, {bg:PINK, fg:'#ffffff'}); hang(s1, x, 3.1, z + PROMO_BAYS*BW/2 + .1, .9);
+    s1.userData.nav = key; navTargets.push(s1);
     const s2 = lightbox(SEC[key].name, 2.2, {bg:PINK, fg:'#ffffff'}); hang(s2, x, 3.1, z + PROMO_BAYS*BW/2 + .08, .9, Math.PI);
+    s2.userData.nav = key; navTargets.push(s2);
     SEC[key].focus = {pos:new THREE.Vector3(x + 2.0, EYE, z + 2.6), target:new THREE.Vector3(x + .5, 1.0, z)};
     spotAt(x, z, .6, .7, .5);
   }
@@ -1211,6 +1213,7 @@ function build(renderer){
     });
     OBSTACLES.push({box:{x0:x-1.7, x1:x+1.7, z0:z-1.1, z1:z+1.1}});
     const s = lightbox(SEC.milk.name, 2.4, {bg:PINK, fg:'#ffffff'}); hang(s, x, 3.1, z, 1);
+    s.userData.nav = 'milk'; navTargets.push(s);
     SEC.milk.focus = {pos:new THREE.Vector3(x + .3, EYE, z + 3), target:new THREE.Vector3(x, 1, z)};
   }
   if (SD('best')){
@@ -1225,6 +1228,7 @@ function build(renderer){
         const F = frame(x + Math.cos(ang)*r, z + Math.sin(ang)*r, yaw); putProduct('best', F, 0, y, 0, w, h, d, p, 1); }
     });
     const sign = lightbox('الأكثر طلباً ★', 2.4, {bg:PLUM, fg:'#ffffff'}); sign.position.set(0, 2.2, 0); g.add(sign);
+    sign.userData.nav = 'best'; navTargets.push(sign);
     const pole = new THREE.Mesh(new THREE.CylinderGeometry(.025,.025,.85,10), steelMat); pole.position.set(0,1.7,0); g.add(pole);
     scene.userData.spin = sign;
     OBSTACLES.push({x, z, r:1.4});
@@ -1299,9 +1303,11 @@ function build(renderer){
     const face = new THREE.MeshBasicMaterial({map:t, toneMapped:false}), side = std(PINK);
     const box = new THREE.Mesh(new THREE.BoxGeometry(3.4, 3.4*300/1024, .1), [side,side,side,side,face,face]);
     hang(box, aisleCX(a2), 3.3, zA0 + .4, .9);
+    box.userData.nav = segs[0].key; navTargets.push(box);
     segs.forEach(sg => {
       if (sg.s0 === 0) return;
       const z = zA0 - sg.s0*BW - .2, s = lightbox(SEC[sg.key].name, 2.0, {bg:PINK, fg:'#ffffff'}); hang(s, aisleCX(a2), 3.3, z, .8);
+      s.userData.nav = sg.key; navTargets.push(s);
     });
   }
   // section focus (first segment)
@@ -1701,7 +1707,7 @@ function build(renderer){
 
   // ---------- picking ----------
   const ray = new THREE.Raycaster(), mouse = new THREE.Vector2();
-  const pickables = [...productMeshes, ...svcTargets, ...doorTargets];
+  const pickables = [...productMeshes, ...svcTargets, ...doorTargets, ...navTargets];
   function pick(ev){
     const r = renderer.domElement.getBoundingClientRect();
     mouse.set(((ev.clientX-r.left)/r.width)*2-1, -((ev.clientY-r.top)/r.height)*2+1);
@@ -1709,6 +1715,7 @@ function build(renderer){
     const hit = ray.intersectObjects(pickables, true)[0];
     if (!hit) return null;
     if (hit.object.userData.door) return {door:hit.object.userData.door};
+    { let q = hit.object; while (q){ if (q.userData && q.userData.nav) return {nav: q.userData.nav}; q = q.parent; } }
     if (hit.object.userData.svc) { const pers = staff.find(s => { let q = hit.object; while (q){ if (q === s) return true; q = q.parent; } return false; }); return {svc:true, female: pers ? pers.userData.female : false}; }
     const places = hit.object.userData.places, place = places && hit.faceIndex != null ? places[hit.faceIndex >> 1] : null;
     return place ? {prod:place.p, key:place.key, point:hit.point, normal: hit.face ? hit.face.normal.clone() : new THREE.Vector3(0,0,1)} : null;
@@ -1721,6 +1728,7 @@ function build(renderer){
     if (h.door === 'out') return openExit();
     if (h.door === 'in') return toast('أهلاً بك في صيدلية اي براند');
     if (h.svc) return openService(h.female);
+    if (h.nav){ const sec = SEC[h.nav]; if (sec) select(sec, true); return; }
     if (h.prod){
       showProduct(h.prod, h.key);
       const n = h.normal.clone().setY(0).normalize(), pos = h.point.clone().addScaledVector(n, 1.6);
@@ -1731,6 +1739,7 @@ function build(renderer){
     if (e.pointerType !== 'mouse' || down) return;
     const h = pick(e), tip = $('#tip');
     if (h && h.prod){ tip.innerHTML = ''; tip.append((h.prod.brand ? h.prod.brand + ' • ' : '') + h.prod.name); if (typeof h.prod.price === 'number'){ const b = document.createElement('b'); b.textContent = money(h.prod.price); tip.append(b); } tip.style.left = e.clientX + 'px'; tip.style.top = e.clientY + 'px'; tip.hidden = false; el.style.cursor = 'pointer'; }
+    else if (h && h.nav){ tip.textContent = 'اذهب إلى ' + ((SEC[h.nav] || {}).name || ''); tip.style.left = e.clientX + 'px'; tip.style.top = e.clientY + 'px'; tip.hidden = false; el.style.cursor = 'pointer'; }
     else if (h && (h.svc || h.door)){ tip.textContent = h.svc ? 'خدمة العملاء • اسأل الصيدلي' : (h.door === 'out' ? 'باب الخروج' : 'باب الدخول'); tip.style.left = e.clientX + 'px'; tip.style.top = e.clientY + 'px'; tip.hidden = false; el.style.cursor = 'pointer'; }
     else { tip.hidden = true; el.style.cursor = 'grab'; }
   });
