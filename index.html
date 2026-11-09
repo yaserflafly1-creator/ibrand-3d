@@ -299,6 +299,8 @@ const SEC = Object.fromEntries(SECTIONS.map(s=>[s.key, s]));
 const $ = s => document.querySelector(s);
 const reduceMotion = matchMedia('(prefers-reduced-motion: reduce)').matches;
 const isSmall = Math.min(innerWidth, innerHeight) < 700 || matchMedia('(pointer: coarse)').matches;
+// Safari on iPhone/iPad reloads the tab when a page uses too much memory — keep texture budgets tight there
+const isIOS = /iPhone|iPad|iPod/.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
 let DATA = null, AV = '';
 const OBSTACLES = [];
 const store = { get(k, d){ try { const v = localStorage.getItem(k); return v ? JSON.parse(v) : d; } catch(e){ return d; } }, set(k, v){ try { localStorage.setItem(k, JSON.stringify(v)); } catch(e){} } };
@@ -578,8 +580,8 @@ function build(renderer){
   // lazy texture pages: load the pages nearest the shopper, release far ones on phones
   // Three levels of photo quality, chosen by distance: HD (256 px per product) for the shelves right next to you,
   // normal (128 px) for the aisle around you, light (64 px, phones only) further away.
-  const MAX_PAGES = isSmall ? 30 : (weakGPU ? 36 : 56), LOAD_R = isSmall ? 20 : 24;
-  const HD_N = isSmall ? 6 : (weakGPU ? 10 : 20), HD_R = isSmall ? 5 : 7, FULL_N = isSmall ? 16 : (weakGPU ? 18 : 30), FULL_R = isSmall ? 10 : 14;
+  const MAX_PAGES = isIOS ? 20 : (isSmall ? 30 : (weakGPU ? 36 : 56)), LOAD_R = isIOS ? 16 : (isSmall ? 20 : 24);
+  const HD_N = isIOS ? 4 : (isSmall ? 6 : (weakGPU ? 10 : 20)), HD_R = isIOS ? 4.5 : (isSmall ? 5 : 7), FULL_N = isIOS ? 9 : (isSmall ? 16 : (weakGPU ? 18 : 30)), FULL_R = isIOS ? 8 : (isSmall ? 10 : 14);
   let inflight = 0;
   // phones: decode images off the main thread and upload to the GPU one per frame,
   // so new shelf photos never freeze the walk (game-engine style streaming)
