@@ -57,6 +57,10 @@ button{font-family:var(--font)}
   .goCart b{font-size:11px;padding:2px 7px}
   .goCart svg{width:13px;height:13px}
 }
+.altBtns{display:none;position:fixed;z-index:6;right:12px;bottom:calc(env(safe-area-inset-bottom,0px) + 150px);flex-direction:column;gap:10px}
+body.drone .altBtns{display:flex}
+body.sheet .altBtns{display:none}
+.altBtns button{width:56px;height:56px;border-radius:18px;border:1px solid var(--line);background:rgba(255,255,255,.95);font-weight:800;font-size:20px;color:var(--pink-deep);box-shadow:0 10px 24px rgba(59,29,54,.2);touch-action:none;cursor:pointer}
 .aisles{position:fixed;left:0;right:0;bottom:0;z-index:5;padding-bottom:calc(env(safe-area-inset-bottom,0px) + 12px);padding-top:18px;
   padding-left:max(16px, env(safe-area-inset-left,0px));padding-right:max(16px, env(safe-area-inset-right,0px));
   background:linear-gradient(to top, rgba(247,242,245,.97) 50%, rgba(247,242,245,0))}
@@ -176,6 +180,7 @@ button{font-family:var(--font)}
   <div class="brand"><img src="assets/logo.png" alt="اي براند" onerror="this.remove()"><div class="logo">صيدلية اي براند<small>جملة الصيدليات • جولة ثلاثية الأبعاد</small></div></div>
   <div class="tools">
     <button class="tbtn" id="searchBtn" type="button" aria-label="ابحث عن منتج"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.5-3.5"/></svg><span class="lbl">ابحث</span></button>
+    <button class="tbtn" id="droneBtn" type="button" aria-pressed="false" aria-label="وضع الدرون"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="5" cy="6" r="2.2"/><circle cx="19" cy="6" r="2.2"/><circle cx="5" cy="18" r="2.2"/><circle cx="19" cy="18" r="2.2"/><path d="M6.6 7.6 10 11m4 0 3.4-3.4M6.6 16.4 10 13m4 0 3.4 3.4"/><rect x="10" y="10" width="4" height="4" rx="1.2"/></svg><span class="lbl">درون</span></button>
     <button class="tbtn" id="pano" type="button" aria-pressed="false" aria-label="جولة 360 درجة"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M3 12a9 4 0 1 0 18 0a9 4 0 1 0 -18 0"/><path d="M12 3v3M12 18v3"/></svg><span class="lbl">360°</span></button>
     <button class="tbtn primary" id="cartBtn" type="button" aria-label="السلة"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 4h2l2.4 11.2a1.5 1.5 0 0 0 1.5 1.2h8.6a1.5 1.5 0 0 0 1.5-1.1L21 8H6.2"/><circle cx="10" cy="20" r="1.3"/><circle cx="17" cy="20" r="1.3"/></svg><span class="lbl">السلة</span><span class="badge" id="cartCount" hidden>0</span></button>
   </div>
@@ -255,6 +260,7 @@ button{font-family:var(--font)}
 <div class="toast" id="toast" hidden></div>
 <div class="joy" id="joy" aria-label="عصا التحرك: اسحبها للمشي"><div class="knob"></div><small>تحرّك</small></div>
 <nav class="aisles" aria-label="أقسام الصيدلية"><div class="row" id="chips"></div></nav>
+<div class="altBtns"><button id="altUp" type="button" aria-label="ارتفع">▲</button><button id="altDn" type="button" aria-label="انخفض">▼</button></div>
 <button class="goCart" id="goCart" type="button" hidden>متابعة للدفع <b></b><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M19 12H5m6-6-6 6 6 6"/></svg></button>
 <div class="loading" id="loading"><div>جاري تجهيز الصيدلية…<small id="loadingSub">نرتب المنتجات على الرفوف</small></div></div>
 
@@ -1720,9 +1726,12 @@ function build(renderer){
   addEventListener('resize', () => { camera.aspect = stage.clientWidth/stage.clientHeight; camera.fov = fovFor(camera.aspect); camera.updateProjectionMatrix(); renderer.setSize(stage.clientWidth, stage.clientHeight); });
 
   // ---------- walking: joystick / WASD + drag to look, with simple collisions ----------
-  function blocked(x, z){ return OBSTACLES.some(o => o.box ? (x>o.box.x0 && x<o.box.x1 && z>o.box.z0 && z<o.box.z1) : Math.hypot(x-o.x, z-o.z) < o.r + .3); }
-  const keys = {f:0, b:0, sl:0, sr:0, tl:0, tr:0}, joy = {x:0, y:0};
-  const KEYS = {ArrowUp:'f', KeyW:'f', ArrowDown:'b', KeyS:'b', ArrowLeft:'sl', KeyA:'sl', ArrowRight:'sr', KeyD:'sr', KeyQ:'tl', KeyE:'tr'};
+  function blocked(x, z){ if (droneMode && alt > 2.6) return false; return OBSTACLES.some(o => o.box ? (x>o.box.x0 && x<o.box.x1 && z>o.box.z0 && z<o.box.z1) : Math.hypot(x-o.x, z-o.z) < o.r + .3); }
+  const keys = {f:0, b:0, sl:0, sr:0, tl:0, tr:0, up:0, down:0}, joy = {x:0, y:0};
+  [['#altUp','up'],['#altDn','down']].forEach(([sel, k]) => { const b = document.querySelector(sel);
+    b.addEventListener('pointerdown', e => { e.preventDefault(); keys[k] = 1; });
+    ['pointerup','pointercancel','pointerleave'].forEach(ev => b.addEventListener(ev, () => { keys[k] = 0; })); });
+  const KEYS = {ArrowUp:'f', KeyW:'f', ArrowDown:'b', KeyS:'b', ArrowLeft:'sl', KeyA:'sl', ArrowRight:'sr', KeyD:'sr', KeyQ:'tl', KeyE:'tr', Space:'up', KeyR:'up', ShiftLeft:'down', KeyF:'down'};
   const typing = () => document.activeElement && document.activeElement.tagName === 'INPUT';
   addEventListener('keydown', e => { const k = KEYS[e.code]; if (!k || e.altKey || e.metaKey || e.ctrlKey || typing()) return; keys[k] = 1; e.preventDefault(); hideHint(); flight = null; setPano(false); });
   addEventListener('keyup', e => { const k = KEYS[e.code]; if (k) keys[k] = 0; });
@@ -1765,14 +1774,14 @@ function build(renderer){
     if (!inside && blocked(cx+dx, cz+dz)){ if (!blocked(cx+dx, cz)) dz = 0; else if (!blocked(cx, cz+dz)) dx = 0; else return; }
     camera.position.x += dx; camera.position.z += dz;
   }
-  const vel = {x:0, z:0}; let walkAmt = 0, bobT = 0;
+  const vel = {x:0, z:0}; let walkAmt = 0, bobT = 0, alt = EYE, altV = 0, droneMode = false;
   function walk(dt){
     let mv = joy.y + keys.f - keys.b, st = joy.x + keys.sr - keys.sl;
     const turn = keys.tl - keys.tr; if (turn) view.yaw += turn * 1.6 * dt;
     let len = Math.hypot(mv, st);
     if (len > 1){ mv /= len; st /= len; len = 1; }
     const fx = -Math.sin(view.yaw), fz = -Math.cos(view.yaw), rx = Math.cos(view.yaw), rz = -Math.sin(view.yaw);
-    const sp = len < .08 ? 0 : (2.2 + (len > .92 ? .9 : 0));
+    const sp = len < .08 ? 0 : ((droneMode ? 3.1 : 2.2) + (len > .92 ? (droneMode ? 1.2 : .9) : 0));
     const tx = (fx*mv + rx*st*.85) * sp, tz = (fz*mv + rz*st*.85) * sp;
     const k = Math.min(1, dt * (sp ? 9 : 7));
     vel.x += (tx - vel.x) * k; vel.z += (tz - vel.z) * k;
@@ -1780,6 +1789,11 @@ function build(renderer){
     if (v > .03) tryMove(vel.x * dt, vel.z * dt);
     walkAmt += (Math.min(1, v / 2.2) - walkAmt) * Math.min(1, dt * 5);
     bobT += dt * (5 + 4 * walkAmt);
+    if (droneMode){
+      const tu = (keys.up - keys.down) * 2.1;
+      altV += (tu - altV) * Math.min(1, dt * 6);
+      alt = Math.max(.55, Math.min(4.35, alt + altV * dt));
+    } else if (alt !== EYE){ altV = 0; alt += (EYE - alt) * Math.min(1, dt * 5); if (Math.abs(alt - EYE) < .005) alt = EYE; }
   }
   function stepBy(dist){ flight = null; tryMove(-Math.sin(view.yaw)*dist, -Math.cos(view.yaw)*dist); }
   el.addEventListener('wheel', e => { e.preventDefault(); hideHint(); stepBy(-Math.sign(e.deltaY) * Math.min(.9, Math.abs(e.deltaY) / 120 * .5)); }, {passive:false});
@@ -1792,6 +1806,19 @@ function build(renderer){
   const panoBtn = $('#pano'); let pano = false;
   function setPano(on){ pano = on && !reduceMotion; panoBtn.setAttribute('aria-pressed', pano ? 'true' : 'false'); if (pano) view.pitch = 0; }
   panoBtn.addEventListener('click', () => { hideHint(); flight = null; setPano(!pano); });
+
+  // ---------- drone mode: free flight over the shelves ----------
+  const droneBtn = $('#droneBtn');
+  function setDrone(on){
+    droneMode = on; document.body.classList.toggle('drone', on);
+    pushCart.visible = !on; droneBtn.setAttribute('aria-pressed', on ? 'true' : 'false');
+    if (on){
+      flight = null; setPano(false);
+      const h = $('#hint'); h.textContent = 'وضع الدرون: ▲▼ للارتفاع والهبوط (أو مسافة/Shift) — طِر فوق الأرفف!';
+      h.classList.remove('gone'); clearTimeout(hintTimer); hintTimer = setTimeout(hideHint, 6500);
+    } else hideHint();
+  }
+  droneBtn.addEventListener('click', () => { droneBtn.blur(); setDrone(!droneMode); });
 
   // ---------- adaptive quality: step the resolution down until the device runs smoothly ----------
   const DPRS = isSmall ? [1.5, 1.25, 1.0, .85] : (weakGPU ? [1.5, 1.25, 1.05, .9] : [2, 1.6, 1.35, 1.1]);
@@ -1892,7 +1919,7 @@ function build(renderer){
       if (highlight.visible){ const t = (now - highlight.userData.t0)/1000; highlight.scale.setScalar(1 + .15*Math.sin(t*6)); if (t > 8) highlight.visible = false; }
     }
     if (!flight) clampV(camera.position);
-    camera.position.y = EYE;
+    camera.position.y = alt + (droneMode && !reduceMotion ? Math.sin(bobT * 1.3) * .02 : 0);
     applyView();
     renderer.render(scene, camera);
   });

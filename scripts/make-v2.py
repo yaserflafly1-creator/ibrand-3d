@@ -141,8 +141,8 @@ rep('  // ---------- loop ----------',
   // ---------- loop ----------''')
 
 # 13) head bob + composer render
-rep('    camera.position.y = EYE;',
-    '    camera.position.y = EYE + (reduceMotion ? 0 : Math.sin(bobT * 2) * .013 * walkAmt);')
+rep('    camera.position.y = alt + (droneMode && !reduceMotion ? Math.sin(bobT * 1.3) * .02 : 0);',
+    '    camera.position.y = alt + (reduceMotion ? 0 : (droneMode ? Math.sin(bobT * 1.3) * .02 : Math.sin(bobT * 2) * .013 * walkAmt));')
 rep('''    renderer.render(scene, camera);''',
     '''    if (composer) composer.render(); else renderer.render(scene, camera);''')
 
