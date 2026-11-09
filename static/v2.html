@@ -1764,18 +1764,7 @@ function build(renderer){
   joyEl.addEventListener('pointermove', e => { if (e.pointerId === joyId) joyMove(e); });
   const joyEnd = e => { if (e.pointerId !== joyId) return; joyId = null; joy.x = joy.y = 0; knob.style.transform = ''; joyEl.classList.remove('on'); };
   joyEl.addEventListener('pointerup', joyEnd); joyEl.addEventListener('pointercancel', joyEnd); joyEl.addEventListener('lostpointercapture', joyEnd);
-  // a thumb on the left of the screen becomes a floating joystick
-  const joyHome = () => { joyEl.style.left = ''; joyEl.style.top = ''; joyEl.style.bottom = ''; };
-  el.addEventListener('pointerdown', e => {
-    if (e.pointerType !== 'touch' || joyId !== null || e.clientX > innerWidth * .42 || e.clientY < innerHeight * .3) return;
-    const r = joyEl.getBoundingClientRect();
-    joyEl.style.left = (e.clientX - r.width/2) + 'px'; joyEl.style.top = (e.clientY - r.height/2) + 'px'; joyEl.style.bottom = 'auto';
-    joyId = e.pointerId; e.__joy = true; joyEl.classList.add('on'); hideHint(); flight = null; setPano(false);
-    try{ el.setPointerCapture(e.pointerId); }catch(_){}
-  }, true);
-  el.addEventListener('pointermove', e => { if (e.pointerId === joyId) joyMove(e); }, true);
-  const floatEnd = e => { if (e.pointerId !== joyId) return; joyId = null; joy.x = joy.y = 0; knob.style.transform = ''; joyEl.classList.remove('on'); joyHome(); };
-  el.addEventListener('pointerup', floatEnd, true); el.addEventListener('pointercancel', floatEnd, true);
+  // the joystick stays fixed in its corner: taps on the scene always pick / look
   const lookers = new Map(), lookV = {y:0, p:0};
   el.addEventListener('pointerdown', e => { if (e.pointerId === joyId) return; lookers.set(e.pointerId, {x:e.clientX, y:e.clientY}); lookV.y = lookV.p = 0; if (pano) setPano(false); try{ el.setPointerCapture(e.pointerId); }catch(_){} });
   el.addEventListener('pointermove', e => {
