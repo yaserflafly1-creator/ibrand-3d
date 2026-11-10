@@ -375,7 +375,12 @@ function build(renderer){
   // lighting (a render target) AND every uploaded texture are lost with it, so on return
   // we resurrect the lot: re-upload all material textures from their sources + rebuild the env
   const TEXKEYS = ['map', 'emissiveMap', 'alphaMap', 'aoMap', 'roughnessMap', 'metalnessMap', 'normalMap', 'envMap'];
+  // drawn (canvas) textures lose their pixels too when the phone reclaims the GPU: floor, ceiling, pegboard, signs,
+  // shelf titles… so each one keeps its drawing routine and is painted again before being re-uploaded
+  const REDRAW = []; let sentinel = null;
+  const canvasGone = () => { try { return !!sentinel && sentinel.getContext('2d').getImageData(1, 1, 1, 1).data[3] === 0; } catch(e){ return false; } };
   function resurrect(){
+    REDRAW.forEach(f => { try { f(); } catch(e){} });
     scene.traverse(o => {
       if (!o.material) return;
       (Array.isArray(o.material) ? o.material : [o.material]).forEach(m => {
@@ -387,19 +392,20 @@ function build(renderer){
   }
   let needRes = false;
   renderer.domElement.addEventListener('webglcontextlost', () => { needRes = true; });
-  renderer.domElement.addEventListener('webglcontextrestored', () => { setTimeout(() => { needRes = false; resurrect(); }, 60); });
+  renderer.domElement.addEventListener('webglcontextrestored', () => { setTimeout(() => { needRes = false; resurrect(); }, 60); setTimeout(() => { if (canvasGone()) resurrect(); }, 1800); });
   document.addEventListener('visibilitychange', () => {
     if (document.hidden) return;
     const gl = renderer.getContext();
     if (gl && gl.isContextLost && gl.isContextLost()) return; // the restore event above will handle it
-    if (needRes){ needRes = false; setTimeout(resurrect, 120); }
+    if (needRes || canvasGone()){ needRes = false; setTimeout(resurrect, 120); }
   });
 
   // ---------- helpers ----------
   const aniso = renderer.capabilities.getMaxAnisotropy();
   const sRGB = t => (t.encoding = THREE.sRGBEncoding, t.anisotropy = Math.min(isSmall ? 2 : 4, aniso), t);
   const std = (c, o={}) => new THREE.MeshStandardMaterial(Object.assign({color:c, roughness:.6, metalness:0, envMapIntensity:.7}, o));
-  const canvasTex = (w, h, draw) => { const c=document.createElement('canvas'); c.width=w; c.height=h; draw(c.getContext('2d'), w, h); return sRGB(new THREE.CanvasTexture(c)); };
+  const canvasTex = (w, h, draw) => { const c=document.createElement('canvas'); c.width=w; c.height=h; const x = c.getContext('2d'); draw(x, w, h); const t = sRGB(new THREE.CanvasTexture(c));
+    REDRAW.push(() => { c.width = w; draw(x, w, h); t.needsUpdate = true; }); return t; };
   const fitText = (x, text, max, weight, size, family='"Almarai", Tahoma, sans-serif') => { do { x.font=`${weight} ${size}px ${family}`; size-=2; } while (x.measureText(text).width > max && size>10); };
   const rr = (x, X,Y,W,H,R) => { x.beginPath(); x.moveTo(X+R,Y); x.arcTo(X+W,Y,X+W,Y+H,R); x.arcTo(X+W,Y+H,X,Y+H,R); x.arcTo(X,Y+H,X,Y,R); x.arcTo(X,Y,X+W,Y,R); x.closePath(); };
   const texLoader = new THREE.TextureLoader();
@@ -946,9 +952,11 @@ function build(renderer){
   const LABELS = [...new Set([...SECTIONS.map(s => s.name), ...(DATA ? Object.values(DATA.sections).flatMap(sd => sd.products.map(p => p.sub).filter(Boolean)) : [])])];
   const TROWS = Math.ceil(LABELS.length / 2), TRH = 80;
   const titleCanvas = document.createElement('canvas'); titleCanvas.width = 2048; titleCanvas.height = Math.min(4096, TROWS * TRH);
-  { const x = titleCanvas.getContext('2d'); x.fillStyle = '#ffffff'; x.fillRect(0, 0, 2048, titleCanvas.height);
-    LABELS.forEach((t, i) => { const c = i % 2, r = Math.floor(i / 2); x.fillStyle = PINK_DEEP; x.textAlign='center'; x.textBaseline='middle'; x.direction='rtl'; fitText(x, t, 960, 800, 54); x.fillText(t, c*1024 + 512, r*TRH + TRH/2 + 3); }); }
+  const drawTitles = () => { const x = titleCanvas.getContext('2d'); x.fillStyle = '#ffffff'; x.fillRect(0, 0, 2048, titleCanvas.height);
+    LABELS.forEach((t, i) => { const c = i % 2, r = Math.floor(i / 2); x.fillStyle = PINK_DEEP; x.textAlign='center'; x.textBaseline='middle'; x.direction='rtl'; fitText(x, t, 960, 800, 54); x.fillText(t, c*1024 + 512, r*TRH + TRH/2 + 3); }); };
+  drawTitles();
   const titleTex = sRGB(new THREE.CanvasTexture(titleCanvas));
+  sentinel = titleCanvas; REDRAW.push(() => { titleCanvas.width = 2048; drawTitles(); titleTex.needsUpdate = true; });
   const titleUV = label => { const i = Math.max(0, LABELS.indexOf(label)), c = i % 2, r = Math.floor(i / 2), R = titleCanvas.height / TRH, v1 = 1 - r/R, v0 = 1 - (r+1)/R, u0 = c/2, u1 = (c+1)/2; return [u0,v0, u1,v0, u1,v1, u0,v1]; };
   const BA = DATA && DATA.brandAtlas;
   function header(F, x0, x1, y, z, hdr, key){
@@ -978,10 +986,12 @@ function build(renderer){
   // price tags: white (or yellow when on sale) label with the real price, built from digit glyphs
   const GLY = '0123456789.', GW = 48, GH = 64;
   const glyphCanvas = document.createElement('canvas'); glyphCanvas.width = GW * (GLY.length + 2); glyphCanvas.height = GH;
-  { const x = glyphCanvas.getContext('2d'); x.fillStyle = '#2a1b27'; x.textAlign = 'center'; x.textBaseline = 'middle'; x.font = '800 54px Arial, sans-serif';
+  const drawGlyphs = () => { const x = glyphCanvas.getContext('2d'); x.fillStyle = '#2a1b27'; x.textAlign = 'center'; x.textBaseline = 'middle'; x.font = '800 54px Arial, sans-serif';
     [...GLY].forEach((ch, i) => x.fillText(ch, i*GW + GW/2, GH/2 + 3));
-    x.direction = 'rtl'; x.font = '700 34px "Almarai", Tahoma'; x.fillText('ر.س', GLY.length*GW + GW, GH/2 + 4); }
+    x.direction = 'rtl'; x.font = '700 34px "Almarai", Tahoma'; x.fillText('ر.س', GLY.length*GW + GW, GH/2 + 4); };
+  drawGlyphs();
   const glyphTex = sRGB(new THREE.CanvasTexture(glyphCanvas));
+  REDRAW.push(() => { glyphCanvas.width = GW * (GLY.length + 2); drawGlyphs(); glyphTex.needsUpdate = true; });
   const GU = i => [i*GW/glyphCanvas.width, (i+1)*GW/glyphCanvas.width];
   const C_TAG = [1,1,1], C_SALE = rgb('#ffe14a'), C_TAGBAR = rgb('#e873a8'), C_SALEBAR = rgb('#d92b3a');
   // tag layout like real shelf labels: big riyals, small raised halalas, then ر.س; on sale the old price sits above, struck through

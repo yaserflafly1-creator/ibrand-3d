@@ -89,3 +89,26 @@ jobs:
           done
       - id: deployment
         uses: actions/deploy-pages@v4
+      # the repository also has a branch-based Pages build; when it shares this commit the deploy above can report
+      # success without going live, leaving the bare branch (no product data) online. Check, and deploy again if so.
+      - name: Check that the full site is live
+        id: check
+        run: |
+          URL="${{ steps.deployment.outputs.page_url }}"
+          for i in $(seq 1 18); do
+            if curl -fsS -o /dev/null "${URL}data/products.json?x=$RANDOM$i"; then echo "ok=true" >> "$GITHUB_OUTPUT"; exit 0; fi
+            sleep 10
+          done
+          echo "ok=false" >> "$GITHUB_OUTPUT"
+      - name: Deploy again if the first attempt did not take
+        if: steps.check.outputs.ok != 'true'
+        uses: actions/deploy-pages@v4
+      - name: Fail loudly if the full site is still not live
+        if: steps.check.outputs.ok != 'true'
+        run: |
+          URL="${{ steps.deployment.outputs.page_url }}"
+          for i in $(seq 1 18); do
+            if curl -fsS -o /dev/null "${URL}data/products.json?y=$RANDOM$i"; then exit 0; fi
+            sleep 10
+          done
+          echo "full site is not live"; exit 1
