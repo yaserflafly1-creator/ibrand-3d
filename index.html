@@ -158,12 +158,14 @@ body.sheet .altBtns{display:none}
 .fallback{position:fixed;inset:0;z-index:11;overflow:auto;background:var(--ground);padding-block:90px 40px;padding-left:max(16px, env(safe-area-inset-left,0px));padding-right:max(16px, env(safe-area-inset-right,0px))}
 .fallback a{display:block;padding:12px 14px;margin-block:6px;background:var(--paper);border:1px solid var(--line);border-radius:12px;color:var(--plum);text-decoration:none;font-weight:700}
 
+@media (max-width:470px){ .brand .logo{display:none} .brand{padding:6px} }
 @media (max-width:640px){
   .panel{top:auto;bottom:calc(env(safe-area-inset-bottom,0px) + 80px);left:max(12px, env(safe-area-inset-left,0px));right:max(12px, env(safe-area-inset-right,0px));width:auto;max-height:58%}
   .logo small{display:none}
   .logo{font-size:15px}
   .brand img{height:28px}
   .brand{padding:6px 10px}
+  .brand .logo{white-space:nowrap}
   .tbtn .lbl{display:none}
   .tbtn{padding:10px}
   .hint{font-size:12px;white-space:normal;width:calc(100% - 32px);text-align:center;border-radius:14px}
@@ -666,10 +668,29 @@ function build(renderer){
     const e = texPool[url]; if (!e) return;
     if (--e.refs <= 0 && !e.loading){ if (e.tex) e.tex.dispose(); delete texPool[url]; }
   }
+  // thumbnails: every photo page has a tiny copy that is loaded once and kept, so shelves show their real products
+  // (soft, but recognisable) from the first seconds and never fall back to blank boxes while sharper photos stream in
+  const thumbMat = {};   // 'key:pg' -> material shared by all pieces of that page
+  const baseMat = pm => thumbMat[pm.key + ':' + pm.pg] || placeholderMat;
+  const sharedMat = m => m === placeholderMat || !!m.userData.thumb;
+  function loadThumbs(){
+    const list = [];
+    Object.keys(DATA.sections).forEach(key => (DATA.sections[key].pagesS || []).forEach((src, pg) => list.push({k: key + ':' + pg, src})));
+    if (!list.length) return;
+    const near = {}; pageMeshes.forEach(pm => { const k = pm.key + ':' + pm.pg, d = pm.center.distanceTo(camera.position); if (near[k] === undefined || d < near[k]) near[k] = d; });
+    list.sort((a, b) => (near[a.k] === undefined ? 1e9 : near[a.k]) - (near[b.k] === undefined ? 1e9 : near[b.k]));   // nearest shelves first
+    let i = 0;
+    const next = () => { if (i >= list.length) return; const it = list[i++];
+      loadPageTex(it.src + AV, t => { sRGB(t); t.generateMipmaps = !isSmall; if (isSmall) t.minFilter = THREE.LinearFilter;
+        const m = new THREE.MeshStandardMaterial({map:t, alphaTest:.5, roughness:.4, envMapIntensity:.55, side:THREE.DoubleSide}); m.userData.thumb = true; thumbMat[it.k] = m;
+        pageMeshes.forEach(pm => { if (pm.key + ':' + pm.pg === it.k && pm.mesh.material === placeholderMat) pm.mesh.material = m; });
+        next(); }, next); };
+    for (let c = 0; c < 4; c++) next();
+  }
   function dropPm(pm){
     pm.pendingUrl = null;
     if (pm.url){ releaseTex(pm.url); pm.url = null; pm.lvl = -1; }
-    if (pm.mesh.material !== placeholderMat){ pm.mesh.material.dispose(); pm.mesh.material = placeholderMat; }
+    const b = baseMat(pm); if (pm.mesh.material !== b){ if (!sharedMat(pm.mesh.material)) pm.mesh.material.dispose(); pm.mesh.material = b; }
   }
   function updatePages(){
     const cp = camera.position;
@@ -706,7 +727,7 @@ function build(renderer){
         }
         const old = pm.url;
         pm.url = url; pm.lvl = lvl;
-        if (pm.mesh.material !== placeholderMat) pm.mesh.material.dispose();
+        if (!sharedMat(pm.mesh.material)) pm.mesh.material.dispose();
         pm.mesh.material = new THREE.MeshStandardMaterial({map:t, alphaTest: t.isCompressedTexture ? .28 : .5, roughness:.4, envMapIntensity:.55, side:THREE.DoubleSide});
         if (old) releaseTex(old);
       });
@@ -1937,6 +1958,7 @@ function build(renderer){
     renderer.render(scene, camera);
   });
   $('#loading').classList.add('done');
+  loadThumbs();
   prefetchAtlas();
   window.__ib3d = {plans, totalBays, nA, nb, Wx, products: allProducts.length, pages: pageMeshes.length, camera, aimAt, goToProduct, SEC, zC, zA0, staff};
 }

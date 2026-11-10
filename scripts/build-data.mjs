@@ -253,11 +253,11 @@ async function packSection(key, items){
     try { tiles[k] = await tileFor(it.img); } catch (e){ tileStats.failed++; }
   });
   items.forEach((it, k) => { if (tiles[k]) ok.push({ it, t: tiles[k] }); });
-  const pages = [], pagesM = [], products = [];
+  const pages = [], pagesM = [], pagesS = [], products = [];
   for (let pg = 0; pg * PER_PAGE < ok.length; pg++){
     const chunk = ok.slice(pg * PER_PAGE, (pg + 1) * PER_PAGE);
     const rows = Math.ceil(chunk.length / PC);
-    const big = `atlas/${key}-${pg}.webp`, small = `atlas/${key}-${pg}-m.webp`;
+    const big = `atlas/${key}-${pg}.webp`, small = `atlas/${key}-${pg}-m.webp`, tiny = `atlas/${key}-${pg}-s.webp`;
     // HD pieces: 2 rows x half width at 512 px per product (crisp close-ups within 4096-wide textures)
     const hd = [];
     const full = await sharp({ create: { width: PC*TPX, height: rows*TPX, channels: 4, background: { r:0, g:0, b:0, alpha:0 } } })
@@ -274,12 +274,14 @@ async function packSection(key, items){
     const bigPng = await sharp(full).resize(PC*TILE, rows*TILE).png().toBuffer();
     await sharp(bigPng).webp({ quality: 76, alphaQuality: 82 }).toFile(`${OUT}/${big}`);
     await sharp(full).resize(PC*TILE/2, rows*TILE/2).webp({ quality: 72, alphaQuality: 78 }).toFile(`${OUT}/${small}`);
+    // thumbnail page (32 px per product): loaded once for the whole store so no shelf waits blank for its photos
+    await sharp(full).resize(PC*TILE/4, rows*TILE/4).webp({ quality: 68, alphaQuality: 74 }).toFile(`${OUT}/${tiny}`);
     const page = { src: big, rows, hd }, bigB = big.replace('.webp', '.basis');
     if (await toBasis(bigPng, `${OUT}/${bigB}`)) page.srcB = bigB;
-    pages.push(page); pagesM.push(small);
+    pages.push(page); pagesM.push(small); pagesS.push(tiny);
     chunk.forEach(({ it, t }, i) => products.push({ ...it, pg, tile: i, ...t.meta }));
   }
-  return { cols: PC, pages, pagesM, products };
+  return { cols: PC, pages, pagesM, pagesS, products };
 }
 
 async function main(){
