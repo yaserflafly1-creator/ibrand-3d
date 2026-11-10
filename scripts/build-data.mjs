@@ -246,7 +246,7 @@ async function pool(items, n, fn){
 }
 
 // pack one section into texture pages
-async function packSection(key, items){
+async function packSection(key, items, opts = {}){
   const ok = [];
   const tiles = new Array(items.length);
   await pool(items, 8, async (it, k) => {
@@ -277,7 +277,7 @@ async function packSection(key, items){
     // thumbnail page (32 px per product): loaded once for the whole store so no shelf waits blank for its photos
     await sharp(full).resize(PC*TILE/4, rows*TILE/4).webp({ quality: 68, alphaQuality: 74 }).toFile(`${OUT}/${tiny}`);
     const page = { src: big, rows, hd }, bigB = big.replace('.webp', '.basis');
-    if (await toBasis(bigPng, `${OUT}/${bigB}`)) page.srcB = bigB;
+    if (!opts.noBasis && await toBasis(bigPng, `${OUT}/${bigB}`)) page.srcB = bigB;
     pages.push(page); pagesM.push(small); pagesS.push(tiny);
     chunk.forEach(({ it, t }, i) => products.push({ ...it, pg, tile: i, ...t.meta }));
   }
@@ -406,6 +406,49 @@ async function main(){
     result.sections[k] = await packSection(k, items);
     console.log('packed', k, result.sections[k].products.length, 'pages', result.sections[k].pages.length);
   }
+  // 5b) a second atlas ordered exactly like the shelves of the experimental plan page (zones, category-then-brand
+  // order from the merchandising file — the same rules as prep() in scripts/plan-layout.js), so products that sit
+  // together on its shelves also sit together in the photo pages
+  try {
+    const imf = JSON.parse(await fs.readFile('static/plan/imf.json', 'utf8')).p;
+    const html = await fs.readFile('index.html', 'utf8');
+    const secs = [...html.matchAll(/^\s*\{key:'(\w+)',[^\n]*$/gm)].map(m => ({ key: m[1], main: /main:true/.test(m[0]), size: +((m[0].match(/size:([\d.]+)/) || [])[1] || 1) }));
+    const mainOrder = secs.filter(s => s.main && result.sections[s.key] && result.sections[s.key].products.length).map(s => s.key);
+    const SECZ = { baby:0, meds:1, vit:2, devices:2, pets:2, daily:3, other:3, skin:4, hair:4, makeup:4 };
+    const BWm = 1.0, CAP = { 0: 5 * (BWm - .03) * .5, 1: 6 * (BWm - .03) * .5 };   // floor gondola: 5 shelves, wall unit: 6
+    const widthOf = (p, size) => { const base = .22 * Math.min(1.45, Math.max(.75, size * .9)); const a = p.card ? 1 : (p.aspect || 1); let h = base * (p.card ? .8 : 1), w = h * a; if (w > base * 1.5){ w = base * 1.5; h = w / a; } if (h > .3){ h = .3; w = h * a; } return w; };
+    const zones = [0, 1, 2, 3, 4].map(() => ({ 0: [], 1: [] }));
+    const subIdx = new Map();
+    mainOrder.forEach((k, ki) => { const size = (secs.find(s => s.key === k) || {}).size || 1;
+      result.sections[k].products.forEach((p, i) => {
+        const m = imf[String(p.id)], o = { p, k, o: i, w: widthOf(p, size), b: String(p.brandId || p.brand || '') };
+        if (m){ o.z = m[0]; o.s = [m[1], m[2], m[3]]; o.fc = m[4]; o.ds = m[5]; o.fx = m[6]; o.un = m[7]; }
+        else { const sk = k + '|' + (p.sub || ''); let si = subIdx.get(sk); if (si === undefined){ si = subIdx.size; subIdx.set(sk, si); }
+          o.z = SECZ[k] === undefined ? 3 : SECZ[k]; o.s = [900 + ki, 9000 + si, 0]; o.fc = 1; o.ds = 2; o.fx = 0; o.un = 0; }
+        zones[o.z][o.un].push(o);
+      }); });
+    const prep = (list, cap) => {
+      const uid = o => (!o.b || o.ds === 2) ? null : (o.ds === 0 ? 'b|' + o.b + '|' + o.fx : 'b|' + o.b + '|' + o.s[0] + ':' + o.s[1] + '|' + o.fx);
+      const need = {}, home = {};
+      list.forEach(o => { const u = uid(o); if (!u) return; need[u] = (need[u] || 0) + (o.w + .012) * Math.min(4, Math.max(o.fc || 1, o.w < .075 ? 2 : 1));
+        if (o.ds === 0){ const h = home[u] || (home[u] = {}), kk = o.s[0] + ':' + o.s[1]; h[kk] = (h[kk] || 0) + 1; } });
+      const homeOf = {}; Object.keys(home).forEach(u => { const kk = Object.entries(home[u]).sort((a, c) => c[1] - a[1])[0][0].split(':'); homeOf[u] = [+kk[0], +kk[1]]; });
+      list.forEach(o => { const u = uid(o), big = !!u && need[u] >= cap, hm = big && homeOf[u];
+        o.key = [hm ? hm[0] : o.s[0], hm ? hm[1] : o.s[1], o.fx, big ? 0 : 1, big ? o.b : '', big ? 0 : o.s[2], o.b]; });
+      return list.slice().sort((a, c) => { for (let i = 0; i < 7; i++){ const x = a.key[i], y = c.key[i]; if (x !== y) return x < y ? -1 : 1; } return a.k === c.k ? a.o - c.o : (a.k < c.k ? -1 : 1); });
+    };
+    const planOut = { zones: {}, at: {} };
+    for (let z = 0; z < zones.length; z++){
+      const ordered = [...prep(zones[z][0], CAP[0]), ...prep(zones[z][1], CAP[1])];
+      if (!ordered.length) continue;
+      const sec = await packSection('pz' + z, ordered.map(o => o.p), { noBasis: true });
+      sec.products.forEach(p => { planOut.at[p.id] = [z, p.pg, p.tile]; });
+      planOut.zones['pz' + z] = { cols: sec.cols, pages: sec.pages, pagesM: sec.pagesM, pagesS: sec.pagesS };
+      console.log('plan zone', z, sec.products.length, 'pages', sec.pages.length);
+    }
+    await fs.mkdir(`${OUT}/data`, { recursive: true });
+    await fs.writeFile(`${OUT}/data/plan.json`, JSON.stringify(planOut));
+  } catch (e){ console.warn('plan atlas skipped:', e.message); }
   console.log('tiles', tileStats);
   console.log('basis pages', BASISU ? bStats : 'disabled (no BASISU)');
   if (!Object.keys(result.sections).length) throw new Error('No products fetched — storefront API unreachable?');

@@ -11,8 +11,13 @@
   const zoneProducts = ZINFO.map(() => []);
   { // merchandising attributes per product: zone, category path, facings, display (stand / shared shelf), fixture (shelf / hook), unit (floor / wall)
     const subIdx = new Map(); let matched = 0, total = 0;
+    // the plan's own photo atlas (ordered like these shelves): each zone is a set of pages, products point into it
+    const PAT = window.__PAT && window.__PAT.zones && window.__PAT.at ? window.__PAT : null;
+    if (PAT){ Object.keys(PAT.zones).forEach(zk => { DATA.sections[zk] = Object.assign({products: []}, PAT.zones[zk]); }); window.__skipAtlas = new Set(mainKeys); }
+    ZINFO.forEach((zi, i) => { SEC['pz' + i] = SEC[zi.key]; });
     mainKeys.forEach((k, ki) => SD(k).products.forEach((p, i) => {
       const m = IMF[p.id]; p._k = k; p._o = i; total++;
+      const at = PAT && PAT.at[p.id]; if (at && DATA.sections['pz' + at[0]]){ p._ak = 'pz' + at[0]; p._apg = at[1]; p._atile = at[2]; }
       if (m){ matched++; p._z = m[0]; p._s = [m[1], m[2], m[3]]; p.fc = m[4]; p._ds = m[5]; p._fx = m[6]; p._un = m[7]; }
       else { const sk = k + '|' + (p.sub || ''); let si = subIdx.get(sk); if (si === undefined){ si = subIdx.size; subIdx.set(sk, si); }
         p._z = SECZ[k] === undefined ? 3 : SECZ[k]; p._s = [900 + ki, 9000 + si, 0]; p.fc = 1; p._ds = 2; p._fx = 0; p._un = 0; }

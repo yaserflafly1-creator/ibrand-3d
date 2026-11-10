@@ -40,7 +40,20 @@ rep("  {key:'quick', name:'مشتريات سريعة',",
 # merchandising file, loaded with the product data
 rep("  AV = DATA && DATA.build ? '?v=' + DATA.build : '';",
     "  AV = DATA && DATA.build ? '?v=' + DATA.build : '';\n"
-    "  try { const r = await fetch('plan/imf.json'); if (r.ok) window.__IMF = await r.json(); } catch(e){}")
+    "  try { const r = await fetch('plan/imf.json'); if (r.ok) window.__IMF = await r.json(); } catch(e){}\n"
+    "  try { const r = await fetch('data/plan.json?t=' + Math.floor(Date.now() / 600000)); if (r.ok) window.__PAT = await r.json(); } catch(e){}")
+
+# plan pages have their own photo atlas (ordered like these shelves): products address it instead of their store-category atlas
+rep("    const sd = DATA.sections[key], C2 = sd.cols || 16;\n",
+    "    const ak = p._ak && p._k === key ? p._ak : key, sd = DATA.sections[ak], C2 = sd.cols || 16, pp = ak !== key ? {pg:p._apg, tile:p._atile, card:p.card, aspect:p.aspect} : p;\n")
+rep("    const bk = key + ':' + p.pg + ':' + Math.floor(p.tile / (C2 * 2)) + ':' + ((p.tile % C2) < C2 / 2 ? 0 : 1);",
+    "    // + a coarse floor cell, so a repeat of the same product far away (fill facings, end caps) gets its own small mesh\n"
+    "    const wp0 = F.at(cx, 0, cz), bk = ak + ':' + pp.pg + ':' + Math.floor(pp.tile / (C2 * 2)) + ':' + ((pp.tile % C2) < C2 / 2 ? 0 : 1) + (ak !== key ? ':' + Math.round(wp0[0] / 8) + '_' + Math.round(wp0[2] / 8) : '');")
+rep("    const [u0,u1,vb,vt] = tileUV(sd, p), hw = w/2,", "    const [u0,u1,vb,vt] = tileUV(sd, pp), hw = w/2,")
+rep("    Object.values(DATA.sections).forEach(sd => {\n      (sd.pagesM || []).forEach(s => urls.push(s));",
+    "    Object.keys(DATA.sections).filter(k => !(window.__skipAtlas && window.__skipAtlas.has(k))).map(k => DATA.sections[k]).forEach(sd => {\n      (sd.pagesM || []).forEach(s => urls.push(s));")
+rep("    Object.keys(DATA.sections).forEach(key => (DATA.sections[key].pagesS || []).forEach((src, pg) => list.push({k: key + ':' + pg, src})));",
+    "    Object.keys(DATA.sections).filter(k => !(window.__skipAtlas && window.__skipAtlas.has(k))).forEach(key => (DATA.sections[key].pagesS || []).forEach((src, pg) => list.push({k: key + ':' + pg, src})));")
 
 # store dimensions + zone planograms
 region('  // ---------- store plan (sized from the real product count) ----------', '  // camera\n', blocks['A'])
