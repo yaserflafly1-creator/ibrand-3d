@@ -25,10 +25,13 @@
     }));
     window.__imfStats = {matched, total};
   }
-  const GWALL = {h:2.2, d:.45, levels:[.12, .45, .78, 1.11, 1.44, 1.77]};   // wall units around the perimeter
+  const GWALL = {h:2.2, d:.5, levels:[.12, .45, .78, 1.11, 1.44, 1.77]};   // wall units around the perimeter
   const sizers = {}, szOf = p => sizers[p._k] || (sizers[p._k] = sizer(p._k));
   const brandOf = p => p.brandId || p.brand || '';
-  const facingsOf = (p, w) => Math.min(4, Math.max(p.fc || 1, w < .075 ? 2 : 1));
+  // FCAP / KS: how hard the shelves are packed (max facings per product, pack scale) — set by the fit-to-area search below
+  let FCAP = 4, KS = 1, TIGHT = false;
+  const refFacings = (p, w) => Math.min(4, Math.max(p.fc || 1, w < .075 ? 2 : 1));   // for the own-stand rule: same as the build
+  const facingsOf = (p, w) => Math.min(FCAP, Math.max(p.fc || 1, w < .075 ? 2 : 1));
   // Order a list the way the file says: category, then brand. A brand flagged "stand" with enough stock to fill most of a bay
   // owns its bays under its logo ("stand per category": one per category); smaller brands share their category's bays,
   // brand by brand. Hook items are kept together so they get peg bays.
@@ -36,7 +39,7 @@
     const cap = shelvesOf(G).length * (BW - .03) * .5;
     const uid = p => { const b = brandOf(p); if (!b || p._ds === 2) return null; return p._ds === 0 ? 'b|' + b + '|' + p._fx : 'b|' + b + '|' + p._s[0] + ':' + p._s[1] + '|' + p._fx; };
     const need = {}, home = {};
-    list.forEach(p => { const u = uid(p); if (!u) return; const w = szOf(p)(p, .3)[0]; need[u] = (need[u] || 0) + (w + .012) * facingsOf(p, w);
+    list.forEach(p => { const u = uid(p); if (!u) return; const w = szOf(p)(p, .3)[0]; need[u] = (need[u] || 0) + (w + .012) * refFacings(p, w);
       if (p._ds === 0){ const h = home[u] || (home[u] = {}), k = p._s[0] + ':' + p._s[1]; h[k] = (h[k] || 0) + 1; } });
     const homeOf = {}; Object.keys(home).forEach(u => { const k = Object.entries(home[u]).sort((a, c) => c[1] - a[1])[0][0].split(':'); homeOf[u] = [+k[0], +k[1]]; });
     list.forEach(p => { const u = uid(p), big = !!u && need[u] >= cap, hm = big && homeOf[u];
@@ -53,7 +56,7 @@
     const hdrOf = p => p._big ? {id:p._u, brandId:p.brandId || p.brand, name:p.brand, big:true} : {id:p._u, label:p.sub || SEC[p._k].name, big:false};
     const newBay = () => { if (bays.length >= maxBays) return false; bay = {items:[], hdr:null, kind:0}; bays.push(bay); k = 0; x = .015; return true; };
     function tryPlace(p){
-      const sh = shelves[k], [w, h, d] = szOf(p)(p, sh.maxH, 1);
+      const sh = shelves[k], [w, h, d] = szOf(p)(p, sh.maxH, KS);
       if (x + w > BW - .01){ k++; x = .015; if (k >= shelves.length) return newBay() ? 'bay' : 'end'; return 'shelf'; }
       if (!bay.items.length){ bay.hdr = hdrOf(p); bay.kind = p._fx || 0; }
       const f = facingsOf(p, w);
@@ -71,7 +74,8 @@
       if (p._u !== unit){
         if (unit !== null && bay.items.length){
           const prev = list[(i - 1 + N) % N];
-          if (prev._big || p._big || k / shelves.length >= .3 || (p._fx || 0) !== bay.kind){
+          // tight packing: units simply follow each other along the shelves (no part-empty bays to top up)
+          if (!TIGHT && (prev._big || p._big || k / shelves.length >= .3 || (p._fx || 0) !== bay.kind)){
             const r = topUp(start, i); if (r === 'end') break;
             if (bay.items.length && !newBay()) break;
           }
@@ -84,56 +88,89 @@
     }
     if (!opts.cycle && bay && bay.items.length && i >= N) topUp(start, N);
     if (bays.length && !bays[bays.length-1].items.length) bays.pop();
+    if (TIGHT) bays.forEach(b => {   // a bay shared by several units: board and fixture follow whichever fills most of it
+      const cnt = {}, rep = {}; let top = null; b.items.forEach(it => { const u = it.p._u; cnt[u] = (cnt[u] || 0) + it.w; rep[u] = rep[u] || it.p; if (top === null || cnt[u] > cnt[top]) top = u; });
+      if (top !== null){ b.hdr = hdrOf(rep[top]); b.kind = rep[top]._fx || 0; } });
     return bays;
   }
   const ZCOL = ZINFO.map(z => { const c = new THREE.Color(z.hex); return {hex:z.hex, c:[c.r, c.g, c.b], hi:'#' + c.clone().lerp(new THREE.Color('#ffffff'), .3).getHexString(), lo:'#' + c.clone().lerp(new THREE.Color('#000000'), .25).getHexString()}; });
-  const Z = ZINFO.map((zi, id) => { const all = zoneProducts[id], fl0 = all.filter(p => !p._un), wl = all.filter(p => p._un);
-    return {id, key:zi.key, zc:ZCOL[id], all, floorList:fl0, wallList:wl, floor:mplan(fl0, GONDOLA), wall:mplan(wl, GWALL), fo:0, wo:0}; });
-  const SP = 4.2, NBX = 8, CA = 2.0, AISLE_W = 2.4, ROW_T = 2*GONDOLA.d + .04, PITCH = ROW_T + AISLE_W, WALL_D = GWALL.d, NBACK = 8;
-  const zF = 0, zR0 = zF - 9.5, ZP = zF - 6.8;
+  // real branch fixtures: 1.2 m bays, 60 cm deep, 4 shelves, 2 m aisles (BW / GONDOLA are set for this page)
+  const SP = 3.4, CA = 2.0, AISLE_W = 2.0, SIDE_A = 2.0, BACK_A = 2.0, ROW_T = 2*GONDOLA.d + .04, PITCH = ROW_T + AISLE_W, WALL_D = GWALL.d;
+  const NBACK = Math.floor((2*SP - .4) / BW), AMAX = 1500;   // floor area target (m²)
+  const zF = 0, zR0 = zF - 8.0, ZP = zF - 5.9;
   const LEFT = [4, 3, 0], RIGHT = [4, 2, 1];   // front → back
-  let rxTaken = false;
-  function solve(){
+  const SORTED = ZINFO.map((zi, id) => { const all = zoneProducts[id], fl0 = all.filter(p => !p._un), wl = all.filter(p => p._un); return {all, fl0, wl, fs:prep(fl0, GONDOLA), ws:prep(wl, GWALL)}; });
+  function solve(Z, rxTaken){
     const fb = Z.map(z => z.floor.length); if (!rxTaken) fb[1] = Math.max(0, fb[1] - NBACK);
     const left = fb[3] + fb[0], right = fb[2] + fb[1], T = left + right + fb[4];
     const bl = Math.max(0, Math.min(fb[4], Math.round(T/2 - left))), br = fb[4] - bl;
+    // smallest floor area that holds the bays, keeping the store roughly square
     let best = null;
-    for (let C = 2; C <= 5; C++){
-      const per = C*NBX*2, lines = Math.max(4, Math.ceil(Math.max(left + bl, right + br, 1) / per));
-      const wx = SP + C*NBX*BW + (C-1)*CA + 2.2 + GWALL.d + .02, D = -zR0 + lines*PITCH - AISLE_W + 2.3 + GWALL.d + .02;
-      const sc = Math.abs(2*wx/D - 1.25); if (!best || sc < best.sc) best = {sc, C, lines, Wx:wx};
+    for (let C = 1; C <= 3; C++) for (let nbx = 4; nbx <= 14; nbx++){
+      const per = C*nbx*2, lines = Math.max(3, Math.ceil(Math.max(left + bl, right + br, 1) / per));
+      const wx = SP + C*nbx*BW + (C-1)*CA + SIDE_A + GWALL.d + .02, D = -zR0 + lines*PITCH - AISLE_W + BACK_A + GWALL.d + .02;
+      const asp = 2*wx/D, area = 2*wx*D, sc = area * (asp < .8 ? 1 + (.8 - asp)*3 : asp > 1.45 ? 1 + (asp - 1.45)*3 : 1);
+      if (!best || sc < best.sc) best = {sc, C, nbx, lines, Wx:wx, area, D};
     }
-    const {C, lines} = best, nf = lines*C*2;
+    const {C, lines, nbx} = best, nf = lines*C*2;
     const wing = (order, counts) => {
-      const parts = order.map((zid, i) => ({zid, bays:counts[i], faces:Math.ceil(counts[i] / NBX)})).filter(p => p.bays > 0);
+      const parts = order.map((zid, i) => ({zid, bays:counts[i], faces:Math.ceil(counts[i] / nbx)})).filter(p => p.bays > 0);
       let spare = nf - parts.reduce((a, p) => a + p.faces, 0);
       while (spare > 0 && parts.length){ let b = parts[0]; parts.forEach(p => { if (p.bays/p.faces > b.bays/b.faces) b = p; }); b.faces++; spare--; }
       let f0 = 0; parts.forEach(p => { p.f0 = f0; f0 += p.faces; p.l0 = Math.floor(p.f0 / (2*C)); p.l1 = Math.ceil((p.f0 + p.faces) / (2*C)); });
       return parts;
     };
     const Lp = wing(LEFT, [bl, fb[3], fb[0]]), Rp = wing(RIGHT, [br, fb[2], fb[1]]);
-    const zLast = zR0 - ROW_T/2 - (lines-1)*PITCH, zb = zLast - ROW_T/2 - 2.3 - GWALL.d - .02;
-    const zW0 = zR0 + 1.0, nSide = Math.max(0, Math.floor((zW0 - (zb + .6)) / BW));
+    const zLast = zR0 - ROW_T/2 - (lines-1)*PITCH, zb = zLast - ROW_T/2 - BACK_A - GWALL.d - .02;
+    const zW0 = zR0 + 1.0, nSide = Math.max(0, Math.floor((zW0 - (zb + .65)) / BW));
     const zoneAt = (parts, z) => { const l = Math.max(0, Math.min(lines - 1, Math.round((zR0 - ROW_T/2 - z) / PITCH))); const p = parts.find(q => l >= q.l0 && l < q.l1) || parts[parts.length - 1]; return p ? p.zid : 4; };
     const side = parts => { const a = []; for (let i = 0; i < nSide; i++) a.push(zoneAt(parts, zW0 - (i + .5)*BW)); return a; };
     const sideL = side(Lp), sideR = side(Rp);
     const nBackSide = Math.max(0, Math.floor((best.Wx - GWALL.d - .1 - (SP + .3)) / BW));
     const backL = Lp.length ? Lp[Lp.length-1].zid : 0, backR = Rp.length ? Rp[Rp.length-1].zid : 1;
     const slots = [0,0,0,0,0]; sideL.forEach(z => slots[z]++); sideR.forEach(z => slots[z]++); slots[backL] += nBackSide; slots[backR] += nBackSide;
-    return {C, lines, Wx:best.Wx, L:Lp, R:Rp, bl, br, zLast, zB:zb, zW0, nSide, sideL, sideR, nBackSide, backL, backR, slots};
+    return {C, lines, nbx, area:best.area, D:best.D, Wx:best.Wx, L:Lp, R:Rp, bl, br, zLast, zB:zb, zW0, nSide, sideL, sideR, nBackSide, backL, backR, slots};
   }
-  let PLAN = solve();
-  // wall-unit products that do not fit on the walls of their zone move to its floor gondolas (nothing is left out)
-  for (let t = 0; t < 3; t++){
-    let moved = false;
-    Z.forEach(z => { const s = PLAN.slots[z.id]; if (z.wall.length <= s) return;
-      const kept = new Set(); z.wall.slice(0, s).forEach(b => b.items.forEach(it => kept.add(it.p)));
-      const add = new Set(); z.wall.slice(s).forEach(b => b.items.forEach(it => { if (!kept.has(it.p)) add.add(it.p); }));
-      z.wall.length = s; if (!add.size) return;
-      z.floorList = z.floorList.concat([...add]); z.floor = mplan(z.floorList, GONDOLA); moved = true; });
-    if (!moved) break; PLAN = solve();
+  // one complete layout for a packing mode
+  function layoutFor(mode){
+    FCAP = mode.cap; KS = mode.k; TIGHT = !!mode.tight;
+    const Z = ZINFO.map((zi, id) => { const S = SORTED[id];
+      return {id, key:zi.key, zc:ZCOL[id], all:S.all, floorList:S.fl0, wallList:S.wl, floor:mplan(S.fs, GONDOLA, {sorted:true}), wall:mplan(S.ws, GWALL, {sorted:true}), fo:0, wo:0}; });
+    let PLAN = solve(Z, false);
+    // Balance walls and floor until it settles:
+    //  - wall-unit products that do not fit on the walls of their zone move to its floor gondolas (nothing is left out)
+    //  - wall bays a zone has to spare take the tail of its floor range (wall units hold more: six shelves)
+    const overflow = () => { let ch = false;
+      Z.forEach(z => { const sl = PLAN.slots[z.id]; if (z.wall.length <= sl) return;
+        const kept = new Set(); z.wall.slice(0, sl).forEach(b => b.items.forEach(it => kept.add(it.p)));
+        const add = new Set(); z.wall.slice(sl).forEach(b => b.items.forEach(it => { if (!kept.has(it.p)) add.add(it.p); }));
+        z.wall.length = sl; z.wallList = z.wallList.filter(p => kept.has(p)); z.wsCur = null; ch = true; if (!add.size) return;
+        z.floorList = z.floorList.concat([...add]); z.floor = mplan(z.floorList, GONDOLA); z.fsCur = null; });
+      return ch; };
+    const spare = () => { let ch = false;
+      Z.forEach(z => { const sl = PLAN.slots[z.id]; if (z.wall.length >= sl || !z.floorList.length) return;
+        const fs = z.fsCur || (z.fsCur = prep(z.floorList, GONDOLA)), ws0 = z.wsCur || (z.wsCur = prep(z.wallList, GWALL));
+        let lo = 1, hi = fs.length, bestN = 0, bestW = null;
+        while (lo <= hi){ const mid = (lo + hi) >> 1, cand = mplan(ws0.concat(fs.slice(fs.length - mid)), GWALL, {sorted:true}); if (cand.length <= sl){ bestN = mid; bestW = cand; lo = mid + 1; } else hi = mid - 1; }
+        if (!bestN) return;
+        z.wsCur = ws0.concat(fs.slice(fs.length - bestN)); z.wallList = z.wsCur; z.fsCur = fs.slice(0, fs.length - bestN); z.floorList = z.fsCur;
+        z.wall = bestW; z.floor = mplan(z.fsCur, GONDOLA, {sorted:true}); ch = true; });
+      return ch; };
+    for (let t = 0; t < 12; t++){
+      if (overflow()){ PLAN = solve(Z, false); continue; }
+      if (t < 3 && spare()){ PLAN = solve(Z, false); continue; }
+      break;
+    }
+    const rxBack = Z[1].floor.splice(0, NBACK); PLAN = solve(Z, true);
+    return {Z, PLAN, rxBack, mode};
   }
-  const rxBack = Z[1].floor.splice(0, NBACK); rxTaken = true; PLAN = solve();
+  // fit everything into the target floor area: first with the facings from the file, then fewer facings, then slightly
+  // smaller packs — the first packing that fits wins; if none does, the tightest one is used and the store grows
+  const MODES = [{cap:4, k:1}, {cap:2, k:1}, {cap:2, k:1, tight:1}, {cap:1, k:1, tight:1}, {cap:1, k:.92, tight:1}, {cap:1, k:.85, tight:1}, {cap:1, k:.78, tight:1}, {cap:1, k:.7, tight:1}];
+  let FIT = null;
+  for (const m of MODES){ FIT = layoutFor(m); if (FIT.PLAN.area <= AMAX) break; }
+  const Z = FIT.Z, PLAN = FIT.PLAN, rxBack = FIT.rxBack, NBX = PLAN.nbx;
+  window.__planFit = {cap:FIT.mode.cap, k:FIT.mode.k, tight:!!FIT.mode.tight, area:Math.round(PLAN.area), w:+(2*PLAN.Wx).toFixed(1), d:+PLAN.D.toFixed(1)};
   const NC = PLAN.C, NL = PLAN.lines, Wx = PLAN.Wx, zB = PLAN.zB, zC = zB + 2.7, zA0 = zR0, zA1 = PLAN.zLast - ROW_T/2;
   const nA = NL, nb = NBX, L = zA0 - zA1, innerW = 2*Wx, plans = {}, totalBays = Z.reduce((a, z) => a + z.floor.length + z.wall.length, 0) + rxBack.length;
   const ROOM = {x:Wx, zBack:zB, zFront:zF, h:H};
@@ -200,7 +237,7 @@
     boxInto(T, F, 0, .45, .452, deskW + .02, .5, .01, C_TEAL);
     boxInto(T, F, 0, 1.025, 0, deskW + .2, .05, 1.05, '#efe9ec');
     OBSTACLES.push({box:{x0:-SP - .2, x1:SP + .2, z0:zB - 1, z1:zC + .35}});
-    [-3.0, 3.0].forEach(x => { boxInto(T, frame(x, zC - .6, 0), 0, 1.17, 0, .06, .25, .06, C_UPRIGHT); boxInto(T, frame(x, zC - .62, 0), 0, 1.38, 0, .42, .28, .03, '#1b1b1f'); });
+    [-deskW/2 + .5, deskW/2 - .5].forEach(x => { boxInto(T, frame(x, zC - .6, 0), 0, 1.17, 0, .06, .25, .06, C_UPRIGHT); boxInto(T, frame(x, zC - .62, 0), 0, 1.38, 0, .42, .28, .03, '#1b1b1f'); });
     const disc = new THREE.Mesh(new THREE.BoxGeometry(1.25, 1.25, .08), std('#ffffff',{roughness:.3})); disc.position.set(-1.2, 3.55, zB + .06); scene.add(disc);
     const logo = logoPlane(1.04, 1.04); logo.position.set(-1.2, 3.55, zB + .11); scene.add(logo);
     const crossMat = new THREE.MeshBasicMaterial({color:TEAL, toneMapped:false});
@@ -215,9 +252,9 @@
   // ---------- quick-grab racks beside the counter ----------
   const QG = {h:1.45, d:.42, levels:[.12, .45, .78, 1.11]};
   if (SD('quick')){
-    const qp = planogram('quick', SD('quick').products, QG, {cycle:true, maxBays:4, noBrands:true});
-    [-1,1].forEach((s, i) => { const bays = qp.slice(i*2, i*2+2); gondolaFace(frame(s*(SP - 1.35), zC + 1.3, 0), bays.length ? bays : [null], 'quick', {G:QG, titleKey:'quick'}); });
-    SEC.quick.focus = {pos:new THREE.Vector3(SP - 1.35, EYE, zC + 3.4), target:new THREE.Vector3(SP - 1.35, 1.0, zC + 1.3)};
+    const qp = planogram('quick', SD('quick').products, QG, {cycle:true, maxBays:2, noBrands:true});
+    [-1,1].forEach((s, i) => { const bays = qp.slice(i, i+1); gondolaFace(frame(s*(SP - .75), zC + 1.3, 0), bays.length ? bays : [null], 'quick', {G:QG, titleKey:'quick'}); });
+    SEC.quick.focus = {pos:new THREE.Vector3(SP - .75, EYE, zC + 3.4), target:new THREE.Vector3(SP - .75, 1.0, zC + 1.3)};
   }
 
   // ---------- cross-sell stands down the central walkway ----------
@@ -237,13 +274,13 @@
     spotAt(x, z, .6, .7, .5);
   }
   {
-    const keys = ['offers', 'excl', 'trend', 'import'].filter(k => SD(k)), z0 = zR0 - 3.2, z1 = zC + 6.5;
-    const step = keys.length > 1 ? Math.max(5.5, Math.min(11, (z0 - z1) / (keys.length - 1))) : 0;
+    const keys = ['offers', 'excl', 'trend', 'import'].filter(k => SD(k)), z0 = zR0 - 3.4, z1 = zC + 6.8;
+    const step = keys.length > 1 ? Math.max(6.2, Math.min(11, (z0 - z1) / (keys.length - 1))) : 0;
     keys.forEach((k, i) => { const z = z0 - i*step; if (i === 0 || z >= z1) promoIsland(k, 0, z); });
   }
   // milk bundle table and the best-seller tower
   if (SD('milk')){
-    const x = 0, z = zF - 3.0, Fm = frame(x, z, 0), Fb = frame(x, z, Math.PI);
+    const x = 0, z = zF - 2.6, Fm = frame(x, z, 0), Fb = frame(x, z, Math.PI);
     boxInto(STRUCT, Fm, 0, .36, 0, 2.6, .72, 1.3, C_PINK); boxInto(STRUCT, Fm, 0, .74, 0, 2.7, .04, 1.4, '#ffffff');
     boxInto(STRUCT, Fm, 0, .9, 0, 1.8, .3, .62, '#ffffff'); boxInto(STRUCT, Fm, 0, 1.2, 0, 1.0, .3, .4, '#ffffff');
     const size = sizer('milk'), P = SD('milk').products; let i = 0;
@@ -292,6 +329,15 @@
     hang(box, sg.w*2.35, 3.35, z0 - .25, .9);
     box.userData.nav = z.key; navTargets.push(box);
     if (!sec.focus) sec.focus = {pos:new THREE.Vector3(sg.w*1.7, EYE, z0 + 2.4), target:new THREE.Vector3(sg.w*(SP + 5), 1.3, z0 - 3)};
+    // the section's name written on the floor of each of its aisles
+    if (!z.floorTex) z.floorTex = canvasTex(1024, 256, (x, W, Hh) => { x.clearRect(0, 0, W, Hh); x.fillStyle = z.zc.lo; x.textAlign = 'center'; x.textBaseline = 'middle'; x.direction = 'rtl'; fitText(x, sec.name, W - 60, 800, 150); x.fillText(sec.name, W/2, 104);
+      x.direction = 'ltr'; x.font = '700 50px Arial, sans-serif'; x.globalAlpha = .8; x.fillText((sec.en || '').toUpperCase(), W/2, 210); x.globalAlpha = 1; });
+    const wingW = Wx - GWALL.d - SIDE_A - SP, tw = Math.min(5.6, wingW - 3.4), fmat = new THREE.MeshBasicMaterial({map:z.floorTex, transparent:true, depthWrite:false, toneMapped:false, opacity:.85});
+    for (let l = sg.l0; l < sg.l1; l++){ const part = (sg.w < 0 ? PLAN.L : PLAN.R).find(q => l >= q.l0 && l < q.l1); if (!part || part.zid !== sg.zid) continue;
+      const fm = new THREE.Mesh(new THREE.PlaneGeometry(tw, tw/4), fmat); fm.rotation.x = -Math.PI/2; fm.position.set(sg.w*(SP + wingW/2), .009, lineZ(l) + ROW_T/2 + AISLE_W/2); fm.renderOrder = 1; scene.add(fm);
+      // and once more at the mouth of the aisle, turned to be read from the central walkway
+      const fe = new THREE.Mesh(new THREE.PlaneGeometry(AISLE_W - .3, (AISLE_W - .3)/4), fmat); fe.rotation.order = 'YXZ'; fe.rotation.y = -sg.w*Math.PI/2; fe.rotation.x = -Math.PI/2;
+      fe.position.set(sg.w*(SP + .75), .009, lineZ(l) + ROW_T/2 + AISLE_W/2); fe.renderOrder = 1; scene.add(fe); }
   });
   SEC.z_rx.focus = {pos:new THREE.Vector3(0, EYE, zC + 3.2), target:new THREE.Vector3(0, 1.5, zB)};
 

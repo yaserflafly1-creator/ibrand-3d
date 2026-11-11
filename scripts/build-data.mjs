@@ -415,7 +415,7 @@ async function main(){
     const secs = [...html.matchAll(/^\s*\{key:'(\w+)',[^\n]*$/gm)].map(m => ({ key: m[1], main: /main:true/.test(m[0]), size: +((m[0].match(/size:([\d.]+)/) || [])[1] || 1) }));
     const mainOrder = secs.filter(s => s.main && result.sections[s.key] && result.sections[s.key].products.length).map(s => s.key);
     const SECZ = { baby:0, meds:1, vit:2, devices:2, pets:2, daily:3, other:3, skin:4, hair:4, makeup:4 };
-    const BWm = 1.0, CAP = { 0: 5 * (BWm - .03) * .5, 1: 6 * (BWm - .03) * .5 };   // floor gondola: 5 shelves, wall unit: 6
+    const BWm = 1.2, CAP = { 0: 4 * (BWm - .03) * .5, 1: 6 * (BWm - .03) * .5 };   // floor gondola: 1.2 m bays with 4 shelves, wall unit: 6
     const widthOf = (p, size) => { const base = .22 * Math.min(1.45, Math.max(.75, size * .9)); const a = p.card ? 1 : (p.aspect || 1); let h = base * (p.card ? .8 : 1), w = h * a; if (w > base * 1.5){ w = base * 1.5; h = w / a; } if (h > .3){ h = .3; w = h * a; } return w; };
     const zones = [0, 1, 2, 3, 4].map(() => ({ 0: [], 1: [] }));
     const subIdx = new Map();
@@ -437,6 +437,8 @@ async function main(){
         o.key = [hm ? hm[0] : o.s[0], hm ? hm[1] : o.s[1], o.fx, big ? 0 : 1, big ? o.b : '', big ? 0 : o.s[2], o.b]; });
       return list.slice().sort((a, c) => { for (let i = 0; i < 7; i++){ const x = a.key[i], y = c.key[i]; if (x !== y) return x < y ? -1 : 1; } return a.k === c.k ? a.o - c.o : (a.k < c.k ? -1 : 1); });
     };
+    { let n = 0, m1 = 0, mf = 0; zones.forEach(zz => [0, 1].forEach(u => zz[u].forEach(o => { n++; m1 += o.w + .016; mf += (o.w + .008) * Math.min(4, Math.max(o.fc || 1, o.w < .075 ? 2 : 1)) + .012; })));
+      console.log('plan shelf metres', n, 'products; one facing', Math.round(m1), 'm; file facings', Math.round(mf), 'm; matched in file', Object.values(zones).reduce((a, zz) => a + [0, 1].reduce((c, u) => c + zz[u].filter(o => o.s[0] < 900).length, 0), 0)); }
     const planOut = { zones: {}, at: {} };
     for (let z = 0; z < zones.length; z++){
       const ordered = [...prep(zones[z][0], CAP[0]), ...prep(zones[z][1], CAP[1])];

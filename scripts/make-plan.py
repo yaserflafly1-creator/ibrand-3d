@@ -65,7 +65,7 @@ rep("quad(HDR, [a(cx-w/2,y-.001,z+.002), a(cx+w/2,y-.001,z+.002), a(cx+w/2,y+.03
 rep("    const G = opts.G || GONDOLA, n = bays.length, Wd = n * BW, d = G.d, x0 = -Wd/2;",
     "    const G = opts.G || GONDOLA, n = bays.length, Wd = n * BW, d = G.d, x0 = -Wd/2; HDR_C = opts.zc ? opts.zc.c : C_PINK;\n"
     "    const hooked = bays.some(b => b && b.kind);\n"
-    "    if (opts.zc && opts.headers !== false) boxInto(STRUCT, F, 0, G.h + .5, -d/2 + .05, Wd, .03, .14, opts.zc.c);   // zone-coloured trim along the top")
+    "    if (opts.zc && opts.headers !== false) boxInto(STRUCT, F, 0, G.h + .38, -d/2 + .05, Wd, .03, .14, opts.zc.c);   // zone-coloured trim along the top")
 rep("    boxInto(STRUCT, F, 0, .06, d/2 - .02, Wd, .12, .04, C_KICK);",
     "    boxInto(STRUCT, F, 0, .06, d/2 - .02, Wd, .12, .04, opts.zc ? opts.zc.c : C_KICK);")
 rep("    G.levels.forEach(y => {\n"
@@ -88,6 +88,14 @@ rep("    return endCache[nm] = new THREE.MeshStandardMaterial({map:t, roughness:
     "    return endCache[ck] = new THREE.MeshStandardMaterial({map:t, roughness:.45, envMapIntensity:.5});")
 rep("m = new THREE.Mesh(endGeoFor(G), endMat(nm));", "m = new THREE.Mesh(endGeoFor(G), endMat(nm, opts.zc));")
 rep("        putProduct(key, F, bx + it.x, it.y, d/2 - .1 - (it.back || 0),", "        putProduct(it.p._k || key, F, bx + it.x, it.y, d/2 - .1 - (it.back || 0),")
+
+# real branch fixtures: 1.2 m bays, 60 cm deep, 4 shelves, 30 cm header boards
+rep("  const BW = 1.0;", "  const BW = 1.2;")
+rep("  const GONDOLA = {h:1.8, d:.5, levels:[.12, .45, .78, 1.11, 1.44]};", "  const GONDOLA = {h:1.8, d:.6, levels:[.14, .56, .98, 1.40]};")
+rep("    const w = x1 - x0 - .04, cx = (x0 + x1)/2, hh = .42, a = F.at, n = F.n;", "    const w = x1 - x0 - .04, cx = (x0 + x1)/2, hh = .30, a = F.at, n = F.n;")
+
+# one header board per gondola (1.2 m), not one wide board across a brand's bays
+rep("        const same = curH && prev && prev.id === curH.id;", "        const same = false;")
 
 # brand-name headers (brands without a logo): one shared texture per brand instead of one per bay
 rep("  const nameHdrs = [];", "  const nameHdrs = [], nameTex = {};")
