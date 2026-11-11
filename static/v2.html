@@ -198,7 +198,7 @@ body.sheet .altBtns{display:none}
     <button class="tbtn primary" id="cartBtn" type="button" aria-label="السلة"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 4h2l2.4 11.2a1.5 1.5 0 0 0 1.5 1.2h8.6a1.5 1.5 0 0 0 1.5-1.1L21 8H6.2"/><circle cx="10" cy="20" r="1.3"/><circle cx="17" cy="20" r="1.3"/></svg><span class="lbl">السلة</span><span class="badge" id="cartCount" hidden>0</span></button>
   </div>
 </header>
-<div class="hint" id="hint">حرّك العصا للمشي • اسحب الشاشة لتلتفت • اضغط على الأرض لتنتقل • اضغط على أي منتج</div>
+<div class="hint" id="hint">العصا: للأمام والخلف وتلفّ يمين ويسار • اضغط على الأرض وتمشي لها • اسحب الشاشة للنظر • اضغط على أي منتج</div>
 
 <aside class="panel" id="panel" hidden aria-live="polite">
   <button class="close" id="close" aria-label="إغلاق">×</button>
@@ -610,7 +610,7 @@ function build(renderer){
   // Three levels of photo quality, chosen by distance: HD (256 px per product) for the shelves right next to you,
   // normal (128 px) for the aisle around you, light (64 px, phones only) further away.
   const MAX_PAGES = isIOS ? 20 : (isSmall ? 30 : (weakGPU ? 36 : 56)), LOAD_R = isIOS ? 16 : (isSmall ? 20 : 24);
-  const HD_N = isIOS ? 4 : (isSmall ? 6 : (weakGPU ? 10 : 20)), HD_R = isIOS ? 4.5 : (isSmall ? 5 : 7), FULL_N = isIOS ? 9 : (isSmall ? 16 : (weakGPU ? 18 : 30)), FULL_R = isIOS ? 8 : (isSmall ? 10 : 14);
+  const HD_N = isIOS ? 5 : (isSmall ? 8 : (weakGPU ? 10 : 20)), HD_R = isIOS ? 4.5 : (isSmall ? 5 : 7), FULL_N = isIOS ? 9 : (isSmall ? 16 : (weakGPU ? 18 : 30)), FULL_R = isIOS ? 8 : (isSmall ? 10 : 14);
   let inflight = 0;
   // phones: decode images off the main thread and upload to the GPU one per frame,
   // so new shelf photos never freeze the walk (game-engine style streaming)
@@ -646,17 +646,26 @@ function build(renderer){
   // idle prefetcher: quietly warm the browser's HTTP cache with every atlas image right after
   // boot, one at a time, so walking anywhere finds its photos already downloaded (no GPU memory used)
   function prefetchAtlas(){
-    const urls = [];
-    Object.values(DATA.sections).forEach(sd => {
-      (sd.pagesM || []).forEach(s => urls.push(s));
-      (sd.pages || []).forEach(pg => { urls.push(pg.src); (pg.hd || []).forEach(h => { urls.push(h.a); urls.push(h.b); }); });
-    });
-    let i = 0;
+    // warms the browser cache so photos are already there when you walk up: always the nearest shelves first,
+    // medium pages for the whole store, full and HD pages only within reach of where the shopper is now
+    const got = new Set(), R1 = isSmall ? 16 : 34, R2 = isSmall ? 9 : 16, lite = navigator.connection && navigator.connection.saveData;
+    const skip = k => window.__skipAtlas && window.__skipAtlas.has(k);
     const next = () => {
-      if (i >= urls.length || document.hidden) { if (i < urls.length) setTimeout(next, 4000); return; }
-      fetch(urls[i++] + AV, { priority: 'low' }).catch(() => {}).finally(() => setTimeout(next, 90));
+      if (document.hidden){ setTimeout(next, 4000); return; }
+      let best = null, bs = 1e9; const c = camera.position;
+      for (let i = 0; i < pageMeshes.length; i++){
+        const pm = pageMeshes[i]; if (skip(pm.key)) continue;
+        const sd = DATA.sections[pm.key], pg = sd && sd.pages && sd.pages[pm.pg]; if (!pg) continue;
+        const d = Math.max(0, pm.center.distanceTo(c) - pm.radius);
+        const m = sd.pagesM && sd.pagesM[pm.pg], hd = pg.hd && pg.hd[pm.q], h = hd && (pm.h ? hd.b : hd.a);
+        if (m && !got.has(m) && d < bs){ bs = d; best = m; }
+        if (!lite && d < R1 && !got.has(pg.src) && d + 5 < bs){ bs = d + 5; best = pg.src; }
+        if (!lite && h && d < R2 && !got.has(h) && d + 9 < bs){ bs = d + 9; best = h; }
+      }
+      if (!best){ setTimeout(next, 1800); return; }
+      got.add(best); fetch(best + AV, { priority: 'low' }).catch(() => {}).finally(() => setTimeout(next, 80));
     };
-    setTimeout(next, 5000);
+    setTimeout(next, 3500);
   }
   // shared texture pool: every piece of a page reuses ONE GPU copy of that page's image
   const texPool = {};   // url -> {tex, refs, loading, waiters}
@@ -1787,7 +1796,8 @@ function build(renderer){
   addEventListener('resize', () => { camera.aspect = stage.clientWidth/stage.clientHeight; camera.fov = fovFor(camera.aspect); camera.updateProjectionMatrix(); renderer.setSize(stage.clientWidth, stage.clientHeight); });
 
   // ---------- walking: joystick / WASD + drag to look, with simple collisions ----------
-  function blocked(x, z){ if (droneMode && alt > 2.6) return false; return OBSTACLES.some(o => o.box ? (x>o.box.x0 && x<o.box.x1 && z>o.box.z0 && z<o.box.z1) : Math.hypot(x-o.x, z-o.z) < o.r + .3); }
+  function blockedGround(x, z){ return OBSTACLES.some(o => o.box ? (x>o.box.x0 && x<o.box.x1 && z>o.box.z0 && z<o.box.z1) : Math.hypot(x-o.x, z-o.z) < o.r + .3); }
+  function blocked(x, z){ if (droneMode && alt > 2.6) return false; return blockedGround(x, z); }
   const keys = {f:0, b:0, sl:0, sr:0, tl:0, tr:0, up:0, down:0}, joy = {x:0, y:0};
   [['#altUp','up'],['#altDn','down']].forEach(([sel, k]) => { const b = document.querySelector(sel);
     b.addEventListener('pointerdown', e => { e.preventDefault(); keys[k] = 1; });
@@ -1832,33 +1842,85 @@ function build(renderer){
   el.addEventListener('pointerup', lookEnd); el.addEventListener('pointercancel', lookEnd);
   function tryMove(dx, dz){
     const cx = camera.position.x, cz = camera.position.z, inside = blocked(cx, cz);
-    if (!inside && blocked(cx+dx, cz+dz)){ if (!blocked(cx+dx, cz)) dz = 0; else if (!blocked(cx, cz+dz)) dx = 0; else return; }
+    if (!inside && blocked(cx+dx, cz+dz)){
+      if (!blocked(cx+dx, cz)) dz = 0; else if (!blocked(cx, cz+dz)) dx = 0;
+      else {   // straight into the end of a shelf: slip sideways round the corner when the way past it is clear
+        const m = Math.hypot(dx, dz) || 1, ux = dx/m, uz = dz/m; let done = false;
+        for (const sg of [1, -1]){ const px = -uz*sg, pz = ux*sg;
+          if (!blocked(cx + px*m, cz + pz*m) && !blocked(cx + px*.45 + ux*.5, cz + pz*.45 + uz*.5)){ dx = px*m; dz = pz*m; done = true; break; } }
+        if (!done) return;
+      }
+    }
     camera.position.x += dx; camera.position.z += dz;
   }
   const vel = {x:0, z:0}; let walkAmt = 0, bobT = 0, alt = EYE, altV = 0, droneMode = false;
-  // tap / click a spot on the floor → walk there (a ring marks the spot); any manual input takes over again
+  // tap / click a spot on the floor → walk there along a route around the shelves, turning to face the way you
+  // walk (a ring marks the spot); any manual input takes over again
   let goal = null;
   const goalRing = new THREE.Mesh(new THREE.RingGeometry(.2, .29, 40), new THREE.MeshBasicMaterial({color:PINK, transparent:true, opacity:.9, depthWrite:false, toneMapped:false, side:THREE.DoubleSide}));
   goalRing.rotation.x = -Math.PI/2; goalRing.visible = false; goalRing.renderOrder = 3; scene.add(goalRing);
+  const endGoal = () => { goal = null; goalRing.visible = false; };
+  // free cells of the floor, worked out once (the shelves do not move)
+  const NAV = {s:.4, g:null};
+  function navGrid(){
+    if (NAV.g) return NAV;
+    NAV.x0 = -ROOM.x; NAV.z0 = ROOM.zBack; NAV.w = Math.ceil(2*ROOM.x / NAV.s); NAV.h = Math.ceil((ROOM.zFront - ROOM.zBack) / NAV.s);
+    const g = NAV.g = new Uint8Array(NAV.w * NAV.h), v = new THREE.Vector3();
+    for (let j = 0; j < NAV.h; j++) for (let i = 0; i < NAV.w; i++){ const x = NAV.x0 + (i + .5)*NAV.s, z = NAV.z0 + (j + .5)*NAV.s; v.set(x, 0, z); clampV(v);
+      g[j*NAV.w + i] = (Math.abs(v.x - x) > .01 || Math.abs(v.z - z) > .01 || blockedGround(x, z)) ? 1 : 0; }
+    return NAV;
+  }
+  const clearLine = (ax, az, bx, bz) => { const d = Math.hypot(bx - ax, bz - az), n = Math.max(1, Math.ceil(d / .2)); for (let i = 1; i <= n; i++) if (blockedGround(ax + (bx - ax)*i/n, az + (bz - az)*i/n)) return false; return true; };
+  function findPath(sx, sz, tx, tz){
+    const N = navGrid(), {s, w, h, g} = N, ci = x => Math.max(0, Math.min(w - 1, Math.floor((x - N.x0) / s))), cj = z => Math.max(0, Math.min(h - 1, Math.floor((z - N.z0) / s)));
+    const free = (i, j) => i >= 0 && j >= 0 && i < w && j < h && !g[j*w + i];
+    const nearFree = (i, j) => { if (free(i, j)) return [i, j]; for (let r = 1; r <= 7; r++){ let b = null, bd = 1e9; for (let dj = -r; dj <= r; dj++) for (let di = -r; di <= r; di++){ if (Math.max(Math.abs(di), Math.abs(dj)) !== r || !free(i + di, j + dj)) continue; const d = di*di + dj*dj; if (d < bd){ bd = d; b = [i + di, j + dj]; } } if (b) return b; } return null; };
+    const S = nearFree(ci(sx), cj(sz)), T = nearFree(ci(tx), cj(tz)); if (!S || !T) return null;
+    const si = S[1]*w + S[0], ti = T[1]*w + T[0], gs = new Float32Array(w*h).fill(Infinity), from = new Int32Array(w*h).fill(-1), done = new Uint8Array(w*h);
+    const heap = [], push = (f, i) => { heap.push([f, i]); let c = heap.length - 1; while (c > 0){ const p = (c - 1) >> 1; if (heap[p][0] <= heap[c][0]) break; [heap[p], heap[c]] = [heap[c], heap[p]]; c = p; } };
+    const pop = () => { const t = heap[0], l = heap.pop(); if (heap.length){ heap[0] = l; let c = 0; for (;;){ const a = 2*c + 1, b = a + 1; let m = c; if (a < heap.length && heap[a][0] < heap[m][0]) m = a; if (b < heap.length && heap[b][0] < heap[m][0]) m = b; if (m === c) break; [heap[m], heap[c]] = [heap[c], heap[m]]; c = m; } } return t; };
+    const hx = i => { const dx = Math.abs(i % w - T[0]), dz = Math.abs(Math.floor(i / w) - T[1]); return Math.max(dx, dz) + .414*Math.min(dx, dz); };
+    gs[si] = 0; push(hx(si), si); let found = false, guard = 0;
+    while (heap.length && guard++ < 60000){
+      const cur = pop()[1]; if (done[cur]) continue; done[cur] = 1; if (cur === ti){ found = true; break; }
+      const ci0 = cur % w, cj0 = Math.floor(cur / w);
+      for (let dj = -1; dj <= 1; dj++) for (let di = -1; di <= 1; di++){
+        if (!di && !dj) continue; const ni = ci0 + di, nj = cj0 + dj; if (!free(ni, nj)) continue;
+        if (di && dj && (!free(ci0 + di, cj0) || !free(ci0, cj0 + dj))) continue;      // no cutting corners
+        const n = nj*w + ni, c = gs[cur] + (di && dj ? 1.414 : 1); if (c < gs[n]){ gs[n] = c; from[n] = cur; push(c + hx(n), n); }
+      }
+    }
+    if (!found) return null;
+    const cells = []; for (let c = ti; c !== -1; c = from[c]) cells.push(c); cells.reverse();
+    const pts = cells.map(c => ({x:N.x0 + (c % w + .5)*s, z:N.z0 + (Math.floor(c / w) + .5)*s}));
+    if (free(ci(tx), cj(tz)) && !blockedGround(tx, tz)) pts[pts.length - 1] = {x:tx, z:tz};
+    // straighten: keep only the corners that are needed
+    const out = []; let a = {x:sx, z:sz}, i = 0;
+    while (i < pts.length){ let j = pts.length - 1; while (j > i && !clearLine(a.x, a.z, pts[j].x, pts[j].z)) j--; out.push(pts[j]); a = pts[j]; i = j + 1; }
+    return out;
+  }
   function floorTap(ev){
     const r = renderer.domElement.getBoundingClientRect();
     mouse.set(((ev.clientX-r.left)/r.width)*2-1, -((ev.clientY-r.top)/r.height)*2+1);
     ray.setFromCamera(mouse, camera); const o = ray.ray.origin, d = ray.ray.direction;
-    if (d.y > -.05) return;                                     // not pointing at the floor
-    const t = -o.y / d.y, p = new THREE.Vector3(o.x + d.x*t, 0, o.z + d.z*t);
-    const dx = p.x - camera.position.x, dz = p.z - camera.position.z, dist = Math.hypot(dx, dz);
-    if (dist < .5 || dist > 22) return;
-    // stop at the last free spot on the way (a tap on a shelf walks up to it, not through it)
-    let gx = camera.position.x, gz = camera.position.z; const n = Math.ceil(dist / .25), start = blocked(gx, gz);
-    for (let i = 1; i <= n; i++){ const x = camera.position.x + dx*i/n, z = camera.position.z + dz*i/n; if (!start && blocked(x, z)) break; gx = x; gz = z; }
-    const v = new THREE.Vector3(gx, 0, gz); clampV(v);
-    if (Math.hypot(v.x - camera.position.x, v.z - camera.position.z) < .4) return;
-    goal = {x:v.x, z:v.z, stuck:0}; flight = null; hideHint();
-    goalRing.position.set(v.x, .03, v.z); goalRing.visible = true;
+    if (d.y > -.04) return;                                     // not pointing at the floor
+    const t = -o.y / d.y, p = new THREE.Vector3(o.x + d.x*t, 0, o.z + d.z*t); clampV(p);
+    const cx = camera.position.x, cz = camera.position.z, dist = Math.hypot(p.x - cx, p.z - cz);
+    if (dist < .5 || dist > 45) return;
+    let path = null;
+    if (droneMode && alt > 2.6) path = [{x:p.x, z:p.z}];          // flying above the shelves: straight there
+    else { try { path = findPath(cx, cz, p.x, p.z); } catch(e){ path = null; } }
+    if (!path || !path.length) return;
+    const end = path[path.length - 1]; if (Math.hypot(end.x - cx, end.z - cz) < .4) return;
+    goal = {path, i:0, stuck:0, x:end.x, z:end.z}; flight = null; hideHint();
+    goalRing.position.set(end.x, .03, end.z); goalRing.visible = true;
   }
   function walk(dt){
-    let mv = joy.y + keys.f - keys.b, st = joy.x + keys.sr - keys.sl;
-    const turn = keys.tl - keys.tr; if (turn) view.yaw += turn * 1.9 * dt;
+    // touch stick: forward / back to walk, left / right to turn (one thumb is enough between the shelves);
+    // keyboard: A / D step sideways, arrows and Q / E turn
+    const jx = Math.abs(joy.x) < .16 ? 0 : Math.sign(joy.x) * Math.pow((Math.abs(joy.x) - .16) / .84, 1.25);
+    let mv = joy.y + keys.f - keys.b, st = keys.sr - keys.sl;
+    const turn = keys.tl - keys.tr - jx * 1.15; if (turn) view.yaw += turn * 1.9 * dt;
     let len = Math.hypot(mv, st);
     if (len > 1){ mv /= len; st /= len; len = 1; }
     const fx = -Math.sin(view.yaw), fz = -Math.cos(view.yaw), rx = Math.cos(view.yaw), rz = -Math.sin(view.yaw);
@@ -1866,11 +1928,18 @@ function build(renderer){
     const top = (droneMode ? 4.3 : 3.1) * (!droneMode && keys.down ? 1.5 : 1);
     const sp = len < .08 ? 0 : top * (.28 + .72 * len * len);
     let tx = (fx*mv + rx*st*.85) * sp, tz = (fz*mv + rz*st*.85) * sp, driving = sp > 0;
-    if (driving){ if (goal){ goal = null; goalRing.visible = false; } }
+    if (driving || jx){ if (goal) endGoal(); }
     else if (goal){
-      const gx = goal.x - camera.position.x, gz = goal.z - camera.position.z, gd = Math.hypot(gx, gz);
-      if (gd < .2 || goal.stuck > .45){ goal = null; goalRing.visible = false; }
-      else { const gs = Math.min(droneMode ? 4.3 : 3.1, gd * 2.4 + .45); tx = gx/gd*gs; tz = gz/gd*gs; driving = true; goalRing.scale.setScalar(1 + .12 * Math.sin(performance.now() / 160)); }
+      let wp = goal.path[goal.i], gx = wp.x - camera.position.x, gz = wp.z - camera.position.z, gd = Math.hypot(gx, gz);
+      const last = goal.i === goal.path.length - 1;
+      if (gd < (last ? .2 : .45)){ if (last) endGoal(); else goal.i++; }
+      else if (goal.stuck > .6){ endGoal(); }
+      else {
+        const rem = last ? gd : gd + 2, gs = Math.min(droneMode ? 4.3 : 3.1, rem * 2.4 + .45); tx = gx/gd*gs; tz = gz/gd*gs; driving = true;
+        // face the way we walk (unless a finger is busy looking around)
+        if (!lookers.size && gd > .9){ const want = Math.atan2(-gx, -gz), dy = ((want - view.yaw + Math.PI*3) % (Math.PI*2)) - Math.PI; view.yaw += dy * Math.min(1, dt * 3.2); }
+        goalRing.scale.setScalar(1 + .12 * Math.sin(performance.now() / 160));
+      }
     }
     const k = Math.min(1, dt * (driving ? 9 : 7));
     vel.x += (tx - vel.x) * k; vel.z += (tz - vel.z) * k;

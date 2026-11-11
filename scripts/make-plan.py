@@ -50,8 +50,6 @@ rep("    const bk = key + ':' + p.pg + ':' + Math.floor(p.tile / (C2 * 2)) + ':'
     "    // + a coarse floor cell, so a repeat of the same product far away (fill facings, end caps) gets its own small mesh\n"
     "    const wp0 = F.at(cx, 0, cz), bk = ak + ':' + pp.pg + ':' + Math.floor(pp.tile / (C2 * 2)) + ':' + ((pp.tile % C2) < C2 / 2 ? 0 : 1) + (ak !== key ? ':' + Math.round(wp0[0] / 8) + '_' + Math.round(wp0[2] / 8) : '');")
 rep("    const [u0,u1,vb,vt] = tileUV(sd, p), hw = w/2,", "    const [u0,u1,vb,vt] = tileUV(sd, pp), hw = w/2,")
-rep("    Object.values(DATA.sections).forEach(sd => {\n      (sd.pagesM || []).forEach(s => urls.push(s));",
-    "    Object.keys(DATA.sections).filter(k => !(window.__skipAtlas && window.__skipAtlas.has(k))).map(k => DATA.sections[k]).forEach(sd => {\n      (sd.pagesM || []).forEach(s => urls.push(s));")
 rep("    Object.keys(DATA.sections).forEach(key => (DATA.sections[key].pagesS || []).forEach((src, pg) => list.push({k: key + ':' + pg, src})));",
     "    Object.keys(DATA.sections).filter(k => !(window.__skipAtlas && window.__skipAtlas.has(k))).forEach(key => (DATA.sections[key].pagesS || []).forEach((src, pg) => list.push({k: key + ':' + pg, src})));")
 
