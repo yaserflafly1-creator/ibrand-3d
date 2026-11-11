@@ -746,7 +746,7 @@ function build(renderer){
   // Zones (like the branch drawing): entrance at the front centre, a central walkway with the cross-sell stands,
   // beauty at the front of both wings, personal care then kids down the left, wellness then pharmacy down the right,
   // the pharmacist counter at the far end of the walkway, wall units all around.
-  const EYE = 1.6, H = 4.6;
+  const EYE = 1.6, H = 6.2;   // high ceiling, as asked for the branch
   const IMF = (window.__IMF && window.__IMF.p) || {};
   const mainKeys = SECTIONS.filter(s=>s.main).map(s=>s.key).filter(k=>SD(k));
   const ZINFO = [{key:'z_kids', hex:'#2a6fdb'}, {key:'z_rx', hex:'#14a3b5'}, {key:'z_well', hex:'#27a84a'}, {key:'z_care', hex:'#f28c1e'}, {key:'z_beauty', hex:'#c53fb4'}];
@@ -1920,7 +1920,7 @@ function build(renderer){
     if (droneMode){
       const tu = (keys.up - keys.down) * 2.1;
       altV += (tu - altV) * Math.min(1, dt * 6);
-      alt = Math.max(.55, Math.min(4.35, alt + altV * dt));
+      alt = Math.max(.55, Math.min(H - .4, alt + altV * dt));
     } else if (alt !== EYE){ altV = 0; alt += (EYE - alt) * Math.min(1, dt * 5); if (Math.abs(alt - EYE) < .005) alt = EYE; }
   }
   function stepBy(dist){ flight = null; tryMove(-Math.sin(view.yaw)*dist, -Math.cos(view.yaw)*dist); }

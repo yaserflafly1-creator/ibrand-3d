@@ -113,6 +113,9 @@ region('  // ---------- aisle signs: number + sections, and a sign where each se
 # wire bins: only in the entrance zone (the side walls further in carry wall units)
 rep("    [-1, 1].forEach(s => { bin(s*(Wx - .7), zA1 - 1.0, -s*Math.PI/2); bin(s*(Wx - .7), zC + 1.1, -s*Math.PI/2); });\n", "")
 
+# the drone may climb with the higher ceiling
+rep("alt = Math.max(.55, Math.min(4.35, alt + altV * dt));", "alt = Math.max(.55, Math.min(H - .4, alt + altV * dt));")
+
 # chips: promotions + zones
 rep("...SECTIONS.filter(s => s.main && SD(s.key) && s.focus)];", "...SECTIONS.filter(s => s.zone && s.focus)];")
 

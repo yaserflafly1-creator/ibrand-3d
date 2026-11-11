@@ -3,7 +3,7 @@
   // Zones (like the branch drawing): entrance at the front centre, a central walkway with the cross-sell stands,
   // beauty at the front of both wings, personal care then kids down the left, wellness then pharmacy down the right,
   // the pharmacist counter at the far end of the walkway, wall units all around.
-  const EYE = 1.6, H = 4.6;
+  const EYE = 1.6, H = 6.2;   // high ceiling, as asked for the branch
   const IMF = (window.__IMF && window.__IMF.p) || {};
   const mainKeys = SECTIONS.filter(s=>s.main).map(s=>s.key).filter(k=>SD(k));
   const ZINFO = [{key:'z_kids', hex:'#2a6fdb'}, {key:'z_rx', hex:'#14a3b5'}, {key:'z_well', hex:'#27a84a'}, {key:'z_care', hex:'#f28c1e'}, {key:'z_beauty', hex:'#c53fb4'}];
