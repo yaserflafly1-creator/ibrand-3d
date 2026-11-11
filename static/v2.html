@@ -198,7 +198,7 @@ body.sheet .altBtns{display:none}
     <button class="tbtn primary" id="cartBtn" type="button" aria-label="السلة"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 4h2l2.4 11.2a1.5 1.5 0 0 0 1.5 1.2h8.6a1.5 1.5 0 0 0 1.5-1.1L21 8H6.2"/><circle cx="10" cy="20" r="1.3"/><circle cx="17" cy="20" r="1.3"/></svg><span class="lbl">السلة</span><span class="badge" id="cartCount" hidden>0</span></button>
   </div>
 </header>
-<div class="hint" id="hint">حرّك العصا للمشي • اسحب الشاشة لتلتفت • اضغط على أي منتج</div>
+<div class="hint" id="hint">حرّك العصا للمشي • اسحب الشاشة لتلتفت • اضغط على الأرض لتنتقل • اضغط على أي منتج</div>
 
 <aside class="panel" id="panel" hidden aria-live="polite">
   <button class="close" id="close" aria-label="إغلاق">×</button>
@@ -1690,6 +1690,7 @@ function build(renderer){
   $('#close').addEventListener('click', () => { panel.hidden = true; current = null; document.body.classList.remove('sheet'); markChip(null); highlight.visible = false; });
   addEventListener('keydown', e => { if (e.key === 'Escape'){ if (![...document.querySelectorAll('.modal,.drawer,.search')].every(m => m.hidden)) closeAll(); else if (!panel.hidden) $('#close').click(); } });
   let hintTimer = setTimeout(hideHint, 9000);
+  if (!matchMedia('(pointer: coarse)').matches) $('#hint').textContent = 'الأسهم أو WASD للمشي • اسحب بالفأرة لتلتفت • اضغط على الأرض لتنتقل • Shift للمشي السريع';
   function hideHint(){ clearTimeout(hintTimer); $('#hint').classList.add('gone'); }
 
   // customer service
@@ -1764,7 +1765,7 @@ function build(renderer){
   el.addEventListener('pointerdown', e => { if (e.__joy) { down = null; return; } down = {x:e.clientX, y:e.clientY}; hideHint(); flight = null; el.style.cursor = 'grabbing'; });
   el.addEventListener('pointerup', e => {
     el.style.cursor = 'grab'; if (!down) return; const moved = Math.hypot(e.clientX-down.x, e.clientY-down.y); down = null; if (moved >= 7) return;
-    const h = pick(e); if (!h) return;
+    const h = pick(e); if (!h) return floorTap(e);
     if (h.door === 'out') return openExit();
     if (h.door === 'in') return toast('أهلاً بك في صيدلية اي براند');
     if (h.svc) return openService(h.female);
@@ -1791,7 +1792,7 @@ function build(renderer){
   [['#altUp','up'],['#altDn','down']].forEach(([sel, k]) => { const b = document.querySelector(sel);
     b.addEventListener('pointerdown', e => { e.preventDefault(); keys[k] = 1; });
     ['pointerup','pointercancel','pointerleave'].forEach(ev => b.addEventListener(ev, () => { keys[k] = 0; })); });
-  const KEYS = {ArrowUp:'f', KeyW:'f', ArrowDown:'b', KeyS:'b', ArrowLeft:'sl', KeyA:'sl', ArrowRight:'sr', KeyD:'sr', KeyQ:'tl', KeyE:'tr', Space:'up', KeyR:'up', ShiftLeft:'down', KeyF:'down'};
+  const KEYS = {ArrowUp:'f', KeyW:'f', ArrowDown:'b', KeyS:'b', ArrowLeft:'tl', KeyA:'sl', ArrowRight:'tr', KeyD:'sr', KeyQ:'tl', KeyE:'tr', Space:'up', KeyR:'up', ShiftLeft:'down', ShiftRight:'down', KeyF:'down'};
   const typing = () => document.activeElement && document.activeElement.tagName === 'INPUT';
   addEventListener('keydown', e => { const k = KEYS[e.code]; if (!k || e.altKey || e.metaKey || e.ctrlKey || typing()) return; keys[k] = 1; e.preventDefault(); hideHint(); flight = null; setPano(false); });
   addEventListener('keyup', e => { const k = KEYS[e.code]; if (k) keys[k] = 0; });
@@ -1835,18 +1836,47 @@ function build(renderer){
     camera.position.x += dx; camera.position.z += dz;
   }
   const vel = {x:0, z:0}; let walkAmt = 0, bobT = 0, alt = EYE, altV = 0, droneMode = false;
+  // tap / click a spot on the floor → walk there (a ring marks the spot); any manual input takes over again
+  let goal = null;
+  const goalRing = new THREE.Mesh(new THREE.RingGeometry(.2, .29, 40), new THREE.MeshBasicMaterial({color:PINK, transparent:true, opacity:.9, depthWrite:false, toneMapped:false, side:THREE.DoubleSide}));
+  goalRing.rotation.x = -Math.PI/2; goalRing.visible = false; goalRing.renderOrder = 3; scene.add(goalRing);
+  function floorTap(ev){
+    const r = renderer.domElement.getBoundingClientRect();
+    mouse.set(((ev.clientX-r.left)/r.width)*2-1, -((ev.clientY-r.top)/r.height)*2+1);
+    ray.setFromCamera(mouse, camera); const o = ray.ray.origin, d = ray.ray.direction;
+    if (d.y > -.05) return;                                     // not pointing at the floor
+    const t = -o.y / d.y, p = new THREE.Vector3(o.x + d.x*t, 0, o.z + d.z*t);
+    const dx = p.x - camera.position.x, dz = p.z - camera.position.z, dist = Math.hypot(dx, dz);
+    if (dist < .5 || dist > 22) return;
+    // stop at the last free spot on the way (a tap on a shelf walks up to it, not through it)
+    let gx = camera.position.x, gz = camera.position.z; const n = Math.ceil(dist / .25), start = blocked(gx, gz);
+    for (let i = 1; i <= n; i++){ const x = camera.position.x + dx*i/n, z = camera.position.z + dz*i/n; if (!start && blocked(x, z)) break; gx = x; gz = z; }
+    const v = new THREE.Vector3(gx, 0, gz); clampV(v);
+    if (Math.hypot(v.x - camera.position.x, v.z - camera.position.z) < .4) return;
+    goal = {x:v.x, z:v.z, stuck:0}; flight = null; hideHint();
+    goalRing.position.set(v.x, .03, v.z); goalRing.visible = true;
+  }
   function walk(dt){
     let mv = joy.y + keys.f - keys.b, st = joy.x + keys.sr - keys.sl;
-    const turn = keys.tl - keys.tr; if (turn) view.yaw += turn * 1.6 * dt;
+    const turn = keys.tl - keys.tr; if (turn) view.yaw += turn * 1.9 * dt;
     let len = Math.hypot(mv, st);
     if (len > 1){ mv /= len; st /= len; len = 1; }
     const fx = -Math.sin(view.yaw), fz = -Math.cos(view.yaw), rx = Math.cos(view.yaw), rz = -Math.sin(view.yaw);
-    const sp = len < .08 ? 0 : ((droneMode ? 3.1 : 2.2) + (len > .92 ? (droneMode ? 1.2 : .9) : 0));
-    const tx = (fx*mv + rx*st*.85) * sp, tz = (fz*mv + rz*st*.85) * sp;
-    const k = Math.min(1, dt * (sp ? 9 : 7));
+    // analog speed: a light push strolls (easy to line up with a shelf), a full push strides; Shift walks briskly
+    const top = (droneMode ? 4.3 : 3.1) * (!droneMode && keys.down ? 1.5 : 1);
+    const sp = len < .08 ? 0 : top * (.28 + .72 * len * len);
+    let tx = (fx*mv + rx*st*.85) * sp, tz = (fz*mv + rz*st*.85) * sp, driving = sp > 0;
+    if (driving){ if (goal){ goal = null; goalRing.visible = false; } }
+    else if (goal){
+      const gx = goal.x - camera.position.x, gz = goal.z - camera.position.z, gd = Math.hypot(gx, gz);
+      if (gd < .2 || goal.stuck > .45){ goal = null; goalRing.visible = false; }
+      else { const gs = Math.min(droneMode ? 4.3 : 3.1, gd * 2.4 + .45); tx = gx/gd*gs; tz = gz/gd*gs; driving = true; goalRing.scale.setScalar(1 + .12 * Math.sin(performance.now() / 160)); }
+    }
+    const k = Math.min(1, dt * (driving ? 9 : 7));
     vel.x += (tx - vel.x) * k; vel.z += (tz - vel.z) * k;
     const v = Math.hypot(vel.x, vel.z);
-    if (v > .03) tryMove(vel.x * dt, vel.z * dt);
+    if (v > .03){ const px = camera.position.x, pz = camera.position.z; tryMove(vel.x * dt, vel.z * dt);
+      if (goal){ const moved = Math.hypot(camera.position.x - px, camera.position.z - pz); goal.stuck = moved < v * dt * .3 ? goal.stuck + dt : 0; } }
     walkAmt += (Math.min(1, v / 2.2) - walkAmt) * Math.min(1, dt * 5);
     bobT += dt * (5 + 4 * walkAmt);
     if (droneMode){
@@ -1856,7 +1886,9 @@ function build(renderer){
     } else if (alt !== EYE){ altV = 0; alt += (EYE - alt) * Math.min(1, dt * 5); if (Math.abs(alt - EYE) < .005) alt = EYE; }
   }
   function stepBy(dist){ flight = null; tryMove(-Math.sin(view.yaw)*dist, -Math.cos(view.yaw)*dist); }
-  el.addEventListener('wheel', e => { e.preventDefault(); hideHint(); stepBy(-Math.sign(e.deltaY) * Math.min(.9, Math.abs(e.deltaY) / 120 * .5)); }, {passive:false});
+  el.addEventListener('wheel', e => { e.preventDefault(); hideHint(); flight = null; if (goal){ goal = null; goalRing.visible = false; }
+    const imp = -Math.sign(e.deltaY) * Math.min(4.2, Math.abs(e.deltaY) / 120 * 3.2), fx = -Math.sin(view.yaw), fz = -Math.cos(view.yaw);
+    vel.x += fx * imp; vel.z += fz * imp; const m = Math.hypot(vel.x, vel.z); if (m > 5.5){ vel.x *= 5.5/m; vel.z *= 5.5/m; } }, {passive:false});
   let pinch = null;
   el.addEventListener('touchstart', e => { if (e.touches.length === 2) pinch = Math.hypot(e.touches[0].clientX-e.touches[1].clientX, e.touches[0].clientY-e.touches[1].clientY); }, {passive:true});
   el.addEventListener('touchmove', e => { if (e.touches.length !== 2 || pinch === null) return; const d = Math.hypot(e.touches[0].clientX-e.touches[1].clientX, e.touches[0].clientY-e.touches[1].clientY); stepBy((d - pinch) * .012); pinch = d; }, {passive:true});

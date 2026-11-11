@@ -100,36 +100,69 @@
   const zF = 0, zR0 = zF - 8.0, ZP = zF - 5.9;
   const LEFT = [4, 3, 0], RIGHT = [4, 2, 1];   // front → back
   const SORTED = ZINFO.map((zi, id) => { const all = zoneProducts[id], fl0 = all.filter(p => !p._un), wl = all.filter(p => p._un); return {all, fl0, wl, fs:prep(fl0, GONDOLA), ws:prep(wl, GWALL)}; });
+  // Mixed layout, like the branch drawing: free-standing brand stands (2-bay islands) on the first lines of both
+  // wings, a grid of long gondola rows behind them, and a block of short gondolas turned the other way in the kids
+  // corner. Every stretch of shelving is a "run" (where it stands + how many bays); zones take runs front to back.
+  const PB = 4, ISL = 2, SLINES = 1;
+  function wingRuns(w, C, nbx, g, band){
+    const runs = [], Win = C*nbx*BW + (C-1)*CA, colX0 = c => SP + c*(nbx*BW + CA), m = Math.floor((nbx + 1) / 3), S = m >= 2 ? SLINES : 0;
+    const lz = i => zR0 - ROW_T/2 - i*PITCH, off = GONDOLA.d/2 + .02;
+    for (let i = 0; i < S + g; i++){
+      const zc = lz(i), base = {line:i, zc, f:zc + ROW_T/2, b:zc - ROW_T/2};
+      for (let c = 0; c < C; c++){
+        if (i < S){ const gap = m > 1 ? (nbx*BW - m*ISL*BW) / (m - 1) : 0;
+          for (let k = 0; k < m; k++){ const xc = w*(colX0(c) + ISL*BW/2 + k*(ISL*BW + gap));
+            runs.push(Object.assign({x:xc, z:zc + off, yaw:0, n:ISL, type:'stand'}, base)); runs.push(Object.assign({x:xc, z:zc - off, yaw:Math.PI, n:ISL, type:'stand'}, base)); } }
+        else { const xc = w*(colX0(c) + nbx*BW/2);
+          runs.push(Object.assign({x:xc, z:zc + off, yaw:0, n:nbx, type:'row'}, base)); runs.push(Object.assign({x:xc, z:zc - off, yaw:Math.PI, n:nbx, type:'row'}, base)); }
+      }
+    }
+    let zEnd = lz(S + g - 1) - ROW_T/2;
+    if (band){ const q = Math.floor((Win + AISLE_W) / (ROW_T + AISLE_W)), z0 = zEnd - AISLE_W, zc = z0 - PB*BW/2;
+      for (let j = 0; j < q; j++){ const X = w*(SP + ROW_T/2 + (q > 1 ? j*(Win - ROW_T)/(q - 1) : (Win - ROW_T)/2)), base = {line:S + g, zc, f:z0, b:z0 - PB*BW, type:'band', n:PB};
+        runs.push(Object.assign({x:X + off, z:zc, yaw:Math.PI/2}, base)); runs.push(Object.assign({x:X - off, z:zc, yaw:-Math.PI/2}, base)); }
+      zEnd = z0 - PB*BW; }
+    return {runs, zEnd, S, lines:S + g, depth:zR0 - zEnd};
+  }
+  const allot = (runs, order, counts) => {
+    const parts = order.map((zid, i) => ({zid, bays:counts[i], runs:[], cap:0})).filter(p => p.bays > 0); let ri = 0;
+    parts.forEach(p => { while (ri < runs.length && p.cap < p.bays){ p.runs.push(runs[ri]); p.cap += runs[ri].n; ri++; } });
+    if (parts.length) while (ri < runs.length){ const p = parts[parts.length - 1]; p.runs.push(runs[ri]); p.cap += runs[ri].n; ri++; }
+    parts.forEach(p => p.runs.forEach(r => { r.zid = p.zid; }));
+    return parts;
+  };
   function solve(Z, rxTaken){
     const fb = Z.map(z => z.floor.length); if (!rxTaken) fb[1] = Math.max(0, fb[1] - NBACK);
     const left = fb[3] + fb[0], right = fb[2] + fb[1], T = left + right + fb[4];
     const bl = Math.max(0, Math.min(fb[4], Math.round(T/2 - left))), br = fb[4] - bl;
+    const cL = [bl, fb[3], fb[0]], cR = [br, fb[2], fb[1]];
+    const fits = parts => parts.every(p => p.cap >= p.bays);
     // smallest floor area that holds the bays, keeping the store roughly square
     let best = null;
-    for (let C = 1; C <= 3; C++) for (let nbx = 4; nbx <= 14; nbx++){
-      const per = C*nbx*2, lines = Math.max(3, Math.ceil(Math.max(left + bl, right + br, 1) / per));
-      const wx = SP + C*nbx*BW + (C-1)*CA + SIDE_A + GWALL.d + .02, D = -zR0 + lines*PITCH - AISLE_W + BACK_A + GWALL.d + .02;
+    for (let C = 1; C <= 3; C++) for (let nbx = 5; nbx <= 14; nbx++){
+      const Win = C*nbx*BW + (C-1)*CA, band = Math.floor((Win + AISLE_W) / (ROW_T + AISLE_W)) >= 2;
+      let gL = 1, gR = 1, WL, WR, PL, PR;
+      for (; gL < 60; gL++){ WL = wingRuns(-1, C, nbx, gL, band); PL = allot(WL.runs, LEFT, cL); if (fits(PL)) break; }
+      for (; gR < 60; gR++){ WR = wingRuns(1, C, nbx, gR, false); PR = allot(WR.runs, RIGHT, cR); if (fits(PR)) break; }
+      // the shallower wing takes as many more rows as the deeper one leaves room for (kept full with that zone's range)
+      const deep = Math.max(WL.depth, WR.depth);
+      while (wingRuns(-1, C, nbx, gL + 1, band).depth <= deep + .01){ gL++; } 
+      while (wingRuns(1, C, nbx, gR + 1, false).depth <= deep + .01){ gR++; }
+      const wx = SP + Win + SIDE_A + GWALL.d + .02, D = -zR0 + deep + BACK_A + GWALL.d + .02;
       const asp = 2*wx/D, area = 2*wx*D, sc = area * (asp < .8 ? 1 + (.8 - asp)*3 : asp > 1.45 ? 1 + (asp - 1.45)*3 : 1);
-      if (!best || sc < best.sc) best = {sc, C, nbx, lines, Wx:wx, area, D};
+      if (!best || sc < best.sc) best = {sc, C, nbx, gL, gR, band, Wx:wx, area, D, deep};
     }
-    const {C, lines, nbx} = best, nf = lines*C*2;
-    const wing = (order, counts) => {
-      const parts = order.map((zid, i) => ({zid, bays:counts[i], faces:Math.ceil(counts[i] / nbx)})).filter(p => p.bays > 0);
-      let spare = nf - parts.reduce((a, p) => a + p.faces, 0);
-      while (spare > 0 && parts.length){ let b = parts[0]; parts.forEach(p => { if (p.bays/p.faces > b.bays/b.faces) b = p; }); b.faces++; spare--; }
-      let f0 = 0; parts.forEach(p => { p.f0 = f0; f0 += p.faces; p.l0 = Math.floor(p.f0 / (2*C)); p.l1 = Math.ceil((p.f0 + p.faces) / (2*C)); });
-      return parts;
-    };
-    const Lp = wing(LEFT, [bl, fb[3], fb[0]]), Rp = wing(RIGHT, [br, fb[2], fb[1]]);
-    const zLast = zR0 - ROW_T/2 - (lines-1)*PITCH, zb = zLast - ROW_T/2 - BACK_A - GWALL.d - .02;
+    const {C, nbx} = best, WL = wingRuns(-1, C, nbx, best.gL, best.band), WR = wingRuns(1, C, nbx, best.gR, false);
+    const Lp = allot(WL.runs, LEFT, cL), Rp = allot(WR.runs, RIGHT, cR);
+    const zEnd = zR0 - best.deep, zb = zEnd - BACK_A - GWALL.d - .02;
     const zW0 = zR0 + 1.0, nSide = Math.max(0, Math.floor((zW0 - (zb + .65)) / BW));
-    const zoneAt = (parts, z) => { const l = Math.max(0, Math.min(lines - 1, Math.round((zR0 - ROW_T/2 - z) / PITCH))); const p = parts.find(q => l >= q.l0 && l < q.l1) || parts[parts.length - 1]; return p ? p.zid : 4; };
-    const side = parts => { const a = []; for (let i = 0; i < nSide; i++) a.push(zoneAt(parts, zW0 - (i + .5)*BW)); return a; };
-    const sideL = side(Lp), sideR = side(Rp);
+    const zoneAt = (runs, z) => { let b = null, bd = 1e9; runs.forEach(r => { const d = Math.abs(r.zc - z); if (d < bd){ bd = d; b = r; } }); return b ? b.zid : 4; };
+    const side = runs => { const a = []; for (let i = 0; i < nSide; i++) a.push(zoneAt(runs, zW0 - (i + .5)*BW)); return a; };
+    const sideL = side(WL.runs), sideR = side(WR.runs);
     const nBackSide = Math.max(0, Math.floor((best.Wx - GWALL.d - .1 - (SP + .3)) / BW));
     const backL = Lp.length ? Lp[Lp.length-1].zid : 0, backR = Rp.length ? Rp[Rp.length-1].zid : 1;
     const slots = [0,0,0,0,0]; sideL.forEach(z => slots[z]++); sideR.forEach(z => slots[z]++); slots[backL] += nBackSide; slots[backR] += nBackSide;
-    return {C, lines, nbx, area:best.area, D:best.D, Wx:best.Wx, L:Lp, R:Rp, bl, br, zLast, zB:zb, zW0, nSide, sideL, sideR, nBackSide, backL, backR, slots};
+    return {C, nbx, lines:Math.max(WL.lines, WR.lines), linesL:WL.lines, linesR:WR.lines, runsL:WL.runs, runsR:WR.runs, area:best.area, D:best.D, Wx:best.Wx, L:Lp, R:Rp, bl, br, zEnd, zB:zb, zW0, nSide, sideL, sideR, nBackSide, backL, backR, slots};
   }
   // one complete layout for a packing mode
   function layoutFor(mode){
@@ -166,12 +199,12 @@
   }
   // fit everything into the target floor area: first with the facings from the file, then fewer facings, then slightly
   // smaller packs — the first packing that fits wins; if none does, the tightest one is used and the store grows
-  const MODES = [{cap:4, k:1}, {cap:2, k:1}, {cap:2, k:1, tight:1}, {cap:1, k:1, tight:1}, {cap:1, k:.92, tight:1}, {cap:1, k:.85, tight:1}, {cap:1, k:.78, tight:1}, {cap:1, k:.7, tight:1}];
+  const MODES = [{cap:4, k:1}, {cap:2, k:1}, {cap:2, k:1, tight:1}, {cap:1, k:1, tight:1}, {cap:1, k:.95, tight:1}, {cap:1, k:.9, tight:1}, {cap:1, k:.86, tight:1}, {cap:1, k:.82, tight:1}, {cap:1, k:.78, tight:1}, {cap:1, k:.74, tight:1}, {cap:1, k:.7, tight:1}];
   let FIT = null;
   for (const m of MODES){ FIT = layoutFor(m); if (FIT.PLAN.area <= AMAX) break; }
   const Z = FIT.Z, PLAN = FIT.PLAN, rxBack = FIT.rxBack, NBX = PLAN.nbx;
   window.__planFit = {cap:FIT.mode.cap, k:FIT.mode.k, tight:!!FIT.mode.tight, area:Math.round(PLAN.area), w:+(2*PLAN.Wx).toFixed(1), d:+PLAN.D.toFixed(1)};
-  const NC = PLAN.C, NL = PLAN.lines, Wx = PLAN.Wx, zB = PLAN.zB, zC = zB + 2.7, zA0 = zR0, zA1 = PLAN.zLast - ROW_T/2;
+  const NC = PLAN.C, NL = PLAN.lines, Wx = PLAN.Wx, zB = PLAN.zB, zC = zB + 2.7, zA0 = zR0, zA1 = PLAN.zEnd;
   const nA = NL, nb = NBX, L = zA0 - zA1, innerW = 2*Wx, plans = {}, totalBays = Z.reduce((a, z) => a + z.floor.length + z.wall.length, 0) + rxBack.length;
   const ROOM = {x:Wx, zBack:zB, zFront:zF, h:H};
   const fw = 2*Wx, fl = zF - zB, zMid = (zF + zB)/2;
@@ -179,7 +212,7 @@
 //@@R2
   // ---------- lay the zones out like the branch plan ----------
   const SEG = [];
-  const lineZ = l => zR0 - ROW_T/2 - l*PITCH, colX0 = c => SP + c*(NBX*BW + CA);
+  const lineZ = l => zR0 - ROW_T/2 - l*PITCH;
   const rot = (a, n) => a.length ? a.slice(n % a.length).concat(a.slice(0, n % a.length)) : a;
   // extra facings for slots a zone does not need: keeps every gondola full with that zone's own products
   function fill(z, n, G, wall){
@@ -188,16 +221,14 @@
     const ck = (wall && z.wallList.length ? 'w' : 'f') + G.h; if (!z['s' + ck]) z['s' + ck] = prep(src, G);
     z.fo += 61; return mplan(rot(z['s' + ck], z.fo), G, {cycle:true, maxBays:n, sorted:true});
   }
-  [[-1, PLAN.L], [1, PLAN.R]].forEach(([w, parts]) => parts.forEach(part => {
+  [[-1, PLAN.L], [1, PLAN.R]].forEach(([w, parts]) => parts.forEach((part, pi) => {
     const z = Z[part.zid];
     let bays = part.zid === 4 ? (w < 0 ? z.floor.slice(0, PLAN.bl) : z.floor.slice(PLAN.bl)) : z.floor.slice();
-    const need = part.faces*NBX - bays.length; if (need > 0) bays = bays.concat(fill(z, need, GONDOLA, false));
-    for (let j = 0; j < part.faces; j++){
-      const fi = part.f0 + j, l = Math.floor(fi / (2*NC)), c = Math.floor((fi % (2*NC)) / 2), f = fi % 2;
-      const xc = w*(colX0(c) + NBX*BW/2), run = bays.slice(j*NBX, (j+1)*NBX); if (!run.length) continue;
-      gondolaFace(f === 0 ? frame(xc, lineZ(l) + GONDOLA.d/2 + .02, 0) : frame(xc, lineZ(l) - GONDOLA.d/2 - .02, Math.PI), run, z.key, {zc:z.zc});
-    }
-    SEG.push({zid:part.zid, w, l0:part.l0, l1:part.l1});
+    const need = part.cap - bays.length; if (need > 0) bays = bays.concat(fill(z, need, GONDOLA, false));
+    let o = 0;
+    part.runs.forEach(r => { const run = bays.slice(o, o + r.n); o += r.n; if (run.length) gondolaFace(frame(r.x, r.z, r.yaw), run, z.key, {zc:z.zc}); });
+    const aisles = [...new Set(part.runs.map(r => +(r.f + AISLE_W/2).toFixed(2)))];
+    SEG.push({zid:part.zid, w, z0:Math.max(...part.runs.map(r => r.f)) + AISLE_W/2, z1:pi === parts.length - 1 ? zB : Math.min(...part.runs.map(r => r.b)) - AISLE_W/2, aisles});
   }));
   // wall units: both side walls and the back wall, each stretch dressed by the zone in front of it
   const wallQ = Z.map(z => z.wall.slice());
@@ -220,9 +251,9 @@
   {
     const topBrands = z => { const agg = {}; z.all.forEach(p => { const b = brandOf(p); if (!b || !p.brand) return; const a = agg[b] || (agg[b] = {id:b, name:p.brand, sold:0, list:[]}); a.sold += p.sold || 0; a.list.push(p); });
       return Object.values(agg).filter(a => a.list.length >= 4).sort((a, b) => (b.sold - a.sold) || (b.list.length - a.list.length)).slice(0, 14); };
-    for (const w of [-1, 1]) for (let l = 0; l < NL; l++){
-      const part = (w < 0 ? PLAN.L : PLAN.R).find(q => l >= q.l0 && l < q.l1); if (!part) continue;
-      const z = Z[part.zid]; if (!z.caps){ z.caps = topBrands(z); z.capI = 0; } if (!z.caps.length) continue;
+    for (const w of [-1, 1]) for (let l = 0; l < (w < 0 ? PLAN.linesL : PLAN.linesR); l++){
+      const r0 = (w < 0 ? PLAN.runsL : PLAN.runsR).find(r => r.line === l && r.type !== 'band'); if (!r0) continue;
+      const z = Z[r0.zid]; if (!z.caps){ z.caps = topBrands(z); z.capI = 0; } if (!z.caps.length) continue;
       const br = z.caps[z.capI++ % z.caps.length], bay = mplan(br.list.slice().sort((a, b) => (b.sold || 0) - (a.sold || 0)), GONDOLA, {cycle:true, maxBays:1}); if (!bay[0]) continue;
       bay[0].hdr = {id:'e:' + br.id, brandId:br.list[0].brandId || br.list[0].brand, name:br.name, big:true}; bay[0].kind = 0;
       gondolaFace(frame(w*(SP - GONDOLA.d/2 - .03), lineZ(l), w > 0 ? -Math.PI/2 : Math.PI/2), bay, z.key, {zc:z.zc, endPanels:false});
@@ -313,9 +344,10 @@
 
 //@@R4
   // ---------- zone identity: tinted floors, a portal sign where each zone starts ----------
+  const namedAisles = new Set();
   SEG.forEach(sg => {
     const z = Z[sg.zid], sec = SEC[z.key];
-    const z0 = lineZ(sg.l0) + ROW_T/2 + AISLE_W/2, z1 = sg.l1 >= NL ? zB : lineZ(sg.l1 - 1) - ROW_T/2 - AISLE_W/2;
+    const z0 = sg.z0, z1 = sg.z1;
     const tint = new THREE.Mesh(new THREE.PlaneGeometry(Wx - SP + .5, z0 - z1), new THREE.MeshBasicMaterial({color:z.zc.hex, transparent:true, opacity:.2, depthWrite:false, toneMapped:false}));
     tint.rotation.x = -Math.PI/2; tint.position.set(sg.w*(SP - .5 + Wx)/2, .006, (z0 + z1)/2); scene.add(tint);
     const t = canvasTex(1024, 300, (x, W, Hh) => {
@@ -333,11 +365,62 @@
     if (!z.floorTex) z.floorTex = canvasTex(1024, 256, (x, W, Hh) => { x.clearRect(0, 0, W, Hh); x.fillStyle = z.zc.lo; x.textAlign = 'center'; x.textBaseline = 'middle'; x.direction = 'rtl'; fitText(x, sec.name, W - 60, 800, 150); x.fillText(sec.name, W/2, 104);
       x.direction = 'ltr'; x.font = '700 50px Arial, sans-serif'; x.globalAlpha = .8; x.fillText((sec.en || '').toUpperCase(), W/2, 210); x.globalAlpha = 1; });
     const wingW = Wx - GWALL.d - SIDE_A - SP, tw = Math.min(5.6, wingW - 3.4), fmat = new THREE.MeshBasicMaterial({map:z.floorTex, transparent:true, depthWrite:false, toneMapped:false, opacity:.85});
-    for (let l = sg.l0; l < sg.l1; l++){ const part = (sg.w < 0 ? PLAN.L : PLAN.R).find(q => l >= q.l0 && l < q.l1); if (!part || part.zid !== sg.zid) continue;
-      const fm = new THREE.Mesh(new THREE.PlaneGeometry(tw, tw/4), fmat); fm.rotation.x = -Math.PI/2; fm.position.set(sg.w*(SP + wingW/2), .009, lineZ(l) + ROW_T/2 + AISLE_W/2); fm.renderOrder = 1; scene.add(fm);
+    sg.aisles.forEach(za => { const ak = sg.w + ':' + za; if (namedAisles.has(ak)) return; namedAisles.add(ak);   // an aisle shared by two zones is named once
+      const fm = new THREE.Mesh(new THREE.PlaneGeometry(tw, tw/4), fmat); fm.rotation.x = -Math.PI/2; fm.position.set(sg.w*(SP + wingW/2), .009, za); fm.renderOrder = 1; scene.add(fm);
       // and once more at the mouth of the aisle, turned to be read from the central walkway
       const fe = new THREE.Mesh(new THREE.PlaneGeometry(AISLE_W - .3, (AISLE_W - .3)/4), fmat); fe.rotation.order = 'YXZ'; fe.rotation.y = -sg.w*Math.PI/2; fe.rotation.x = -Math.PI/2;
-      fe.position.set(sg.w*(SP + .75), .009, lineZ(l) + ROW_T/2 + AISLE_W/2); fe.renderOrder = 1; scene.add(fe); }
+      fe.position.set(sg.w*(SP + .75), .009, za); fe.renderOrder = 1; scene.add(fe); });
   });
   SEC.z_rx.focus = {pos:new THREE.Vector3(0, EYE, zC + 3.2), target:new THREE.Vector3(0, 1.5, zB)};
+
+  // ---------- iBrand boards high on the walls ----------
+  {
+    const dots = (x, W, Hh, col) => { x.fillStyle = col; [[.08,.2,90],[.9,.78,130],[.82,.14,46],[.16,.86,60],[.5,1.05,170]].forEach(([u, v, r]) => { x.beginPath(); x.arc(u*W, v*Hh, r, 0, Math.PI*2); x.fill(); }); };
+    const boards = [
+      canvasTex(1024, 448, (x, W, Hh) => { const g = x.createLinearGradient(0, 0, W, Hh); g.addColorStop(0, '#f08bbb'); g.addColorStop(1, '#c9518b'); x.fillStyle = g; x.fillRect(0, 0, W, Hh); dots(x, W, Hh, 'rgba(255,255,255,.13)');
+        x.fillStyle = '#ffffff'; x.textAlign = 'center'; x.textBaseline = 'middle'; x.direction = 'rtl'; x.font = '800 150px "Almarai", Tahoma'; x.fillText('صيدلية اي براند', W/2, 190);
+        x.direction = 'ltr'; x.font = '700 62px Arial, sans-serif'; x.globalAlpha = .92; x.fillText('iBRAND Pharmacy', W/2, 330); x.globalAlpha = 1; }),
+      canvasTex(1024, 448, (x, W, Hh) => { x.fillStyle = PLUM; x.fillRect(0, 0, W, Hh); dots(x, W, Hh, 'rgba(232,115,168,.2)');
+        x.fillStyle = PINK; x.textAlign = 'center'; x.textBaseline = 'middle'; x.direction = 'ltr'; x.font = '800 190px Arial, sans-serif'; x.fillText('iBRAND', W/2, 180);
+        x.fillStyle = '#ffffff'; x.direction = 'rtl'; x.font = '700 80px "Almarai", Tahoma'; x.fillText('اي براند', W/2, 340); }),
+      canvasTex(1024, 448, (x, W, Hh) => { x.fillStyle = '#ffffff'; x.fillRect(0, 0, W, Hh); dots(x, W, Hh, 'rgba(232,115,168,.12)'); x.strokeStyle = PINK; x.lineWidth = 18; x.strokeRect(9, 9, W - 18, Hh - 18);
+        x.fillStyle = PINK_DEEP; x.textAlign = 'center'; x.textBaseline = 'middle'; x.direction = 'rtl'; x.font = '800 132px "Almarai", Tahoma'; x.fillText('أهلاً بك في اي براند', W/2, 190);
+        x.fillStyle = PLUM; x.direction = 'ltr'; x.font = '700 58px Arial, sans-serif'; x.fillText('iBRAND Pharmacy', W/2, 330); })
+    ].map(t => new THREE.MeshBasicMaterial({map:t, toneMapped:false}));
+    const PWd = 4.6, PHt = PWd*448/1024, rim = std('#ffffff', {roughness:.4}); let bi = 0;
+    const board = (x, y, z, yaw) => { const g = new THREE.Group(); g.position.set(x, y, z); g.rotation.y = yaw;
+      const fr = new THREE.Mesh(new THREE.BoxGeometry(PWd + .14, PHt + .14, .05), rim); fr.position.z = .025; g.add(fr);
+      const fc = new THREE.Mesh(new THREE.PlaneGeometry(PWd, PHt), boards[bi++ % boards.length]); fc.position.z = .056; g.add(fc); scene.add(g); };
+    const yB = Math.min(H - .55 - PHt/2, 4.65);
+    if (yB - PHt/2 > 3.5){
+      [-1, 1].forEach(sd => { for (let z = zA0 - 6.5; z > zB + 3.2; z -= 9) board(sd*(Wx - .02), yB, z, sd < 0 ? Math.PI/2 : -Math.PI/2); });
+      [-1, 1].forEach(sd => board(sd*Math.max(5.2, fw*.17), Math.min(yB + .15, H - .6 - PHt/2), zB + .02, 0));
+    }
+  }
+
+  // ---------- step counter: steps walked and time in the store; rewards unlock with time ----------
+  const REWARDS = [{min:2, icon:'🥉', name:'المكافأة البرونزية'}, {min:5, icon:'🥈', name:'المكافأة الفضية'}, {min:10, icon:'🥇', name:'المكافأة الذهبية'}];
+  const stepSt = {dist:0, sec:0, got:0};
+  try { const sv = JSON.parse(localStorage.getItem('ib3d-steps') || 'null'); if (sv && sv.day === new Date().toDateString()){ stepSt.dist = +sv.dist || 0; stepSt.sec = +sv.sec || 0; stepSt.got = +sv.got || 0; } } catch(e){}
+  let stepLast = null, stepClock = performance.now(), stepUi = 0, stepSave = 0;
+  const mmss = t => Math.floor(t / 60) + ':' + String(Math.floor(t % 60)).padStart(2, '0');
+  function stepPaint(){
+    const nx = REWARDS[stepSt.got], pv = stepSt.got ? REWARDS[stepSt.got - 1] : null, a = pv ? pv.min*60 : 0;
+    $('#stN').textContent = Math.floor(stepSt.dist / .7).toLocaleString('en-US'); $('#stT').textContent = mmss(stepSt.sec);
+    $('#stM').textContent = pv ? pv.icon : '';
+    $('#stB').style.width = (nx ? Math.max(0, Math.min(100, (stepSt.sec - a) / (nx.min*60 - a) * 100)) : 100) + '%';
+    $('#stL').textContent = nx ? 'باقي ' + mmss(Math.max(0, nx.min*60 - stepSt.sec)) + ' على ' + nx.name : 'حصلت على كل مكافآت اليوم 🎉';
+  }
+  function stepTick(){
+    const now = performance.now(), dt = Math.min(1, (now - stepClock) / 1000); stepClock = now; if (document.hidden) return;
+    const p = camera.position;
+    if (stepLast && !droneMode && !flight){ const d = Math.hypot(p.x - stepLast.x, p.z - stepLast.z); if (d < 1.2) stepSt.dist += d; }
+    stepLast = {x:p.x, z:p.z}; stepSt.sec += dt;
+    const nx = REWARDS[stepSt.got];
+    if (nx && stepSt.sec >= nx.min*60){ stepSt.got++; toast('🎁 ' + nx.icon + ' فتحت ' + nx.name + '!'); stepUi = 0; stepSave = 0; }
+    if (now > stepUi){ stepUi = now + 500; stepPaint(); }
+    if (now > stepSave){ stepSave = now + 5000; try { localStorage.setItem('ib3d-steps', JSON.stringify({day:new Date().toDateString(), dist:Math.round(stepSt.dist), sec:Math.round(stepSt.sec), got:stepSt.got})); } catch(e){} }
+  }
+  $('#steps').addEventListener('click', () => { const nx = REWARDS[stepSt.got]; toast(nx ? 'تجوّل في الصيدلية: ' + nx.name + ' بعد ' + nx.min + ' دقائق' : 'حصلت على كل مكافآت اليوم 🎉'); });
+  stepPaint();
 
