@@ -98,7 +98,8 @@ class Signs:
             t = nt.nodes.new('ShaderNodeTexImage'); t.image = bpy.data.images.load(os.path.join(TEX, img + '.png'))
             nt.links.new(t.outputs['Color'], b.inputs['Base Color']); nt.links.new(t.outputs['Color'], b.inputs['Emission Color'])
             b.inputs['Emission Strength'].default_value = .22; b.inputs['Roughness'].default_value = .45
-            if img.startswith('floor_'): nt.links.new(t.outputs['Alpha'], b.inputs['Alpha']); b.inputs['Emission Strength'].default_value = 0
+            if img.startswith('floor_') or img == 'logo': nt.links.new(t.outputs['Alpha'], b.inputs['Alpha'])
+            if img.startswith('floor_'): b.inputs['Emission Strength'].default_value = 0
             me.materials.append(m); me.update()
             scene.collection.objects.link(bpy.data.objects.new('SIGN_' + img, me))
 signs = Signs()
@@ -234,7 +235,7 @@ def first_row(zs, z): return zs.index(z)
 for side, zs in ((-1, LEFT), (1, RIGHT)):
     for z in dict.fromkeys(zs):
         r0 = first_row(zs, z); n = zs.count(z)
-        yy = Y0 + r0 * PITCH - PITCH / 2 - (.9 if r0 == 0 else 0)
+        yy = Y0 + r0 * PITCH - PITCH / 2
         for xc in (side * 4.0, side * 12.0):
             signs.plane('zone_' + z, (xc, yy, 3.25), (0, 1, 0), 3.2, 1.2)
             signs.plane('zone_' + z, (xc, yy + .03, 3.25), (0, -1, 0), 3.2, 1.2)
