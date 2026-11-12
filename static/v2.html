@@ -46,6 +46,7 @@ button{font-family:var(--font)}
   background:rgba(59,29,54,.82);color:#fff;font-size:13px;border-radius:999px;padding:9px 16px;white-space:nowrap;pointer-events:none;transition:opacity .6s}
 .hint.gone{opacity:0}
 
+.ofchip{display:block;width:fit-content;margin-top:6px;padding:4px 12px;border-radius:999px;background:#e0202e;color:#fff;font-size:14px;font-weight:800;direction:rtl}
 .goCart{position:fixed;z-index:6;left:50%;transform:translateX(-50%);bottom:calc(env(safe-area-inset-bottom,0px) + 74px);white-space:nowrap;
   display:flex;align-items:center;gap:9px;border:0;border-radius:999px;background:var(--pink);color:#fff;
   font:800 14.5px var(--font);padding:12px 22px;box-shadow:0 12px 28px rgba(201,81,139,.42);cursor:pointer}
@@ -427,6 +428,8 @@ function build(renderer){
   const tmpC = new THREE.Color();
   const svcTargets = [], doorTargets = [];
   const AOR = Bucket(true), AOL = Bucket(true), STICK = Bucket(true), PTAG = Bucket(false), PDIG = Bucket(true);
+  // offer wobblers (1+1, 2+1, 1+50% ...): one small sheet of labels, a slot per distinct offer
+  const OFFB = Bucket(true), OFFL = [], OFFC = 8, OFFR = 4;
   const C_WHITE = [1,1,1];
 
   // merged geometry buckets: quads in world space with vertex colours (+ optional uv)
@@ -1017,6 +1020,11 @@ function build(renderer){
     xr = numRun(a, n, hh, xr, yb + big - small, small, zz);     // halalas: small and raised
     numRun(a, n, ri, xr, yb, big, zz);                          // riyals: big
     nameOnTag(a, n, cx, top - .007 - NH + .001, zz, tw - .006, NH - .002, p);
+    if (p.of){                                                   // the offer stands proud of the shelf edge, like a real wobbler
+      let i = OFFL.indexOf(p.of); if (i < 0 && OFFL.length < OFFC * OFFR){ i = OFFL.length; OFFL.push(p.of); }
+      if (i >= 0){ const s = .062, wx = cx + tw/2 - s*.42, wy = top - .004, u0 = (i % OFFC) / OFFC, u1 = u0 + 1/OFFC, v1 = 1 - ((i / OFFC) | 0) / OFFR, v0 = v1 - 1/OFFR;
+        quad(OFFB, [a(wx-s/2,wy,z+.006), a(wx+s/2,wy,z+.006), a(wx+s/2,wy+s,z+.006), a(wx-s/2,wy+s,z+.006)], n, C_WHITE, null, [u0,v0, u1,v0, u1,v1, u0,v1]); }
+    }
     if (sale){
       const os = p.regular.toFixed(2), oc = .0135 * sc, ow = runW(os, oc), ox = cx + ow/2, oy = top - .006 - NH - .005 - oc;
       numRun(a, n, os, ox, oy, oc, zz);
@@ -1640,6 +1648,14 @@ function build(renderer){
     if (AOL.idx.length){ const m = meshOf(AOL, aoMat(aoLin, .28)); m.renderOrder = 1; scene.add(m); }
     if (AOR.idx.length){ const m = meshOf(AOR, aoMat(aoRad, .36)); m.renderOrder = 1; scene.add(m); }
     if (PTAG.idx.length) scene.add(meshOf(PTAG, new THREE.MeshBasicMaterial({vertexColors:true, toneMapped:false})));
+    if (OFFB.idx.length){
+      const offTex = canvasTex(OFFC * 128, OFFR * 128, (x, W, Hh) => { x.clearRect(0, 0, W, Hh); x.textAlign = 'center'; x.textBaseline = 'middle';
+        OFFL.forEach((t, i) => { const cx = (i % OFFC) * 128 + 64, cy = ((i / OFFC) | 0) * 128 + 64;
+          x.fillStyle = '#e0202e'; x.beginPath(); x.arc(cx, cy, 60, 0, Math.PI * 2); x.fill(); x.strokeStyle = '#ffffff'; x.lineWidth = 5; x.beginPath(); x.arc(cx, cy, 53, 0, Math.PI * 2); x.stroke();
+          x.fillStyle = '#ffe14a'; x.direction = 'rtl'; x.font = '800 24px "Almarai", Tahoma, sans-serif'; x.fillText('عرض', cx, cy - 27);
+          x.fillStyle = '#ffffff'; x.direction = 'ltr'; let fs = 44; do { x.font = '800 ' + fs + 'px Arial, sans-serif'; fs -= 2; } while (x.measureText(t).width > 94 && fs > 16); x.fillText(t, cx, cy + 12); }); });
+      const m = meshOf(OFFB, new THREE.MeshBasicMaterial({map:offTex, transparent:true, alphaTest:.3, toneMapped:false})); m.renderOrder = 3; scene.add(m);
+    }
     if (PDIG.idx.length){ const m = meshOf(PDIG, new THREE.MeshBasicMaterial({map:glyphTex, transparent:true, alphaTest:.15, toneMapped:false})); scene.add(m); }
     if (STICK.idx.length){
       const st = canvasTex(128, 128, (x,w,h)=>{ x.fillStyle='#d92b3a'; x.beginPath(); for (let i=0;i<24;i++){ const r = i%2 ? 52 : 63, a = i/24*Math.PI*2; x.lineTo(w/2+Math.cos(a)*r, h/2+Math.sin(a)*r); } x.closePath(); x.fill();
@@ -1728,7 +1744,9 @@ function build(renderer){
     const pr = $('#pPrice');
     if (typeof p.price === 'number'){ pr.innerHTML = '';
       if (p.onSale && p.regular > p.price){ const st = document.createElement('s'); st.textContent = 'قبل ' + money(p.regular); pr.append(st); }
-      const [ri, hh] = p.price.toFixed(2).split('.'), sm = document.createElement('small'); sm.textContent = '.' + hh; pr.append(ri, sm, ' ر.س'); pr.hidden = false; } else pr.hidden = true;
+      const [ri, hh] = p.price.toFixed(2).split('.'), sm = document.createElement('small'); sm.textContent = '.' + hh; pr.append(ri, sm, ' ر.س');
+      if (p.of){ const b = document.createElement('span'); b.className = 'ofchip'; b.textContent = 'عرض ' + p.of + (p.oe ? ' • حتى ' + p.oe : ''); pr.append(b); }
+      pr.hidden = false; } else pr.hidden = true;
     $('#pDesc').hidden = true; $('#pList').hidden = true; $('#pBuy').hidden = false;
     $('#pCta').href = p.url; $('#pCta').textContent = 'عرض المنتج في المتجر ←';
     const sub = $('#pSub'); sub.href = sec.url || STORE; sub.textContent = 'تسوّق ' + (sec.name || 'المتجر'); sub.hidden = !sec.main;

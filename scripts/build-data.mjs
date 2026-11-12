@@ -531,6 +531,20 @@ async function main(){
   const missing = [...want].filter(([id]) => !brands[id]).map(([id, name]) => name).sort((a, b) => a.localeCompare(b, 'ar'));
   console.log('MISSING LOGOS ' + missing.length + ': ' + missing.join(' | '));
   console.log('ON SHELVES', result.counts.onShelves, 'hidden Rx', rx.size, 'skipped hidden/out-of-stock', skippedUnavail);
+  // offers: every running multi-buy offer has its own category in the store, named like "ميدو 1+1 (5/12/2026)".
+  // Products in it carry the offer (of) and its last day (oe), so the shelves can flag them.
+  try {
+    const leaves = []; const rec = n => { const subs = n.sub_categories || []; if (!subs.length) leaves.push(n); else subs.forEach(rec); }; tree.forEach(rec);
+    const offer = new Map();
+    for (const n of leaves){
+      const m = /(\d+)\s*\+\s*(\d+)\s*(%?)/.exec(n.name || ''); if (!m || n.id_ === undefined) continue;
+      const e = /\((\d{1,2}\/\d{1,2})(?:\/\d{2,4})?\)/.exec(n.name);
+      for (const p of await listAll(catQuery(n.id_))) if (!offer.has(String(p.id))) offer.set(String(p.id), { of: m[1] + '+' + m[2] + m[3], oe: e ? e[1] : '' });
+    }
+    let marked = 0;
+    for (const sec of Object.values(result.sections)) for (const p of sec.products || []){ const o = offer.get(String(p.id)); if (o){ p.of = o.of; if (o.oe) p.oe = o.oe; marked++; } }
+    console.log('offer products', offer.size, 'marked on shelves', marked, 'labels', [...new Set([...offer.values()].map(o => o.of))].join(' '));
+  } catch (e){ console.log('offers skipped:', e.message); }
   await fs.writeFile(`${OUT}/data/products.json`, JSON.stringify(result));
 }
 
