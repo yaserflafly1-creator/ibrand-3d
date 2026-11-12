@@ -11,23 +11,31 @@ bpy.ops.wm.open_mainfile(filepath=blend)
 sc = bpy.context.scene
 os.makedirs(out, exist_ok=True)
 
-# camera path: (time s, position, look-at). In from the door, up the main walkway, a turn into the wellness aisle.
+# camera path: (time s, position, look-at). In from the door, up the main walkway, through a beauty aisle,
+# along the cross aisle, back through a wellness aisle, and up to the brand wall at the far end.
 KEYS = [
     (0.0,  (0.0, 0.6, 1.65),   (0.0, 14.0, 1.9)),
-    (3.0,  (0.0, 7.5, 1.65),   (0.6, 20.0, 1.6)),
-    (5.5,  (0.0, 14.0, 1.62),  (5.0, 22.0, 1.45)),
-    (7.5,  (0.6, 18.3, 1.6),   (8.0, 19.0, 1.3)),
-    (10.0, (5.2, 18.6, 1.55),  (12.0, 18.9, 1.25)),
-    (12.0, (7.6, 18.6, 1.55),  (14.0, 20.2, 1.2)),
+    (4.0,  (0.0, 5.6, 1.65),   (0.3, 20.0, 1.75)),
+    (7.0,  (0.2, 8.2, 1.62),   (6.0, 8.5, 1.35)),
+    (11.0, (4.6, 8.3, 1.58),   (10.0, 8.5, 1.25)),
+    (14.0, (7.9, 8.6, 1.6),    (8.1, 16.0, 1.5)),
+    (18.0, (8.0, 16.6, 1.62),  (8.1, 26.0, 1.55)),
+    (21.0, (7.8, 21.1, 1.6),   (2.0, 21.4, 1.3)),
+    (25.0, (3.0, 21.3, 1.58),  (-4.0, 21.6, 1.4)),
+    (28.0, (0.2, 21.9, 1.62),  (0.0, 32.0, 1.9)),
+    (33.0, (0.0, 30.5, 1.65),  (0.0, 39.5, 2.9)),
+    (36.0, (0.0, 34.0, 1.7),   (0.0, 40.0, 3.6)),
 ]
-def smooth(t): return t * t * (3 - 2 * t)
+def cr(p0, p1, p2, p3, t):
+    t2, t3 = t * t, t * t * t
+    return 0.5 * ((2 * p1) + (-p0 + p2) * t + (2 * p0 - 5 * p1 + 4 * p2 - p3) * t2 + (-p0 + 3 * p1 - 3 * p2 + p3) * t3)
 def at(t):
-    for i in range(len(KEYS) - 1):
-        t0, p0, l0 = KEYS[i]; t1, p1, l1 = KEYS[i + 1]
-        if t <= t1:
-            k = smooth(max(0, min(1, (t - t0) / (t1 - t0))))
-            return Vector(p0).lerp(Vector(p1), k), Vector(l0).lerp(Vector(l1), k)
-    return Vector(KEYS[-1][1]), Vector(KEYS[-1][2])
+    n = len(KEYS)
+    for i in range(n - 1):
+        if t <= KEYS[i + 1][0] or i == n - 2:
+            k = max(0, min(1, (t - KEYS[i][0]) / (KEYS[i + 1][0] - KEYS[i][0])))
+            a, b, c, d = KEYS[max(0, i - 1)], KEYS[i], KEYS[i + 1], KEYS[min(n - 1, i + 2)]
+            return cr(Vector(a[1]), Vector(b[1]), Vector(c[1]), Vector(d[1]), k), cr(Vector(a[2]), Vector(b[2]), Vector(c[2]), Vector(d[2]), k)
 
 cam_d = bpy.data.cameras.new('CAM_walk'); cam_d.lens = 20; cam_d.sensor_width = 36
 cam = bpy.data.objects.new('CAM_walk', cam_d); sc.collection.objects.link(cam); sc.camera = cam
