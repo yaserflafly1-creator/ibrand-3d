@@ -95,10 +95,10 @@ class Signs:
             uvl = me.uv_layers.new(name='uv')
             for i, l in enumerate(me.loops): uvl.data[i].uv = q['uv'][l.vertex_index]
             m = bpy.data.materials.new('sign_' + img); m.use_nodes = True; nt = m.node_tree; b = nt.nodes['Principled BSDF']
-            t = nt.nodes.new('ShaderNodeTexImage'); t.image = bpy.data.images.load(os.path.join(TEX, img + '.png'))
+            t = nt.nodes.new('ShaderNodeTexImage'); t.image = bpy.data.images.load(os.path.join(ATLAS, img[6:] + '.webp') if img.startswith('atlas:') else os.path.join(TEX, img + '.png'))
             nt.links.new(t.outputs['Color'], b.inputs['Base Color']); nt.links.new(t.outputs['Color'], b.inputs['Emission Color'])
-            b.inputs['Emission Strength'].default_value = .22; b.inputs['Roughness'].default_value = .45
-            if img.startswith('floor_') or img == 'logo': nt.links.new(t.outputs['Alpha'], b.inputs['Alpha'])
+            b.inputs['Emission Strength'].default_value = 1.6 if img == 'screen' else (.05 if img.startswith('atlas:') else .22); b.inputs['Roughness'].default_value = .45
+            if img.startswith('floor_') or img == 'logo' or img.startswith('atlas:'): nt.links.new(t.outputs['Alpha'], b.inputs['Alpha'])
             if img.startswith('floor_'): b.inputs['Emission Strength'].default_value = 0
             me.materials.append(m); me.update()
             scene.collection.objects.link(bpy.data.objects.new('SIGN_' + img, me))
@@ -106,21 +106,36 @@ signs = Signs()
 fix = Builder('FIX_gondolas')
 prod = Builder('PROD_boxes')
 
-def fill_shelf(x0, x1, yf, yb, z, gap, facing):
-    """row of product boxes on a shelf; yf = front edge, yb = back edge (facing = -1 if front is at lower y)"""
-    x = x0 + .015
-    depth = abs(yb - yf) - .03
+# real product photos: the store's own photo sheets (cut-outs, 21 per row), one card per pack, three deep
+import json
+ATLAS = os.path.join(os.path.dirname(TEX), '..', 'atlas')
+ZSEC = {'beauty': ['skin', 'makeup', 'hair'], 'care': ['daily', 'hair'], 'kids': ['baby', 'milk'], 'well': ['vit'], 'rx': ['meds', 'devices']}
+_sheet = {}
+def sheet(name):
+    if name not in _sheet:
+        from PIL import Image
+        w, h = Image.open(os.path.join(ATLAS, name + '.webp')).size
+        t = w / 21; _sheet[name] = {'rows': int(round(h / t)), 'th': t / h, 'i': random.randrange(0, 40)}
+    return _sheet[name]
+_zi = {}
+def next_tile(zone):
+    """the next product photo for this department: (image key, uv rect)"""
+    secs = ZSEC[zone]; k = _zi.get(zone, 0); _zi[zone] = k + 1
+    name = secs[(k // 60) % len(secs)]; sh = sheet(name); i = sh['i'] % (21 * sh['rows']); sh['i'] += 1
+    c, r = i % 21, i // 21
+    return 'atlas:' + name, (c / 21, 1 - (r + 1) * sh['th'], (c + 1) / 21, 1 - r * sh['th'])
+def fill_cards(zone, u0, u1, z, gap, place, fwd):
+    """a shelf of real products; place(u, depth) -> point at distance u along the shelf and depth behind its front edge"""
+    u = u0 + .02
     while True:
-        w = random.choice([.05, .06, .07, .08, .09, .1, .12, .14])
-        h = min(gap - .05, random.uniform(.09, .30))
-        n = random.choice([1, 2, 2, 3, 3, 4])           # facings of the same product
-        m = random.choice(PM[:6]) if random.random() < .45 else random.choice(PM)
-        for _ in range(n):
-            if x + w > x1 - .015: return
-            ya, yb2 = (yf + .012, yf + .012 + depth) if facing < 0 else (yf - .012 - depth, yf - .012)
-            prod.box(x, ya, z, x + w - .006, yb2, z + h, m)
-            x += w
-        x += random.choice([0, 0, .004])
+        h = min(gap - .04, random.uniform(.15, .3)); w = h * .74
+        img, uv = next_tile(zone)
+        for _ in range(random.choice([1, 2, 2, 3])):
+            if u + w > u1 - .01: return
+            for L in range(3):
+                px, py = place(u + w / 2, .03 + L * .075)
+                signs.plane(img, (px, py, z + h / 2), fwd, h, h, uv)
+            u += w
 
 def gondola_bay(x, y, zone):
     """double-sided bay: x = left edge, y = centre line"""
@@ -139,7 +154,7 @@ def gondola_bay(x, y, zone):
             fix.box(x, min(y, y + s * hd), z - .02, x + BW, max(y, y + s * hd), z, M_SHELF)
             ye = y + s * hd
             fix.box(x, min(ye, ye - s * .004), z - .045, x + BW, max(ye, ye - s * .004) + (0 if s > 0 else 0), z - .0, M_STRIP)
-            fill_shelf(x, x + BW, ye, y + s * .015, z, gap, -1 if s < 0 else 1)
+            fill_cards(zone, x, x + BW, z, gap, lambda u, dp, ye=ye, s=s: (u, ye - s * dp), (0, -s, 0))
 
 def run(x0, bays, y, zone):
     for b in range(bays): gondola_bay(x0 + b * BW, y, zone)
@@ -162,16 +177,8 @@ def wall_bay(a, fixed, axis, sgn, zone):
     for i, z in enumerate(WALL_LEVELS):
         gap = (WALL_LEVELS[i + 1] if i + 1 < len(WALL_LEVELS) else WALL_H) - z
         bx(a, a + BW, .03, WALL_D, z - .02, z, M_SHELF)
-        u = a + .015
-        while True:
-            w = random.choice([.05, .06, .07, .08, .1, .12, .14]); h = min(gap - .05, random.uniform(.09, .26))
-            m = random.choice(PM[:6]) if random.random() < .45 else random.choice(PM)
-            stop = False
-            for _ in range(random.choice([1, 2, 3, 3, 4])):
-                if u + w > a + BW - .015: stop = True; break
-                bx(u, u + w - .006, .05, WALL_D - .02, z, z + h, m, prod)
-                u += w
-            if stop: break
+        if axis == 'x': fill_cards(zone, a, a + BW, z, gap, lambda u, dp: (u, fixed + sgn * (WALL_D - dp)), (0, -sgn, 0))
+        else: fill_cards(zone, a, a + BW, z, gap, lambda u, dp: (fixed + sgn * (WALL_D - dp), u), (-sgn, 0, 0))
 
 # ---------- floor gondolas: 2 wings x 2 runs x 12 rows ----------
 ROWS, Y0, PITCH, BAYS = 12, 7.0, GD + AISLE, 5
@@ -248,6 +255,11 @@ for i, bx in enumerate((-10.5, 0, 10.5)):
 for lx in (-5.25, 5.25): signs.plane('logo', (lx, D - .03, 3.8), (0, 1, 0), 1.3, 1.3)
 for sx, wall in ((-1, -W / 2 + .03), (1, W / 2 - .03)):
     for ly in (10.0, 20.0, 30.0): signs.plane('logo', (wall, ly, 3.8), (sx, 0, 0), 1.3, 1.3)
+M_BLACK = mat('screen_frame', '#101014', .3)
+for sx, wall in ((-1, -W / 2 + .03), (1, W / 2 - .03)):
+    for ly in (15.0, 25.0, 35.0):
+        signs.plane('screen', (wall - sx * .035, ly, 3.8), (sx, 0, 0), 2.2, 1.24)
+        shell.box(min(wall, wall - sx * .03), ly - 1.16, 3.13, max(wall, wall - sx * .03), ly + 1.16, 4.47, M_BLACK)
 for cx in (8.5, -8.5):
     signs.plane('cashier', (cx, 2.19, .55), (0, 1, 0), 2.4, .6); signs.plane('cashier', (cx, 2.91, .55), (0, -1, 0), 2.4, .6)
     signs.plane('logo', (cx, .06, 3.8), (0, -1, 0), 1.3, 1.3)

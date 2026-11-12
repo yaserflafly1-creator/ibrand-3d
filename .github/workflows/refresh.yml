@@ -55,6 +55,9 @@ jobs:
           mkdir -p site
           cp index.html .nojekyll site/
           cp -r static/. site/ 2>/dev/null || true
+          # the plan page is the main store; the earlier store stays reachable at /classic.html
+          cp site/index.html site/classic.html
+          cp site/plan.html site/index.html
           echo "${{ github.run_id }}" > site/build.txt
       - name: Pull products from the store
         run: node scripts/build-data.mjs

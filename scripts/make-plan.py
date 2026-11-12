@@ -25,8 +25,7 @@ def region(start, end, new):
     s = s[:a] + new + '\n' + s[b:]
 
 # page identity
-rep('<title>صيدلية اي براند 3D</title>', '<title>صيدلية اي براند 3D — مخطط الفرع (تجريبي)</title>')
-rep('جملة الصيدليات • جولة ثلاثية الأبعاد', 'مخطط الفرع الجديد • نسخة تجريبية')
+# this is the main page now (the workflow publishes it as the site's index); title and tagline stay as on the engine page
 
 # zones as sections (names, colours come from the layout code)
 rep("  {key:'quick', name:'مشتريات سريعة',",

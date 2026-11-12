@@ -17,6 +17,7 @@ const blob = (cols) => `<div style="position:absolute;left:212px;top:76px;width:
 items.push(['board_1', 1024, 512, `<div style="position:relative;width:1024px;height:512px;background:#fff;${F}">${blob(['#c0669e','#8e4a8f','#d98bb0'])}<div style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center;color:#fff;font-size:170px;font-weight:800" dir="rtl">لجمالك</div></div>`]);
 items.push(['board_3', 1024, 512, `<div style="width:1024px;height:512px;background:#fff;display:flex;flex-direction:column;align-items:center;justify-content:center;${F}"><div style="font-size:190px;font-weight:800;color:#8a8a8a;line-height:1.25" dir="rtl">صحتك</div><div style="font-size:110px;font-weight:800;color:#1f6b45;font-family:Arial">Health</div></div>`]);
 // board_2 is the official wordmark (made from the logo file, not drawn here)
+items.push(['screen', 1024, 576, `<div style="width:1024px;height:576px;background:linear-gradient(135deg,#f58bbb,#e0569a 55%,#1ab9b7);display:flex;flex-direction:column;align-items:center;justify-content:center;color:#fff;${F}" dir="rtl"><div style="font-size:120px;font-weight:800;line-height:1.3">أهلاً بك</div><div style="font-size:64px;font-weight:700">في صيدليات اي براند</div></div>`]);
 items.push(['cashier', 1024, 256, `<div style="width:1024px;height:256px;background:#3b1d36;display:flex;align-items:center;justify-content:center;color:#fff;font-size:120px;font-weight:800;${F}" dir="rtl">الكاشير</div>`]);
 (async () => {
   const br = await chromium.launch(); const pg = await br.newPage({deviceScaleFactor:1});
