@@ -130,6 +130,22 @@ rep("meshOf(STRUCT, new THREE.MeshStandardMaterial({vertexColors:true, roughness
 rep("x.fillStyle='#d9dde0'; x.fillRect(0,0,w,h); x.fillStyle='#8f969b';", "x.fillStyle='#f3f4f6'; x.fillRect(0,0,w,h); x.fillStyle='#e3e5e9';")
 rep("new THREE.MeshStandardMaterial({map:pegTex, roughness:.5, metalness:.35, envMapIntensity:.6})", "new THREE.MeshStandardMaterial({map:pegTex, roughness:.55, metalness:.04, envMapIntensity:.4})")
 rep("new THREE.HemisphereLight('#fff3e4', '#d9c7b8', 0.45)", "new THREE.HemisphereLight('#ffffff', '#e4dcd8', 0.55)")
+# --- closer to the Blender render: neutral grey-white tiles, flat ceiling with crisp light panels, deeper soft shade
+rep("g.addColorStop(0,'#eee3d6'); g.addColorStop(1,'#e6d9ca');", "g.addColorStop(0,'#e4e2e0'); g.addColorStop(1,'#dcdad8');")
+rep("x.strokeStyle='rgba(150,128,110,.6)'; x.lineWidth=4;", "x.strokeStyle='rgba(150,148,150,.55)'; x.lineWidth=3;")
+rep("const wallMat = std('#efe6dd',{roughness:.9, envMapIntensity:.4});", "const wallMat = std('#f1efee',{roughness:.9, envMapIntensity:.4});")
+rep("x.fillStyle='#f7f5f4'; x.fillRect(0,0,w,h); for (let i=0;i<500;i++){ x.fillStyle=`rgba(120,110,115,${Math.random()*.08})`; x.fillRect(Math.random()*w, Math.random()*h, 2, 2); } x.strokeStyle='#d9d3d6'; x.lineWidth=6; x.strokeRect(0,0,w,h);",
+    "x.fillStyle='#e6e5e5'; x.fillRect(0,0,w,h);")
+rep("    for (let x=-Wx+1.3; x<=Wx-1.2; x+=1.8) for (let z=zB+1.2; z<=zF-1; z+=1.8){\n      if (Math.hypot(x, z-ZP) < 2.7) continue;\n      ((Math.round(x/1.8) % 3 === 0) && (Math.round(z/1.8) % 3 === 0) ? panels : spots).push([x, z]);\n    }",
+    "    for (let x=-Wx+2.2; x<=Wx-1.6; x+=3.6) for (let z=zB+1.6; z<=zF-1; z+=2.6){ if (Math.hypot(x, z-ZP) < 2.7) continue; panels.push([x, z]); }")
+rep("const inst = (geo, mat, list, y, s=1, up=false) => { const im", "const inst = (geo, mat, list, y, s=1, up=false) => { if (!list.length) return; const im")
+rep("new THREE.DirectionalLight('#ffe8d0', 0.8)", "new THREE.DirectionalLight('#ffffff', 0.72)")
+rep("meshOf(AOL, aoMat(aoLin, .28))", "meshOf(AOL, aoMat(aoLin, .34))")
+rep("meshOf(AOR, aoMat(aoRad, .36))", "meshOf(AOR, aoMat(aoRad, .46))")
+# the hard strip of shade at the foot of each unit gives way to the soft floor shading drawn from the layout
+rep("    { const z0 = d/2 + .32, z1 = d/2 - .02; quad(AOL, [F.at(x0-.05, .002, z0), F.at(x0+Wd+.05, .002, z0), F.at(x0+Wd+.05, .002, z1), F.at(x0-.05, .002, z1)], [0,1,0], C_WHITE, null, [0,0, 1,0, 1,1, 0,1]); }", "")
+
+
 
 
 # step counter (HUD pill under the top bar) + its tick in the frame loop

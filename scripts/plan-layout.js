@@ -348,7 +348,7 @@
   SEG.forEach(sg => {
     const z = Z[sg.zid], sec = SEC[z.key];
     const z0 = sg.z0, z1 = sg.z1;
-    const tint = new THREE.Mesh(new THREE.PlaneGeometry(Wx - SP + .5, z0 - z1), new THREE.MeshBasicMaterial({color:z.zc.hex, transparent:true, opacity:.2, depthWrite:false, toneMapped:false}));
+    const tint = new THREE.Mesh(new THREE.PlaneGeometry(Wx - SP + .5, z0 - z1), new THREE.MeshBasicMaterial({color:z.zc.hex, transparent:true, opacity:.12, depthWrite:false, toneMapped:false}));
     tint.rotation.x = -Math.PI/2; tint.position.set(sg.w*(SP - .5 + Wx)/2, .006, (z0 + z1)/2); scene.add(tint);
     const t = canvasTex(1024, 300, (x, W, Hh) => {
       const g = x.createLinearGradient(0, 0, W, 0); g.addColorStop(0, z.zc.lo); g.addColorStop(.5, z.zc.hex); g.addColorStop(1, z.zc.lo); x.fillStyle = g; x.fillRect(0, 0, W, Hh);
@@ -372,6 +372,29 @@
       fe.position.set(sg.w*(SP + .75), .009, za); fe.renderOrder = 1; scene.add(fe); });
   });
   SEC.z_rx.focus = {pos:new THREE.Vector3(0, EYE, zC + 3.2), target:new THREE.Vector3(0, 1.5, zB)};
+
+  // ---------- soft shading on the floor, worked out from where the shelving really stands ----------
+  // (the look of the Blender render: every unit sits in a soft pool of shade, the open floor stays bright; one small texture, no per-frame cost)
+  {
+    const TW = 1024, TH = 1024, x0f = -fw/2, z0f = zMid - fl/2, kx = TW/fw, kz = TH/fl;
+    const shade = canvasTex(TW, TH, (x, W, Hh) => {
+      x.clearRect(0, 0, W, Hh);
+      // blur = draw the footprints small, then stretch them back up (works on every phone browser)
+      const cast = (div, alpha, grow) => { const c2 = document.createElement('canvas'); c2.width = Math.round(W / div); c2.height = Math.round(Hh / div);
+        const y = c2.getContext('2d'), sx = c2.width / fw, sz = c2.height / fl; y.fillStyle = 'rgba(24,14,22,' + alpha + ')';
+        OBSTACLES.forEach(o => { if (!o.fh) return; const b = o.box, ax = b.x0 + .35 - grow, bx = b.x1 - .35 + grow, az = b.z0 + .35 - grow, bz = b.z1 - .35 + grow;
+          y.fillRect((ax - x0f) * sx, (az - z0f) * sz, (bx - ax) * sx, (bz - az) * sz); });
+        x.imageSmoothingEnabled = true; x.imageSmoothingQuality = 'high'; x.drawImage(c2, 0, 0, W, Hh); };
+      cast(14, .13, .3);                                             // wide, faint: the unit blocks light from the ceiling
+      cast(6, .3, .08);                                               // tight, darker: contact shade at its foot
+      // the walls shade the edge of the floor
+      const edge = (gx0, gy0, gx1, gy1, rx, ry, rw, rh) => { const g = x.createLinearGradient(gx0, gy0, gx1, gy1); g.addColorStop(0, 'rgba(24,14,22,.2)'); g.addColorStop(1, 'rgba(24,14,22,0)'); x.fillStyle = g; x.fillRect(rx, ry, rw, rh); };
+      const ex = 1.6 * kx, ez = 1.6 * kz, wx0 = (-Wx - x0f) * kx, wx1 = (Wx - x0f) * kx, wz0 = (zB - z0f) * kz;
+      edge(wx0, 0, wx0 + ex, 0, wx0, 0, ex, Hh); edge(wx1, 0, wx1 - ex, 0, wx1 - ex, 0, ex, Hh); edge(0, wz0, 0, wz0 + ez, 0, wz0, W, ez);
+    });
+    const m = new THREE.Mesh(new THREE.PlaneGeometry(fw, fl), new THREE.MeshBasicMaterial({map:shade, transparent:true, depthWrite:false, toneMapped:false, polygonOffset:true, polygonOffsetFactor:-1}));
+    m.rotation.x = -Math.PI/2; m.position.set(0, .0035, zMid); m.renderOrder = 0; scene.add(m);
+  }
 
   // ---------- iBrand boards high on the walls ----------
   {

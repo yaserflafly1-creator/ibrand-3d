@@ -988,7 +988,7 @@ function build(renderer){
 
   // ---------- lights ----------
   scene.add(new THREE.HemisphereLight('#ffffff', '#e4dcd8', 0.55));
-  const key = new THREE.DirectionalLight('#ffe8d0', 0.8);
+  const key = new THREE.DirectionalLight('#ffffff', 0.72);
   key.position.set(6, 22, zMid + 8); key.target.position.set(0, 0, zMid); scene.add(key.target);
   if (!isSmall && !weakGPU){
     key.castShadow = true; key.shadow.mapSize.set(weakGPU ? 1024 : 2048, weakGPU ? 1024 : 2048);
@@ -1000,21 +1000,21 @@ function build(renderer){
 
   // ---------- floor, walls, ceiling ----------
   const tileTex = canvasTex(512, 512, (x,w,h)=>{
-    const g = x.createLinearGradient(0,0,w,h); g.addColorStop(0,'#eee3d6'); g.addColorStop(1,'#e6d9ca'); x.fillStyle=g; x.fillRect(0,0,w,h);
+    const g = x.createLinearGradient(0,0,w,h); g.addColorStop(0,'#e4e2e0'); g.addColorStop(1,'#dcdad8'); x.fillStyle=g; x.fillRect(0,0,w,h);
     for (let i=0;i<900;i++){ x.fillStyle=`rgba(${150+Math.random()*60|0},${140+Math.random()*50|0},${145+Math.random()*50|0},${Math.random()*.05})`; x.fillRect(Math.random()*w, Math.random()*h, 2+Math.random()*18, 1+Math.random()*3); }
-    x.strokeStyle='rgba(150,128,110,.6)'; x.lineWidth=4; x.strokeRect(1.5,1.5,w-3,h-3);
+    x.strokeStyle='rgba(150,148,150,.55)'; x.lineWidth=3; x.strokeRect(1.5,1.5,w-3,h-3);
   });
   tileTex.wrapS = tileTex.wrapT = THREE.RepeatWrapping; tileTex.repeat.set(fw/.6, fl/.6);
   const floor = new THREE.Mesh(new THREE.PlaneGeometry(fw, fl), new THREE.MeshStandardMaterial({map:tileTex, roughness:.16, metalness:.02, envMapIntensity:.75}));
   floor.rotation.x = -Math.PI/2; floor.position.z = zMid; floor.receiveShadow = true; scene.add(floor);
-  const wallMat = std('#efe6dd',{roughness:.9, envMapIntensity:.4});
+  const wallMat = std('#f1efee',{roughness:.9, envMapIntensity:.4});
   const pinkMat = std('#d64f8e',{roughness:.4});
   const backWall = new THREE.Mesh(new THREE.BoxGeometry(fw, H, .3), wallMat); backWall.position.set(0, H/2, zB-.15); backWall.receiveShadow=true; scene.add(backWall);
   [-1,1].forEach(s=>{
     const w = new THREE.Mesh(new THREE.BoxGeometry(.3, H, fl), wallMat); w.position.set(s*(Wx+.15), H/2, zMid); w.receiveShadow=true; scene.add(w);
     const fascia = new THREE.Mesh(new THREE.BoxGeometry(.14, .5, fl), pinkMat); fascia.position.set(s*(Wx-.07), H-.3, zMid); scene.add(fascia);
   });
-  const ceilTex = canvasTex(256, 256, (x,w,h)=>{ x.fillStyle='#f7f5f4'; x.fillRect(0,0,w,h); for (let i=0;i<500;i++){ x.fillStyle=`rgba(120,110,115,${Math.random()*.08})`; x.fillRect(Math.random()*w, Math.random()*h, 2, 2); } x.strokeStyle='#d9d3d6'; x.lineWidth=6; x.strokeRect(0,0,w,h); });
+  const ceilTex = canvasTex(256, 256, (x,w,h)=>{ x.fillStyle='#e6e5e5'; x.fillRect(0,0,w,h); });
   ceilTex.wrapS = ceilTex.wrapT = THREE.RepeatWrapping; ceilTex.repeat.set(fw/.6, fl/.6);
   const ceiling = new THREE.Mesh(new THREE.PlaneGeometry(fw, fl), new THREE.MeshStandardMaterial({map:ceilTex, roughness:1, envMapIntensity:.2})); ceiling.rotation.x = Math.PI/2; ceiling.position.set(0, H, zMid); scene.add(ceiling);
   // ceiling lights as instanced meshes (few draw calls even in a large store)
@@ -1023,11 +1023,8 @@ function build(renderer){
     const haloTex = canvasTex(128, 128, (x,w,h)=>{ const g=x.createRadialGradient(w/2,h/2,4,w/2,h/2,w/2); g.addColorStop(0,'rgba(255,250,240,.55)'); g.addColorStop(1,'rgba(255,250,240,0)'); x.fillStyle=g; x.fillRect(0,0,w,h); });
     const haloMat = new THREE.MeshBasicMaterial({map:haloTex, transparent:true, depthWrite:false, toneMapped:false});
     const spots = [], panels = [];
-    for (let x=-Wx+1.3; x<=Wx-1.2; x+=1.8) for (let z=zB+1.2; z<=zF-1; z+=1.8){
-      if (Math.hypot(x, z-ZP) < 2.7) continue;
-      ((Math.round(x/1.8) % 3 === 0) && (Math.round(z/1.8) % 3 === 0) ? panels : spots).push([x, z]);
-    }
-    const inst = (geo, mat, list, y, s=1, up=false) => { const im = new THREE.InstancedMesh(geo, mat, list.length), m4 = new THREE.Matrix4(), q = new THREE.Quaternion().setFromEuler(new THREE.Euler(up ? -Math.PI/2 : Math.PI/2,0,0)); list.forEach(([x,z],i)=>{ m4.compose(new THREE.Vector3(x,y,z), q, new THREE.Vector3(s,s,s)); im.setMatrixAt(i, m4); }); scene.add(im); };
+    for (let x=-Wx+2.2; x<=Wx-1.6; x+=3.6) for (let z=zB+1.6; z<=zF-1; z+=2.6){ if (Math.hypot(x, z-ZP) < 2.7) continue; panels.push([x, z]); }
+    const inst = (geo, mat, list, y, s=1, up=false) => { if (!list.length) return; const im = new THREE.InstancedMesh(geo, mat, list.length), m4 = new THREE.Matrix4(), q = new THREE.Quaternion().setFromEuler(new THREE.Euler(up ? -Math.PI/2 : Math.PI/2,0,0)); list.forEach(([x,z],i)=>{ m4.compose(new THREE.Vector3(x,y,z), q, new THREE.Vector3(s,s,s)); im.setMatrixAt(i, m4); }); scene.add(im); };
     inst(new THREE.PlaneGeometry(1.18,.58), panelMat, panels, H-.005); inst(new THREE.PlaneGeometry(2.4,1.4), haloMat, panels, H-.008);
     inst(new THREE.CircleGeometry(.11, 20), panelMat, spots, H-.006); inst(new THREE.PlaneGeometry(.9,.9), haloMat, spots, H-.009);
     // reflections of the lights in the polished floor
@@ -1239,7 +1236,7 @@ function build(renderer){
       { const z = -d/2 + .057; quad(AOL, [F.at(x0+.02, y-.16, z), F.at(x0+Wd-.02, y-.16, z), F.at(x0+Wd-.02, y-.012, z), F.at(x0+.02, y-.012, z)], F.n(0,0,1), C_WHITE, null, [0,0, 1,0, 1,1, 0,1]); }
     });
     // ambient occlusion on the floor along the kick plate
-    { const z0 = d/2 + .32, z1 = d/2 - .02; quad(AOL, [F.at(x0-.05, .002, z0), F.at(x0+Wd+.05, .002, z0), F.at(x0+Wd+.05, .002, z1), F.at(x0-.05, .002, z1)], [0,1,0], C_WHITE, null, [0,0, 1,0, 1,1, 0,1]); }
+
     if (opts.endPanels !== false) [-1,1].forEach(s => {
       boxInto(STRUCT, F, s*(Wd/2), G.h/2, 0, .025, G.h, d, '#dfe3e6');
       // designed graphic on the outside of every end panel: the section's name
@@ -1509,7 +1506,7 @@ function build(renderer){
   SEG.forEach(sg => {
     const z = Z[sg.zid], sec = SEC[z.key];
     const z0 = sg.z0, z1 = sg.z1;
-    const tint = new THREE.Mesh(new THREE.PlaneGeometry(Wx - SP + .5, z0 - z1), new THREE.MeshBasicMaterial({color:z.zc.hex, transparent:true, opacity:.2, depthWrite:false, toneMapped:false}));
+    const tint = new THREE.Mesh(new THREE.PlaneGeometry(Wx - SP + .5, z0 - z1), new THREE.MeshBasicMaterial({color:z.zc.hex, transparent:true, opacity:.12, depthWrite:false, toneMapped:false}));
     tint.rotation.x = -Math.PI/2; tint.position.set(sg.w*(SP - .5 + Wx)/2, .006, (z0 + z1)/2); scene.add(tint);
     const t = canvasTex(1024, 300, (x, W, Hh) => {
       const g = x.createLinearGradient(0, 0, W, 0); g.addColorStop(0, z.zc.lo); g.addColorStop(.5, z.zc.hex); g.addColorStop(1, z.zc.lo); x.fillStyle = g; x.fillRect(0, 0, W, Hh);
@@ -1533,6 +1530,29 @@ function build(renderer){
       fe.position.set(sg.w*(SP + .75), .009, za); fe.renderOrder = 1; scene.add(fe); });
   });
   SEC.z_rx.focus = {pos:new THREE.Vector3(0, EYE, zC + 3.2), target:new THREE.Vector3(0, 1.5, zB)};
+
+  // ---------- soft shading on the floor, worked out from where the shelving really stands ----------
+  // (the look of the Blender render: every unit sits in a soft pool of shade, the open floor stays bright; one small texture, no per-frame cost)
+  {
+    const TW = 1024, TH = 1024, x0f = -fw/2, z0f = zMid - fl/2, kx = TW/fw, kz = TH/fl;
+    const shade = canvasTex(TW, TH, (x, W, Hh) => {
+      x.clearRect(0, 0, W, Hh);
+      // blur = draw the footprints small, then stretch them back up (works on every phone browser)
+      const cast = (div, alpha, grow) => { const c2 = document.createElement('canvas'); c2.width = Math.round(W / div); c2.height = Math.round(Hh / div);
+        const y = c2.getContext('2d'), sx = c2.width / fw, sz = c2.height / fl; y.fillStyle = 'rgba(24,14,22,' + alpha + ')';
+        OBSTACLES.forEach(o => { if (!o.fh) return; const b = o.box, ax = b.x0 + .35 - grow, bx = b.x1 - .35 + grow, az = b.z0 + .35 - grow, bz = b.z1 - .35 + grow;
+          y.fillRect((ax - x0f) * sx, (az - z0f) * sz, (bx - ax) * sx, (bz - az) * sz); });
+        x.imageSmoothingEnabled = true; x.imageSmoothingQuality = 'high'; x.drawImage(c2, 0, 0, W, Hh); };
+      cast(14, .13, .3);                                             // wide, faint: the unit blocks light from the ceiling
+      cast(6, .3, .08);                                               // tight, darker: contact shade at its foot
+      // the walls shade the edge of the floor
+      const edge = (gx0, gy0, gx1, gy1, rx, ry, rw, rh) => { const g = x.createLinearGradient(gx0, gy0, gx1, gy1); g.addColorStop(0, 'rgba(24,14,22,.2)'); g.addColorStop(1, 'rgba(24,14,22,0)'); x.fillStyle = g; x.fillRect(rx, ry, rw, rh); };
+      const ex = 1.6 * kx, ez = 1.6 * kz, wx0 = (-Wx - x0f) * kx, wx1 = (Wx - x0f) * kx, wz0 = (zB - z0f) * kz;
+      edge(wx0, 0, wx0 + ex, 0, wx0, 0, ex, Hh); edge(wx1, 0, wx1 - ex, 0, wx1 - ex, 0, ex, Hh); edge(0, wz0, 0, wz0 + ez, 0, wz0, W, ez);
+    });
+    const m = new THREE.Mesh(new THREE.PlaneGeometry(fw, fl), new THREE.MeshBasicMaterial({map:shade, transparent:true, depthWrite:false, toneMapped:false, polygonOffset:true, polygonOffsetFactor:-1}));
+    m.rotation.x = -Math.PI/2; m.position.set(0, .0035, zMid); m.renderOrder = 0; scene.add(m);
+  }
 
   // ---------- iBrand boards high on the walls ----------
   {
@@ -1821,8 +1841,8 @@ function build(renderer){
     const aoLin = canvasTex(8, 64, (x,w,h)=>{ const g = x.createLinearGradient(0,0,0,h); g.addColorStop(0,'rgba(0,0,0,0)'); g.addColorStop(1,'rgba(0,0,0,1)'); x.fillStyle = g; x.fillRect(0,0,w,h); });
     const aoRad = canvasTex(64, 64, (x,w,h)=>{ const g = x.createRadialGradient(w/2,h/2,2,w/2,h/2,w/2); g.addColorStop(0,'rgba(0,0,0,1)'); g.addColorStop(.55,'rgba(0,0,0,.55)'); g.addColorStop(1,'rgba(0,0,0,0)'); x.fillStyle = g; x.fillRect(0,0,w,h); });
     const aoMat = (t, op) => new THREE.MeshBasicMaterial({map:t, color:'#2a1a20', transparent:true, opacity:op, depthWrite:false, polygonOffset:true, polygonOffsetFactor:-2, side:THREE.DoubleSide, toneMapped:false});
-    if (AOL.idx.length){ const m = meshOf(AOL, aoMat(aoLin, .28)); m.renderOrder = 1; scene.add(m); }
-    if (AOR.idx.length){ const m = meshOf(AOR, aoMat(aoRad, .36)); m.renderOrder = 1; scene.add(m); }
+    if (AOL.idx.length){ const m = meshOf(AOL, aoMat(aoLin, .34)); m.renderOrder = 1; scene.add(m); }
+    if (AOR.idx.length){ const m = meshOf(AOR, aoMat(aoRad, .46)); m.renderOrder = 1; scene.add(m); }
     if (PTAG.idx.length) scene.add(meshOf(PTAG, new THREE.MeshBasicMaterial({vertexColors:true, toneMapped:false})));
     if (PDIG.idx.length){ const m = meshOf(PDIG, new THREE.MeshBasicMaterial({map:glyphTex, transparent:true, alphaTest:.15, toneMapped:false})); scene.add(m); }
     if (STICK.idx.length){
