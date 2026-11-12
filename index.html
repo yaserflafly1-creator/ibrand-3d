@@ -58,7 +58,6 @@ button{font-family:var(--font)}
   .goCart svg{width:13px;height:13px}
 }
 .altBtns{display:none;position:fixed;z-index:6;right:12px;bottom:calc(env(safe-area-inset-bottom,0px) + 150px);flex-direction:column;gap:10px}
-body.drone .altBtns{display:flex}
 body.sheet .altBtns{display:none}
 .altBtns button{width:56px;height:56px;border-radius:18px;border:1px solid var(--line);background:rgba(255,255,255,.95);font-weight:800;font-size:20px;color:var(--pink-deep);box-shadow:0 10px 24px rgba(59,29,54,.2);touch-action:none;cursor:pointer}
 .aisles{position:fixed;left:0;right:0;bottom:0;z-index:5;padding-bottom:calc(env(safe-area-inset-bottom,0px) + 12px);padding-top:18px;
@@ -927,13 +926,62 @@ function build(renderer){
     return xx;
   }
   const runW = (str, ch) => str.replace(/[^0-9.]/g,'').length * ch * GW/GH * .66;
-  function priceTag(F, cx, y, z, p){
+  // product names on the tags: drawn into small text sheets only for the shelves right next to the shopper
+  const NAME_C = 4, NAME_R = 16, NAME_CW = 256, NAME_CH = 64, nameSheets = [], nameOpen = new Map();
+  function nameOnTag(a, n, cx, yb, z, w, hgt, p){
+    if (!p.name) return;
+    const c = a(cx, yb, z), k0 = Math.round(c[0] / 2.4) + '_' + Math.round(c[2] / 2.4) + '_' + Math.round(n[0]) + '_' + Math.round(n[2]);
+    let B = nameOpen.get(k0);
+    if (!B || B.names.length >= NAME_C * NAME_R){ B = Bucket(true); B.names = []; nameOpen.set(k0, B); nameSheets.push(B); }
+    const i = B.names.length, col = i % NAME_C, row = (i / NAME_C) | 0; B.names.push(p.name);
+    const u0 = col / NAME_C, u1 = (col + 1) / NAME_C, v1 = 1 - row / NAME_R, v0 = 1 - (row + 1) / NAME_R;
+    quad(B, [a(cx-w/2,yb,z), a(cx+w/2,yb,z), a(cx+w/2,yb+hgt,z), a(cx-w/2,yb+hgt,z)], n, C_WHITE, null, [u0,v0, u1,v0, u1,v1, u0,v1]);
+  }
+  const nameMeshes = [], NAME_N = isIOS ? 4 : (isSmall ? 6 : 12), NAME_NEAR = 4.2;
+  function drawNames(names){
+    const c = document.createElement('canvas'); c.width = NAME_C * NAME_CW; c.height = NAME_R * NAME_CH;
+    const x = c.getContext('2d'); x.fillStyle = '#2a1b27'; x.textAlign = 'center'; x.textBaseline = 'middle'; x.direction = 'rtl';
+    x.font = '700 23px "Almarai", Tahoma, sans-serif';
+    const maxW = NAME_CW - 14;
+    names.forEach((nm, i) => {
+      const words = String(nm).split(/\s+/), lines = ['']; let cut = false;
+      for (const w of words){ const t = lines[lines.length-1] ? lines[lines.length-1] + ' ' + w : w;
+        if (x.measureText(t).width <= maxW || !lines[lines.length-1]) lines[lines.length-1] = t;
+        else if (lines.length < 2) lines.push(w); else { cut = true; break; } }
+      if (cut){ let l = lines[1]; while (l.length > 2 && x.measureText(l + '…').width > maxW) l = l.slice(0, -1); lines[1] = l + '…'; }
+      const cx = (i % NAME_C) * NAME_CW + NAME_CW / 2, cy = ((i / NAME_C) | 0) * NAME_CH + NAME_CH / 2;
+      lines.forEach((l, j) => x.fillText(l, cx, cy + (j - (lines.length - 1) / 2) * 27 + 1, maxW));
+    });
+    const t = sRGB(new THREE.CanvasTexture(c)); t.anisotropy = Math.min(4, renderer.capabilities.getMaxAnisotropy()); return t;
+  }
+  function dropNames(nm){ if (!nm.tex) return; nm.mesh.visible = false; nm.mesh.material.map = null; nm.mesh.material.dispose(); nm.tex.dispose(); nm.tex = null; }
+  function updateNames(){
+    if (!nameMeshes.length) return;
+    const cp = camera.position; nameMeshes.forEach(nm => nm.dist = Math.max(0, nm.center.distanceTo(cp) - nm.radius));
+    const byDist = nameMeshes.slice().sort((a, b) => a.dist - b.dist); let made = 0;
+    byDist.forEach((nm, i) => {
+      if (i < NAME_N && nm.dist < NAME_NEAR){
+        if (!nm.tex && made < 2){ made++; nm.tex = drawNames(nm.names);
+          nm.mesh.material = new THREE.MeshBasicMaterial({map:nm.tex, transparent:true, depthWrite:false, toneMapped:false}); nm.mesh.visible = true; }
+      } else if (nm.tex && (i >= NAME_N + 2 || nm.dist > NAME_NEAR + 2)) dropNames(nm);
+    });
+  }
+  REDRAW.push(() => nameMeshes.forEach(dropNames));
+  // neighbouring tags on one shelf never overlap: a tag is as wide as the room its product has (7–11 cm)
+  function tagW(bay, it){
+    if (!bay._tg){ bay._tg = new Map(); const rows = {};
+      bay.items.forEach(i => { if (i.first !== false) (rows[i.y] || (rows[i.y] = [])).push(i); });
+      Object.values(rows).forEach(r => { r.sort((a, b) => a.x - b.x);
+        r.forEach((i, k) => { const g = Math.min(k ? i.x - r[k-1].x : 9, k < r.length - 1 ? r[k+1].x - i.x : 9); bay._tg.set(i, Math.max(.07, Math.min(.11, g - .004))); }); }); }
+    return bay._tg.get(it) || .11;
+  }
+  function priceTag(F, cx, y, z, p, tw = .11){
     if (typeof p.price !== 'number') return;
     const sale = p.onSale && p.regular > p.price, a = F.at, n = F.n(0,0,1);
-    const tw = .11, th = sale ? .07 : .045, top = y - .014, ty = top - th;
+    const NH = .027, sc = Math.min(1, (tw - .006) / .08), th = (sale ? .07 : .045) + NH, top = y - .014, ty = top - th;
     quad(PTAG, [a(cx-tw/2,ty,z), a(cx+tw/2,ty,z), a(cx+tw/2,top,z), a(cx-tw/2,top,z)], n, sale ? C_SALE : C_TAG);
     quad(PTAG, [a(cx-tw/2,top-.006,z+.0005), a(cx+tw/2,top-.006,z+.0005), a(cx+tw/2,top,z+.0005), a(cx-tw/2,top,z+.0005)], n, sale ? C_SALEBAR : C_TAGBAR);
-    const [ri, hh] = p.price.toFixed(2).split('.'), big = .021, small = .012, cur = .024, zz = z + .001;
+    const [ri, hh] = p.price.toFixed(2).split('.'), big = .021 * sc, small = .012 * sc, cur = .024 * sc, zz = z + .001;
     const total = runW(ri, big) + runW(hh, small) + .003 + cur;
     let xr = cx + total/2, yb = ty + .006;
     // ر.س at the right end
@@ -942,8 +990,9 @@ function build(renderer){
     xr -= cur + .003;
     xr = numRun(a, n, hh, xr, yb + big - small, small, zz);     // halalas: small and raised
     numRun(a, n, ri, xr, yb, big, zz);                          // riyals: big
+    nameOnTag(a, n, cx, top - .007 - NH + .001, zz, tw - .006, NH - .002, p);
     if (sale){
-      const os = p.regular.toFixed(2), oc = .0135, ow = runW(os, oc), ox = cx + ow/2, oy = top - .006 - .005 - oc;
+      const os = p.regular.toFixed(2), oc = .0135 * sc, ow = runW(os, oc), ox = cx + ow/2, oy = top - .006 - NH - .005 - oc;
       numRun(a, n, os, ox, oy, oc, zz);
       quad(PTAG, [a(ox-ow-.002,oy+oc*.42,zz+.0005), a(ox+.002,oy+oc*.42,zz+.0005), a(ox+.002,oy+oc*.58,zz+.0005), a(ox-ow-.002,oy+oc*.58,zz+.0005)], n, C_STRIKE);
     }
@@ -997,7 +1046,7 @@ function build(renderer){
       const bx = x0 + b*BW;
       bay.items.forEach(it => {
         putProduct(key, F, bx + it.x, it.y, d/2 - .1 - (it.back || 0), it.w, it.h, it.d, it.p, isBox(it.p) ? ROWS : 1, it.yaw || 0);
-        if (it.first !== false) priceTag(F, bx + it.x, it.y, d/2 - .025, it.p);
+        if (it.first !== false) priceTag(F, bx + it.x, it.y, d/2 - .025, it.p, tagW(bay, it));
       });
     });
     // headers: merge neighbouring bays that share a brand (or the section name)
@@ -1011,7 +1060,7 @@ function build(renderer){
     }
     // collision box in world space
     const c1 = F.at(x0, 0, -d/2), c2 = F.at(x0 + Wd, 0, d/2);
-    OBSTACLES.push({box:{x0:Math.min(c1[0],c2[0]) - .35, x1:Math.max(c1[0],c2[0]) + .35, z0:Math.min(c1[2],c2[2]) - .35, z1:Math.max(c1[2],c2[2]) + .35}});
+    OBSTACLES.push({fh:G.h, box:{x0:Math.min(c1[0],c2[0]) - .35, x1:Math.max(c1[0],c2[0]) + .35, z0:Math.min(c1[2],c2[2]) - .35, z1:Math.max(c1[2],c2[2]) + .35}});
   }
 
   // ---------- lay the sections out: back wall (medicines), then aisle after aisle ----------
@@ -1575,7 +1624,9 @@ function build(renderer){
     if (HLOGO.idx.length && BA) scene.add(meshOf(HLOGO, new THREE.MeshBasicMaterial({map:sRGB(texLoader.load(BA.src + AV)), toneMapped:false})));
     if (HTITLE.idx.length) scene.add(meshOf(HTITLE, new THREE.MeshBasicMaterial({map:titleTex, toneMapped:false})));
   }
-  updatePages(); setInterval(updatePages, 350);
+  nameSheets.forEach(B => { if (!B.idx.length) return; const mesh = meshOf(B, placeholderMat); mesh.visible = false; mesh.renderOrder = 2; scene.add(mesh);
+    nameMeshes.push({mesh, names:B.names, tex:null, center:mesh.geometry.boundingSphere.center, radius:mesh.geometry.boundingSphere.radius}); });
+  updatePages(); setInterval(updatePages, 350); updateNames(); setInterval(updateNames, 300);
 
   // ---------- cart (kept in this browser; checkout moves it into the ibrand.com.sa cart) ----------
   let cart = store.get('ib3d-cart', {});
@@ -1742,7 +1793,51 @@ function build(renderer){
     { let q = hit.object; while (q){ if (q.userData && q.userData.nav) return {nav: q.userData.nav}; q = q.parent; } }
     if (hit.object.userData.svc) { const pers = staff.find(s => { let q = hit.object; while (q){ if (q === s) return true; q = q.parent; } return false; }); return {svc:true, female: pers ? pers.userData.female : false}; }
     const places = hit.object.userData.places, place = places && hit.faceIndex != null ? places[hit.faceIndex >> 1] : null;
-    return place ? {prod:place.p, key:place.key, point:hit.point, normal: hit.face ? hit.face.normal.clone() : new THREE.Vector3(0,0,1)} : null;
+    if (!place) return null;
+    const o = ray.ray.origin, pt = hit.point; let normal = hit.face ? hit.face.normal.clone() : new THREE.Vector3(0,0,1);
+    // the side or top of a pack still belongs to the shelf face it stands on
+    { const pl = PLACE.get(place.p.id);
+      if (pl && pl.pos.distanceTo(pt) < .7) normal = pl.normal.clone();
+      else if (Math.abs(normal.y) > .6 || -(ray.ray.direction.x * normal.x + ray.ray.direction.z * normal.z) < .2){ const ax = o.x - pt.x, az = o.z - pt.z; normal = Math.abs(ax) > Math.abs(az) ? new THREE.Vector3(Math.sign(ax), 0, 0) : new THREE.Vector3(0, 0, Math.sign(az)); } }
+    if (hiddenByFixture(o, pt)) return null;                       // seen through another gondola: not a real click on it
+    // a product opens only from its own aisle: close enough and seen from the front, not at a glancing angle down the aisle
+    const flying = droneMode && alt > 2.6, gd = Math.hypot(pt.x - o.x, pt.z - o.z);
+    const facing = -(ray.ray.direction.x * normal.x + ray.ray.direction.z * normal.z) / (Math.hypot(ray.ray.direction.x, ray.ray.direction.z) || 1);
+    const near = flying ? hit.distance < 6.5 : (gd < NEAR_PICK && (facing > .34 || gd < 1.5));
+    return {prod:place.p, key:place.key, point:pt, normal, near};
+  }
+  const NEAR_PICK = 3.3;
+  // true when the straight line from the eye to a point passes through another shelf unit (below its top)
+  function hiddenByFixture(o, p){
+    const dx = p.x - o.x, dy = p.y - o.y, dz = p.z - o.z;
+    for (const ob of OBSTACLES){
+      if (!ob.fh) continue;
+      const b = ob.box, x0 = b.x0 + .35, x1 = b.x1 - .35, z0 = b.z0 + .35, z1 = b.z1 - .35;
+      if (p.x > x0 - .14 && p.x < x1 + .14 && p.z > z0 - .14 && p.z < z1 + .14) continue;   // the unit the product is on
+      let t0 = 0, t1 = .985, ok = true;
+      for (const [o1, d1, lo, hi] of [[o.x, dx, x0, x1], [o.z, dz, z0, z1]]){
+        if (Math.abs(d1) < 1e-6){ if (o1 < lo || o1 > hi){ ok = false; break; } continue; }
+        let a = (lo - o1) / d1, c = (hi - o1) / d1; if (a > c){ const q = a; a = c; c = q; }
+        t0 = Math.max(t0, a); t1 = Math.min(t1, c); if (t0 > t1){ ok = false; break; }
+      }
+      if (ok && Math.min(o.y + dy * t0, o.y + dy * t1) < ob.fh) return true;
+    }
+    return false;
+  }
+  // a tap on a far shelf walks you to it (round the gondolas, never through them) and turns you to face it
+  let farHint = 0;
+  function walkToShelf(h){
+    const n = h.normal.clone().setY(0); if (n.lengthSq() < .01) n.set(0, 0, 1); n.normalize();
+    const pos = h.point.clone().addScaledVector(n, 1.2); clampV(pos);
+    for (let i = 0; i < 6 && blockedGround(pos.x, pos.z); i++) pos.addScaledVector(n, -.12);
+    const cx = camera.position.x, cz = camera.position.z; let path = null;
+    if (droneMode && alt > 2.6) path = [{x:pos.x, z:pos.z}];
+    else { try { path = findPath(cx, cz, pos.x, pos.z); } catch(e){ path = null; } }
+    if (!path || !path.length){ toast('اقترب من الرف ثم اضغط على المنتج'); return; }
+    const end = path[path.length - 1];
+    goal = {path, i:0, stuck:0, x:end.x, z:end.z, face:h.point.clone()}; flight = null; hideHint();
+    goalRing.position.set(end.x, .03, end.z); goalRing.visible = true;
+    if (farHint++ < 2) toast('نمشي للرف… اضغط على المنتج لما توصل');
   }
   let down = null; const el = renderer.domElement;
   el.addEventListener('pointerdown', e => { if (e.__joy) { down = null; return; } down = {x:e.clientX, y:e.clientY}; hideHint(); flight = null; el.style.cursor = 'grabbing'; });
@@ -1754,15 +1849,17 @@ function build(renderer){
     if (h.svc) return openService(h.female);
     if (h.nav){ const sec = SEC[h.nav]; if (sec) select(sec, true); return; }
     if (h.prod){
+      if (!h.near) return walkToShelf(h);
       showProduct(h.prod, h.key);
-      const n = h.normal.clone().setY(0).normalize(), pos = h.point.clone().addScaledVector(n, 1.6);
-      if (camera.position.distanceTo(h.point) > 2.6) flyTo(pos, h.point);
+      const n = h.normal.clone().setY(0).normalize();
+      highlight.position.copy(h.point).addScaledVector(n, .05); highlight.lookAt(h.point.clone().add(n)); highlight.visible = true; highlight.userData.t0 = performance.now();
     }
   });
   el.addEventListener('pointermove', e => {
     if (e.pointerType !== 'mouse' || down) return;
     const h = pick(e), tip = $('#tip');
-    if (h && h.prod){ tip.innerHTML = ''; tip.append((h.prod.brand ? h.prod.brand + ' • ' : '') + h.prod.name); if (typeof h.prod.price === 'number'){ const b = document.createElement('b'); b.textContent = money(h.prod.price); tip.append(b); } tip.style.left = e.clientX + 'px'; tip.style.top = e.clientY + 'px'; tip.hidden = false; el.style.cursor = 'pointer'; }
+    if (h && h.prod && !h.near){ tip.textContent = 'اضغط للمشي إلى هذا الرف'; tip.style.left = e.clientX + 'px'; tip.style.top = e.clientY + 'px'; tip.hidden = false; el.style.cursor = 'pointer'; }
+    else if (h && h.prod){ tip.innerHTML = ''; tip.append((h.prod.brand ? h.prod.brand + ' • ' : '') + h.prod.name); if (typeof h.prod.price === 'number'){ const b = document.createElement('b'); b.textContent = money(h.prod.price); tip.append(b); } tip.style.left = e.clientX + 'px'; tip.style.top = e.clientY + 'px'; tip.hidden = false; el.style.cursor = 'pointer'; }
     else if (h && h.nav){ tip.textContent = 'اذهب إلى ' + ((SEC[h.nav] || {}).name || ''); tip.style.left = e.clientX + 'px'; tip.style.top = e.clientY + 'px'; tip.hidden = false; el.style.cursor = 'pointer'; }
     else if (h && (h.svc || h.door)){ tip.textContent = h.svc ? 'خدمة العملاء • اسأل الصيدلي' : (h.door === 'out' ? 'باب الخروج' : 'باب الدخول'); tip.style.left = e.clientX + 'px'; tip.style.top = e.clientY + 'px'; tip.hidden = false; el.style.cursor = 'pointer'; }
     else { tip.hidden = true; el.style.cursor = 'grab'; }
@@ -1828,6 +1925,7 @@ function build(renderer){
     camera.position.x += dx; camera.position.z += dz;
   }
   const vel = {x:0, z:0}; let walkAmt = 0, bobT = 0, alt = EYE, altV = 0, droneMode = false;
+  const DRONE_ALT = 3.0;
   // tap / click a spot on the floor → walk there along a route around the shelves, turning to face the way you
   // walk (a ring marks the spot); any manual input takes over again
   let goal = null;
@@ -1906,8 +2004,8 @@ function build(renderer){
     else if (goal){
       let wp = goal.path[goal.i], gx = wp.x - camera.position.x, gz = wp.z - camera.position.z, gd = Math.hypot(gx, gz);
       const last = goal.i === goal.path.length - 1;
-      if (gd < (last ? .2 : .45)){ if (last) endGoal(); else goal.i++; }
-      else if (goal.stuck > .6){ endGoal(); }
+      if (gd < (last ? .2 : .45)){ if (last){ const f = goal.face; endGoal(); if (f) flyTo(camera.position.clone(), f); } else goal.i++; }
+      else if (goal.stuck > .6){ const f = goal.face, near = f && Math.hypot(f.x - camera.position.x, f.z - camera.position.z) < 2.6; endGoal(); if (near) flyTo(camera.position.clone(), f); }
       else {
         const rem = last ? gd : gd + 2, gs = Math.min(droneMode ? 4.3 : 3.1, rem * 2.4 + .45); tx = gx/gd*gs; tz = gz/gd*gs; driving = true;
         // face the way we walk (unless a finger is busy looking around)
@@ -1923,9 +2021,8 @@ function build(renderer){
     walkAmt += (Math.min(1, v / 2.2) - walkAmt) * Math.min(1, dt * 5);
     bobT += dt * (5 + 4 * walkAmt);
     if (droneMode){
-      const tu = (keys.up - keys.down) * 2.1;
-      altV += (tu - altV) * Math.min(1, dt * 6);
-      alt = Math.max(.55, Math.min(4.35, alt + altV * dt));
+      // the drone holds one steady height above the shelves: no climbing, sinking or hovering wobble
+      altV = 0; alt += (DRONE_ALT - alt) * Math.min(1, dt * 3.2); if (Math.abs(alt - DRONE_ALT) < .004) alt = DRONE_ALT;
     } else if (alt !== EYE){ altV = 0; alt += (EYE - alt) * Math.min(1, dt * 5); if (Math.abs(alt - EYE) < .005) alt = EYE; }
   }
   function stepBy(dist){ flight = null; tryMove(-Math.sin(view.yaw)*dist, -Math.cos(view.yaw)*dist); }
@@ -1949,7 +2046,7 @@ function build(renderer){
     pushCart.visible = !on; droneBtn.setAttribute('aria-pressed', on ? 'true' : 'false');
     if (on){
       flight = null; setPano(false);
-      const h = $('#hint'); h.textContent = 'وضع الدرون: ▲▼ للارتفاع والهبوط (أو مسافة/Shift) — طِر فوق الأرفف!';
+      const h = $('#hint'); h.textContent = 'وضع الدرون: تطير على ارتفاع ثابت فوق الأرفف — حرّك واضغط على أي رف';
       h.classList.remove('gone'); clearTimeout(hintTimer); hintTimer = setTimeout(hideHint, 6500);
     } else hideHint();
   }
@@ -2054,7 +2151,7 @@ function build(renderer){
       if (highlight.visible){ const t = (now - highlight.userData.t0)/1000; highlight.scale.setScalar(1 + .15*Math.sin(t*6)); if (t > 8) highlight.visible = false; }
     }
     if (!flight) clampV(camera.position);
-    camera.position.y = alt + (droneMode && !reduceMotion ? Math.sin(bobT * 1.3) * .02 : 0);
+    camera.position.y = alt;
     applyView();
     renderer.render(scene, camera);
   });

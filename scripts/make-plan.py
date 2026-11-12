@@ -112,7 +112,17 @@ region('  // ---------- aisle signs: number + sections, and a sign where each se
 rep("    [-1, 1].forEach(s => { bin(s*(Wx - .7), zA1 - 1.0, -s*Math.PI/2); bin(s*(Wx - .7), zC + 1.1, -s*Math.PI/2); });\n", "")
 
 # the drone may climb with the higher ceiling
-rep("alt = Math.max(.55, Math.min(4.35, alt + altV * dt));", "alt = Math.max(.55, Math.min(H - .4, alt + altV * dt));")
+rep("const DRONE_ALT = 3.0;", "const DRONE_ALT = 4.3;")
+
+# the look approved in the Blender model: clean white shelving, plain white back panels, neutral bright light
+rep("const C_STEEL = rgb('#aab1b6'), C_SHELF = rgb('#e9ecee'), C_UPRIGHT = rgb('#6d757b'), C_KICK = rgb('#7e868c'),",
+    "const C_STEEL = rgb('#e4e6e9'), C_SHELF = rgb('#fcfcfd'), C_UPRIGHT = rgb('#eef0f2'), C_KICK = rgb('#d5d8dc'),")
+rep("meshOf(STRUCT, new THREE.MeshStandardMaterial({vertexColors:true, roughness:.38, metalness:.45, envMapIntensity:.8}));",
+    "meshOf(STRUCT, new THREE.MeshStandardMaterial({vertexColors:true, roughness:.42, metalness:.06, envMapIntensity:.55}));")
+rep("x.fillStyle='#d9dde0'; x.fillRect(0,0,w,h); x.fillStyle='#8f969b';", "x.fillStyle='#f3f4f6'; x.fillRect(0,0,w,h); x.fillStyle='#e3e5e9';")
+rep("new THREE.MeshStandardMaterial({map:pegTex, roughness:.5, metalness:.35, envMapIntensity:.6})", "new THREE.MeshStandardMaterial({map:pegTex, roughness:.55, metalness:.04, envMapIntensity:.4})")
+rep("new THREE.HemisphereLight('#fff3e4', '#d9c7b8', 0.45)", "new THREE.HemisphereLight('#ffffff', '#e4dcd8', 0.55)")
+
 
 # step counter (HUD pill under the top bar) + its tick in the frame loop
 rep('<button class="goCart" id="goCart"',
