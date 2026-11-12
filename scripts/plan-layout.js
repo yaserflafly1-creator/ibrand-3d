@@ -387,23 +387,28 @@
       x.direction = 'rtl'; x.fillStyle = '#ffffff'; fitText(x, big, 480, 800, 150); x.fillText(big, W/2, Hh/2 + 4); });
     // a splash above, the line under it in two languages
     const underB = (ar, en, cols, cEn, seed) => canvasTex(1024, 448, (x, W, Hh) => { base(x, W, Hh); splash(x, W/2, 140, 210, 95, cols, seed);
-      x.direction = 'ltr'; x.fillStyle = cEn; x.font = '700 62px Arial, sans-serif'; x.fillText(en, W/2, 300);
-      x.direction = 'rtl'; x.fillStyle = '#1d1d1f'; fitText(x, ar, W - 200, 800, 78); x.fillText(ar, W/2, 385); });
+      x.direction = 'rtl'; x.fillStyle = '#1d1d1f'; fitText(x, ar, W - 200, 800, 84); x.fillText(ar, W/2, 295);
+      x.direction = 'ltr'; x.fillStyle = cEn; x.font = '700 60px Arial, sans-serif'; x.fillText(en, W/2, 385); });
     // plain lettering on the white wall
     const plainB = (ar, en, cAr, cEn) => canvasTex(1024, 448, (x, W, Hh) => { base(x, W, Hh);
       x.direction = 'rtl'; x.fillStyle = cAr; fitText(x, ar, W - 200, 800, 170); x.fillText(ar, W/2, 165);
       x.direction = 'ltr'; x.fillStyle = cEn; x.font = '800 96px Arial, sans-serif'; x.fillText(en, W/2, 335); });
-    const boards = [
-      splashB('لجمالك', ['#d98bb0', '#8e4a8f', '#c0669e', '#6f3a78'], 11),
-      plainB('صحتك', 'Health', '#8a8a8a', '#1f6b45'),
-      underB('احتياجاتك اليومية', 'Daily Essentials', ['#e9b9a2', '#d99a80', '#f0cdb8'], '#c46a4e', 23),
-      underB('جمالك في روحك', 'Lovely Inside Out', ['#7c2a34', '#5e1f29', '#96404a'], '#3a3a3c', 37),
-      plainB('العناية بالرجل', 'MAN CARE', '#1d1d1f', '#1d1d1f')
-    ].map(t => new THREE.MeshBasicMaterial({map:t, toneMapped:false}));
-    const PWd = 4.6, PHt = PWd*448/1024, rim = std('#ffffff', {roughness:.4}); let bi = 0;
+    // each wall carries lines that belong to the department it stands over (zone ids: 0 kids, 1 pharmacy, 2 wellness, 3 personal care, 4 beauty)
+    const LINES = {
+      4: [() => splashB('لجمالك', ['#d98bb0', '#8e4a8f', '#c0669e', '#6f3a78'], 11), () => underB('جمالك في روحك', 'Lovely Inside Out', ['#7c2a34', '#5e1f29', '#96404a'], '#3a3a3c', 37), () => plainB('العناية بالبشرة', 'Skin Care', '#8a8a8a', '#b04a86')],
+      3: [() => underB('احتياجاتك اليومية', 'Daily Essentials', ['#e9b9a2', '#d99a80', '#f0cdb8'], '#c46a4e', 23), () => plainB('العناية بالرجل', 'MAN CARE', '#1d1d1f', '#1d1d1f'), () => splashB('لعنايتك', ['#f0b27a', '#e58e4a', '#f6caa0'], 53)],
+      0: [() => splashB('لطفلك', ['#8fc1ee', '#5a93d6', '#b9dbf5'], 71), () => plainB('الأم والطفل', 'Mom & Baby', '#8a8a8a', '#2a6fdb'), () => underB('لأجمل بداية', 'A Lovely Start', ['#bcdcf6', '#9cc6ee', '#d7eafb'], '#2a6fdb', 83)],
+      2: [() => plainB('صحتك', 'Health', '#8a8a8a', '#1f6b45'), () => splashB('لنشاطك', ['#8fcf9b', '#4fa866', '#b9e3bf'], 97), () => underB('صحتك تبدأ من هنا', 'Health Starts Here', ['#b9e3bf', '#93d09f', '#d6efd9'], '#1f6b45', 101)],
+      1: [() => splashB('لصحتك', ['#7fd0d6', '#2fa9b5', '#aee3e6'], 113), () => plainB('استشر الصيدلي', 'Ask the Pharmacist', '#1d1d1f', '#14a3b5'), () => underB('نهتم بصحتك', 'We Care', ['#aee3e6', '#86d3d9', '#cdeef0'], '#14a3b5', 127)]
+    };
+    const lineMat = {}, lineN = {};
+    const boardFor = (x, z) => { const w = x < 0 ? -1 : 1; let sg = SEG.find(g => g.w === w && z <= g.z0 + 2 && z >= g.z1 - 2) || SEG.filter(g => g.w === w).sort((a, b) => Math.abs((a.z0 + a.z1)/2 - z) - Math.abs((b.z0 + b.z1)/2 - z))[0];
+      const zid = sg && LINES[sg.zid] ? sg.zid : 4, i = (lineN[zid] = (lineN[zid] || 0) + 1) - 1, k = zid + ':' + (i % LINES[zid].length);
+      return lineMat[k] || (lineMat[k] = new THREE.MeshBasicMaterial({map:LINES[zid][i % LINES[zid].length](), toneMapped:false})); };
+    const PWd = 4.6, PHt = PWd*448/1024, rim = std('#ffffff', {roughness:.4});
     const board = (x, y, z, yaw) => { const g = new THREE.Group(); g.position.set(x, y, z); g.rotation.y = yaw;
       const fr = new THREE.Mesh(new THREE.BoxGeometry(PWd + .14, PHt + .14, .05), rim); fr.position.z = .025; g.add(fr);
-      const fc = new THREE.Mesh(new THREE.PlaneGeometry(PWd, PHt), boards[bi++ % boards.length]); fc.position.z = .056; g.add(fc); scene.add(g); };
+      const fc = new THREE.Mesh(new THREE.PlaneGeometry(PWd, PHt), boardFor(x, z)); fc.position.z = .056; g.add(fc); scene.add(g); };
     const yB = Math.min(H - .55 - PHt/2, 4.65);
     if (yB - PHt/2 > 3.5){
       [-1, 1].forEach(sd => { for (let z = zA0 - 6.5; z > zB + 3.2; z -= 9) board(sd*(Wx - .02), yB, z, sd < 0 ? Math.PI/2 : -Math.PI/2); });
