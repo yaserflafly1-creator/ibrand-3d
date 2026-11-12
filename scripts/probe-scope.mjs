@@ -1,37 +1,15 @@
-// One-off probe: does Salla's public storefront API report availability for a chosen pickup branch / delivery address?
-const API = 'https://api.salla.dev/store/v1', STORE = '1972477543';
-const base = { 'Store-Identifier': STORE, 'Accept-Language': 'ar', 'Accept': 'application/json', 'User-Agent': 'ibrand-3d-pharmacy/2.0' };
-const IDS = ['2054008175', '230397493', '1912964994'];           // zero stock in the Khalid bin Al-Waleed branch
-const BR = '975966624', SC = '1979508938', ADDR = '1759719263';
-const q = `scope=${SC}&allocation_id=${BR}&allocation_type=branch`;
-const variants = [
-  ['plain', '', {}],
-  ['query', '?' + q, {}],
-  ['hdr S-Scope-Id', '', { 'S-Scope-Id': SC, 'S-Allocation-Id': BR, 'S-Allocation-Type': 'branch' }],
-  ['hdr S-Scope', '', { 'S-Scope': SC, 'S-Allocation': BR, 'S-Allocation-Type': 'branch' }],
-  ['hdr Scope', '', { 'Scope': SC, 'Allocation-Id': BR, 'Allocation-Type': 'branch' }],
-  ['hdr s-branch', '', { 'S-Branch-Id': BR, 'Branch-Id': BR, 'S-Scope-Id': BR }],
-  ['query branch', `?branch_id=${BR}&branch=${BR}`, {}],
-  ['query addr', `?scope=${SC}&allocation_id=${ADDR}&allocation_type=address`, {}],
-];
-const pick = p => p && ({ status: p.status, is_available: p.is_available, is_out_of_stock: p.is_out_of_stock, quantity: p.quantity, max_quantity: p.max_quantity, can_add: p.can_add_note === undefined ? undefined : p.can_add_note, keys: Object.keys(p).filter(k => /avail|stock|quant|branch|scope|alloc/i.test(k)).join(',') });
-for (const id of IDS){
-  for (const [name, qs, h] of variants){
-    try {
-      const r = await fetch(`${API}/products/${id}/details${qs}`, { headers: { ...base, ...h } });
-      const t = await r.text(); let j = null; try { j = JSON.parse(t); } catch {}
-      console.log(id, '|', name, '|', r.status, '|', j && j.data ? JSON.stringify(pick(j.data)) : t.slice(0, 160));
-    } catch (e){ console.log(id, '|', name, '| error', e.message); }
-    await new Promise(r => setTimeout(r, 250));
-  }
+// One-off probe 2: can a browser on the 3D store's own address ask Salla about one product's stock (CORS)?
+const API = 'https://api.salla.dev/store/v1', STORE = '1972477543', ORIGIN = 'https://yaserflafly1-creator.github.io';
+const u = `${API}/products/230397493/details?scope=1979508938&allocation_id=975966624&allocation_type=branch`;
+const show = (n, r) => console.log(n, r.status, JSON.stringify(Object.fromEntries([...r.headers].filter(([k]) => /access-control|vary|content-type/i.test(k)))));
+show('PRE', await fetch(u, { method: 'OPTIONS', headers: { Origin: ORIGIN, 'Access-Control-Request-Method': 'GET', 'Access-Control-Request-Headers': 'store-identifier,accept-language' } }));
+show('GET', await fetch(u, { headers: { Origin: ORIGIN, 'Store-Identifier': STORE, 'Accept-Language': 'ar', Accept: 'application/json' } }));
+show('GET-plain', await fetch(`${API}/products/230397493/details`, { headers: { Origin: ORIGIN, 'Store-Identifier': STORE, Accept: 'application/json' } }));
+// does a listing drop products the branch does not have? (these three are sold out in the Khalid branch)
+for (const [n, q] of [['sel plain', ''], ['sel branch', '&scope=1979508938&allocation_id=975966624&allocation_type=branch']]){
+  const r = await fetch(`${API}/products?source=selected&source_value[]=2054008175&source_value[]=230397493&source_value[]=1912964994&source_value[]=1210933938&per_page=20${q}`, { headers: { 'Store-Identifier': STORE, Accept: 'application/json', 'Accept-Language': 'ar' } });
+  const j = await r.json().catch(() => null);
+  console.log(n, r.status, j && j.data ? j.data.map(p => [p.id, p.is_available, p.is_out_of_stock, p.quantity, p.status].join(':')).join(' | ') : '');
 }
-// what does a listing say with the branch in the query?
-for (const [name, qs] of [['list plain', ''], ['list query', '&' + q]]){
-  const r = await fetch(`${API}/products?per_page=5${qs}`, { headers: base }); const j = await r.json().catch(() => null);
-  console.log(name, r.status, j && j.data ? j.data.map(p => p.id + ':' + p.is_available + ':' + p.quantity).join(' ') : '', j && j.cursor ? JSON.stringify(j.cursor).slice(0, 200) : '');
-}
-// scopes endpoint, if the storefront exposes one
-for (const u of ['/scopes', '/store/scopes', '/branches', `/scopes/${SC}`, '/store/info']){
-  const r = await fetch(API + u, { headers: base }); const t = await r.text();
-  console.log('GET', u, r.status, t.slice(0, 400).replace(/\s+/g, ' '));
-}
+const b = await (await fetch(`${API}/branches?per_page=100`, { headers: { 'Store-Identifier': STORE, Accept: 'application/json', 'Accept-Language': 'ar' } })).json();
+console.log('branches', b.data.length, JSON.stringify(b.pagination || b.cursor || {}), b.data.slice(0, 3).map(x => [x.id, x.name, x.status, x.pickable, x.city && x.city.name].join(':')).join(' | '));
