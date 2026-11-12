@@ -144,7 +144,7 @@ rep("    walk(dt);\n", "    walk(dt); stepTick();\n")
 rep('<div class="loading" id="loading"><div>جاري تجهيز الصيدلية…<small id="loadingSub">نرتب المنتجات على الرفوف</small></div></div>',
     '<div class="loading" id="loading"><div>جاري ترتيب الرفوف…<small id="loadingSub">نجهّز لك الفرع ونرتب المنتجات على الرفوف</small><i class="ld-bar"></i></div></div>')
 rep('.loading small{display:block;',
-    '.loading{background:#241a2b url(plan/loader.webp) center/cover no-repeat}\n'
+    '.loading{background:#241a2b url(plan/loader2.webp) center/cover no-repeat}\n'
     '.loading > div{background:rgba(255,255,255,.94);padding:18px 30px 20px;border-radius:20px;box-shadow:0 18px 50px rgba(0,0,0,.35);max-width:86vw}\n'
     '.loading .ld-bar{display:block;height:5px;border-radius:5px;margin-top:10px;background:linear-gradient(90deg,#f6e3ec 0%,var(--pink) 50%,#f6e3ec 100%);background-size:200% 100%;animation:ldbar 1.3s linear infinite}\n'
     '@keyframes ldbar{from{background-position:200% 0}to{background-position:0 0}}\n'
