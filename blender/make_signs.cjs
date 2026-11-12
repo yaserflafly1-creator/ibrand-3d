@@ -12,10 +12,10 @@ for (const [k,[c,ar,en,cats]] of Object.entries(Z)){
   items.push(['hdr_'+k, 512, 512, `<div style="width:512px;height:512px;background:#fff;${F}">` + cats.map(t => `<div style="height:128px;box-sizing:border-box;border-bottom:14px solid ${c};display:flex;align-items:center;justify-content:center;font-size:58px;font-weight:800;color:${c}" dir="rtl">${t}</div>`).join('') + `</div>`]);
   items.push(['floor_'+k, 1024, 256, `<div style="width:1024px;height:256px;display:flex;align-items:center;justify-content:center;font-size:150px;font-weight:800;color:${c};${F}" dir="rtl">${ar}</div>`]);
 }
-const board = (bg, fg, big, small, extra='') => `<div style="width:1024px;height:512px;background:${bg};display:flex;flex-direction:column;align-items:center;justify-content:center;color:${fg};${F}${extra}"><div style="font-size:124px;font-weight:800;line-height:1.3" dir="rtl">${big}</div><div style="font-size:46px;font-weight:700;font-family:Arial;opacity:.9">${small}</div></div>`;
-items.push(['board_1', 1024, 512, board('linear-gradient(135deg,#f08bbb,#d9589a)', '#fff', 'صيدلية اي براند', 'iBRAND Pharmacy')]);
-items.push(['board_2', 1024, 512, board('linear-gradient(135deg,#4a2444,#2c1429)', '#f4a9c4', '<span style="font-family:Arial;font-style:italic">iBRAND</span>', 'اي براند')]);
-items.push(['board_3', 1024, 512, board('#fff', '#d9589a', 'أهلاً بك في اي براند', 'iBRAND Pharmacy', 'box-sizing:border-box;border:14px solid #e873a8;')]);
+const board = (bg, fg, big, small, extra='') => `<div style="width:1024px;height:512px;background:${bg};display:flex;flex-direction:column;align-items:center;justify-content:center;color:${fg};${F}${extra}" dir="rtl"><div style="font-size:132px;font-weight:800;line-height:1.3">${big}</div><div style="font-size:52px;font-weight:700;opacity:.92">${small}</div></div>`;
+items.push(['board_1', 1024, 512, board('linear-gradient(135deg,#f08bbb,#d9589a)', '#fff', 'صحتك أولاً', 'صيدليات اي براند')]);
+items.push(['board_3', 1024, 512, board('#fff', '#d9589a', 'جمالك يبدأ من هنا', 'عناية • جمال • صحة', 'box-sizing:border-box;border:14px solid #e873a8;')]);
+// board_2 is the official wordmark (made from the logo file, not drawn here)
 items.push(['cashier', 1024, 256, `<div style="width:1024px;height:256px;background:#3b1d36;display:flex;align-items:center;justify-content:center;color:#fff;font-size:120px;font-weight:800;${F}" dir="rtl">الكاشير</div>`]);
 (async () => {
   const br = await chromium.launch(); const pg = await br.newPage({deviceScaleFactor:1});

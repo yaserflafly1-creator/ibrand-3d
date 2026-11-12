@@ -376,16 +376,20 @@
   // ---------- iBrand boards high on the walls ----------
   {
     const dots = (x, W, Hh, col) => { x.fillStyle = col; [[.08,.2,90],[.9,.78,130],[.82,.14,46],[.16,.86,60],[.5,1.05,170]].forEach(([u, v, r]) => { x.beginPath(); x.arc(u*W, v*Hh, r, 0, Math.PI*2); x.fill(); }); };
+    const two = (x, W, big, small, c1, c2) => { x.textAlign = 'center'; x.textBaseline = 'middle'; x.direction = 'rtl';
+      x.fillStyle = c1; fitText(x, big, W - 160, 800, 150); x.fillText(big, W/2, 185);
+      x.fillStyle = c2; fitText(x, small, W - 220, 700, 60); x.fillText(small, W/2, 335); };
+    const pinkB = (big, small) => canvasTex(1024, 448, (x, W, Hh) => { const g = x.createLinearGradient(0, 0, W, Hh); g.addColorStop(0, '#f08bbb'); g.addColorStop(1, '#c9518b'); x.fillStyle = g; x.fillRect(0, 0, W, Hh); dots(x, W, Hh, 'rgba(255,255,255,.13)'); two(x, W, big, small, '#ffffff', 'rgba(255,255,255,.92)'); });
+    const whiteB = (big, small) => canvasTex(1024, 448, (x, W, Hh) => { x.fillStyle = '#ffffff'; x.fillRect(0, 0, W, Hh); dots(x, W, Hh, 'rgba(232,115,168,.12)'); x.strokeStyle = PINK; x.lineWidth = 18; x.strokeRect(9, 9, W - 18, Hh - 18); two(x, W, big, small, PINK_DEEP, PLUM); });
+    // the kind of lines real pharmacies hang on their walls
     const boards = [
-      canvasTex(1024, 448, (x, W, Hh) => { const g = x.createLinearGradient(0, 0, W, Hh); g.addColorStop(0, '#f08bbb'); g.addColorStop(1, '#c9518b'); x.fillStyle = g; x.fillRect(0, 0, W, Hh); dots(x, W, Hh, 'rgba(255,255,255,.13)');
-        x.fillStyle = '#ffffff'; x.textAlign = 'center'; x.textBaseline = 'middle'; x.direction = 'rtl'; fitText(x, 'صيدلية اي براند', W - 150, 800, 150); x.fillText('صيدلية اي براند', W/2, 190);
-        x.direction = 'ltr'; x.font = '700 62px Arial, sans-serif'; x.globalAlpha = .92; x.fillText('iBRAND Pharmacy', W/2, 330); x.globalAlpha = 1; }),
+      pinkB('صحتك أولاً', 'صيدليات اي براند'),
       canvasTex(1024, 448, (x, W, Hh) => { x.fillStyle = PLUM; x.fillRect(0, 0, W, Hh); dots(x, W, Hh, 'rgba(232,115,168,.2)');
         x.fillStyle = PINK; x.textAlign = 'center'; x.textBaseline = 'middle'; x.direction = 'ltr'; x.font = '800 190px Arial, sans-serif'; x.fillText('iBRAND', W/2, 180);
         x.fillStyle = '#ffffff'; x.direction = 'rtl'; fitText(x, 'اي براند', W - 150, 700, 80); x.fillText('اي براند', W/2, 340); }),
-      canvasTex(1024, 448, (x, W, Hh) => { x.fillStyle = '#ffffff'; x.fillRect(0, 0, W, Hh); dots(x, W, Hh, 'rgba(232,115,168,.12)'); x.strokeStyle = PINK; x.lineWidth = 18; x.strokeRect(9, 9, W - 18, Hh - 18);
-        x.fillStyle = PINK_DEEP; x.textAlign = 'center'; x.textBaseline = 'middle'; x.direction = 'rtl'; fitText(x, 'أهلاً بك في اي براند', W - 170, 800, 132); x.fillText('أهلاً بك في اي براند', W/2, 190);
-        x.fillStyle = PLUM; x.direction = 'ltr'; x.font = '700 58px Arial, sans-serif'; x.fillText('iBRAND Pharmacy', W/2, 330); })
+      whiteB('جمالك يبدأ من هنا', 'عناية • جمال • صحة'),
+      pinkB('عنايتك تهمنا', 'صيدليات اي براند'),
+      whiteB('لكل أفراد العائلة', 'كل ما تحتاجه في مكان واحد')
     ].map(t => new THREE.MeshBasicMaterial({map:t, toneMapped:false}));
     const PWd = 4.6, PHt = PWd*448/1024, rim = std('#ffffff', {roughness:.4}); let bi = 0;
     const board = (x, y, z, yaw) => { const g = new THREE.Group(); g.position.set(x, y, z); g.rotation.y = yaw;
