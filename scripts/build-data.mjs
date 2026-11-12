@@ -245,6 +245,14 @@ async function pool(items, n, fn){
   await Promise.all(workers);
 }
 
+// Finished pages are kept between runs, keyed by exactly which photos they hold and in what order.
+// A refresh then only re-draws the pages that really changed (a new photo, a product added or sold out);
+// every other page is copied straight from the cache, which is what makes frequent refreshes cheap.
+const PCACHE = '.cache/pages1';
+const pageStats = { cached: 0, made: 0 }, pagesUsed = new Set();
+const imgHash = img => crypto.createHash('sha1').update(img).digest('hex').slice(0, 20);
+async function copyAll(pairs){ for (const [from, to] of pairs) await fs.copyFile(from, to); }
+
 // pack one section into texture pages
 async function packSection(key, items, opts = {}){
   const ok = [];
@@ -260,6 +268,24 @@ async function packSection(key, items, opts = {}){
     const big = `atlas/${key}-${pg}.webp`, small = `atlas/${key}-${pg}-m.webp`, tiny = `atlas/${key}-${pg}-s.webp`;
     // HD pieces: 2 rows x half width at 512 px per product (crisp close-ups within 4096-wide textures)
     const hd = [];
+    const pkey = crypto.createHash('sha1').update(JSON.stringify([5, PC, TPX, TILE, HQ, HC, !!opts.noBasis, !!BASISU, chunk.map(({ it }) => imgHash(it.img))])).digest('hex').slice(0, 24);
+    const pdir = `${PCACHE}/${pkey}`, bigBn = big.replace('.webp', '.basis'); pagesUsed.add(pkey);
+    // every file of this page: [name in the cache, name on the site]
+    const files = [['big.webp', big], ['m.webp', small], ['s.webp', tiny]];
+    for (let rp = 0; rp * HQ < rows; rp++) for (const hk of ['a', 'b']) files.push([`h${rp}${hk}.webp`, `atlas/${key}-${pg}-h${rp}${hk}.webp`]);
+    let hit = false;
+    try {
+      const mark = JSON.parse(await fs.readFile(`${pdir}/ok.json`, 'utf8'));
+      await copyAll(files.map(([c, o]) => [`${pdir}/${c}`, `${OUT}/${o}`]));
+      if (mark.basis) await fs.copyFile(`${pdir}/big.basis`, `${OUT}/${bigBn}`);
+      for (let rp = 0; rp * HQ < rows; rp++) hd.push({ rows: Math.min(HQ, rows - rp*HQ), a: `atlas/${key}-${pg}-h${rp}a.webp`, b: `atlas/${key}-${pg}-h${rp}b.webp` });
+      const page = { src: big, rows, hd }; if (mark.basis) page.srcB = bigBn;
+      pages.push(page); pagesM.push(small); pagesS.push(tiny);
+      chunk.forEach(({ it, t }, i) => products.push({ ...it, pg, tile: i, ...t.meta }));
+      pageStats.cached++; hit = true;
+    } catch {}
+    if (hit) continue;
+    hd.length = 0;
     const full = await sharp({ create: { width: PC*TPX, height: rows*TPX, channels: 4, background: { r:0, g:0, b:0, alpha:0 } } })
       .composite(chunk.map(({ t }, i) => ({ input: t.png, left: (i % PC) * TPX, top: Math.floor(i / PC) * TPX }))).png().toBuffer();
     for (let rp = 0; rp * HQ < rows; rp++){
@@ -280,6 +306,14 @@ async function packSection(key, items, opts = {}){
     if (!opts.noBasis && await toBasis(bigPng, `${OUT}/${bigB}`)) page.srcB = bigB;
     pages.push(page); pagesM.push(small); pagesS.push(tiny);
     chunk.forEach(({ it, t }, i) => products.push({ ...it, pg, tile: i, ...t.meta }));
+    // keep the finished page for the next refresh (ok.json is written last, so a half-saved page is never reused)
+    try {
+      await fs.mkdir(pdir, { recursive: true });
+      await copyAll(files.map(([c, o]) => [`${OUT}/${o}`, `${pdir}/${c}`]));
+      if (page.srcB) await fs.copyFile(`${OUT}/${bigBn}`, `${pdir}/big.basis`);
+      await fs.writeFile(`${pdir}/ok.json`, JSON.stringify({ basis: !!page.srcB }));
+    } catch (e){ console.log('page cache save failed', key, pg, e.message); }
+    pageStats.made++;
   }
   return { cols: PC, pages, pagesM, pagesS, products };
 }
@@ -290,6 +324,7 @@ async function main(){
   await fs.mkdir(`${OUT}/data`, { recursive: true });
   await fs.mkdir(`${OUT}/assets`, { recursive: true });
   await fs.mkdir(CACHE, { recursive: true });
+  await fs.mkdir(PCACHE, { recursive: true });
 
   // logo
   try {
@@ -452,6 +487,9 @@ async function main(){
     await fs.writeFile(`${OUT}/data/plan.json`, JSON.stringify(planOut));
   } catch (e){ console.warn('plan atlas skipped:', e.message); }
   console.log('tiles', tileStats);
+  // drop cached pages nothing uses any more, so the cache does not grow for ever
+  try { let gone = 0; for (const d of await fs.readdir(PCACHE)) if (!pagesUsed.has(d)){ await fs.rm(`${PCACHE}/${d}`, { recursive: true, force: true }); gone++; }
+    console.log('pages', pageStats, 'stale cache entries removed', gone); } catch (e){ console.log('pages', pageStats); }
   console.log('basis pages', BASISU ? bStats : 'disabled (no BASISU)');
   if (!Object.keys(result.sections).length) throw new Error('No products fetched — storefront API unreachable?');
   result.counts = { onShelves: Object.keys(main).reduce((a, k) => a + (result.sections[k] ? result.sections[k].products.length : 0), 0), hiddenRx: rx.size };

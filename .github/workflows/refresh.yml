@@ -5,7 +5,7 @@ on:
   push:
     branches: [ibrand-dashboard]
   schedule:
-    - cron: '23 */3 * * *'   # every 3 hours: product edits in Salla reach the store without anyone asking
+    - cron: '23 * * * *'   # hourly: product edits in Salla reach the store without anyone asking (only changed photo pages are redrawn)
 
 permissions:
   contents: read
@@ -32,6 +32,7 @@ jobs:
           path: |
             .cache/tiles8
             .cache/basis6
+            .cache/pages1
           key: tiles8-${{ github.run_id }}
           restore-keys: tiles8-
       - name: Cache basisu encoder
@@ -70,6 +71,7 @@ jobs:
           path: |
             .cache/tiles8
             .cache/basis6
+            .cache/pages1
           key: tiles8-${{ github.run_id }}
       - uses: actions/configure-pages@v5
       - uses: actions/upload-pages-artifact@v3
