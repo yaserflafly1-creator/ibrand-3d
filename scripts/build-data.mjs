@@ -101,7 +101,7 @@ const inStock = p => {
 };
 const short = (u, pre) => (u || '').startsWith(pre) ? u.slice(pre.length) : (u || '');
 
-async function getJSON(url, tries = 4){
+async function getJSON(url, tries = 6){
   for (let i = 0; i < tries; i++){
     try {
       const r = await fetch(url, { headers });
@@ -115,12 +115,21 @@ async function getJSON(url, tries = 4){
 }
 
 // all in-stock products of one listing (category, selected ids, or the whole store)
-async function listAll(query, cap = Infinity){
+// Listings are read a few at a time (see prefetch) and remembered, so the hourly refresh spends minutes, not half an hour, asking the store.
+const listMemo = new Map();
+let listBroken = 0;
+function listAll(query, cap = Infinity){
+  const k = query + '|' + cap;
+  if (!listMemo.has(k)) listMemo.set(k, listAll0(query, cap));
+  return listMemo.get(k);
+}
+const prefetch = (queries, n = 3) => pool(queries, n, q => listAll(q));
+async function listAll0(query, cap = Infinity){
   let url = `${API}/products?${query}`;
   const out = [];
   for (let page = 0; url && out.length < cap && page < 3000; page++){
     const j = await getJSON(url);
-    if (!j) break;
+    if (!j){ listBroken++; console.warn('listing cut short:', query.slice(0, 80)); break; }
     for (const p of j.data || []) out.push(p);
     url = j.cursor && j.cursor.next;
     await sleep(110);
@@ -348,6 +357,9 @@ async function main(){
     rec(n); return out;
   };
   const seen = new Set(), main = {}, subOrder = {};
+  const whole = listAll('per_page=50');   // the long whole-store listing runs alongside the category ones
+  const qs = []; for (const sec of MAIN) for (const c of sec.cats){ for (const leaf of leavesOf(c)) qs.push(catQuery(leaf.id)); qs.push(catQuery(c)); }
+  await prefetch([...new Set(qs)]); await whole;
   for (const sec of MAIN){
     const list = [], order = [];
     const take = (p, sub) => {
@@ -530,6 +542,8 @@ async function main(){
   console.log('brand logos', Object.keys(brands).length, 'of', want.size);
   const missing = [...want].filter(([id]) => !brands[id]).map(([id, name]) => name).sort((a, b) => a.localeCompare(b, 'ar'));
   console.log('MISSING LOGOS ' + missing.length + ': ' + missing.join(' | '));
+  // a refresh that could not read the whole store must never replace a good one with half-empty shelves
+  if (listBroken) throw new Error('store listings were cut short ' + listBroken + ' time(s) — keeping the previous build');
   console.log('ON SHELVES', result.counts.onShelves, 'hidden Rx', rx.size, 'skipped hidden/out-of-stock', skippedUnavail);
   // offers: every running multi-buy offer has its own category in the store, named like "ميدو 1+1 (5/12/2026)".
   // Products in it carry the offer (of) and its last day (oe), so the shelves can flag them.
