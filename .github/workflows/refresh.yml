@@ -5,7 +5,7 @@ on:
   push:
     branches: [ibrand-dashboard]
   schedule:
-    - cron: '17 0 * * *'   # daily, 03:17 Riyadh
+    - cron: '23 */3 * * *'   # every 3 hours: product edits in Salla reach the store without anyone asking
 
 permissions:
   contents: read
