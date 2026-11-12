@@ -1,17 +1,19 @@
-// One-off probe 3: how does the storefront API describe offers (1+1, bundles, discounts) on a product?
+// One-off probe 4: the store's offer categories (each running offer has its own category) and what a product in one looks like
 const API = 'https://api.salla.dev/store/v1', H = { 'Store-Identifier': '1972477543', Accept: 'application/json', 'Accept-Language': 'ar' };
-const titles = new Map(); let n = 0, sale = 0, url = `${API}/products?per_page=50`, sample = null;
-for (let pg = 0; url && pg < 40; pg++){
-  const j = await (await fetch(url, { headers: H })).json(); if (!j || !j.data) break;
-  for (const p of j.data){ n++; if (p.is_on_sale) sale++;
-    const pr = p.promotion || {}; const t = [pr.title, pr.sub_title].filter(Boolean).join(' / ');
-    if (t){ titles.set(t, (titles.get(t) || 0) + 1); if (!sample) sample = p; } }
-  url = j.cursor && j.cursor.next; await new Promise(r => setTimeout(r, 120));
+const tree = (await (await fetch(`${API}/categories`, { headers: H })).json()).data || [];
+const rows = []; const walk = (n, path) => { const p = path.concat(n.name); rows.push({ id: n.id_, name: n.name, path: p.join(' > '), kids: (n.sub_categories || []).length }); (n.sub_categories || []).forEach(c => walk(c, p)); };
+tree.forEach(n => walk(n, []));
+console.log('categories', rows.length, 'top', tree.map(n => n.name + '#' + n.id_).join(' | '));
+const off = rows.filter(r => /عرض|عروض|خصم|مجان|\+|احصل|اشتر|بندل|bundle|offer|%/i.test(r.path));
+off.forEach(r => console.log('OFFCAT', r.id, '|', r.path, '| kids', r.kids));
+// count products in each leaf offer category and show how one product carries the offer
+for (const r of off.filter(r => !r.kids).slice(0, 40)){
+  const j = await (await fetch(`${API}/products?source=categories&source_value[]=${r.id}&per_page=3`, { headers: H })).json();
+  const d = (j && j.data) || [];
+  console.log('LEAF', r.id, r.name, '| first', d.map(p => p.id + ' ' + (p.name || '').slice(0, 28) + ' price ' + JSON.stringify(p.price && p.price.amount) + ' sale ' + JSON.stringify(p.sale_price && p.sale_price.amount) + ' onSale ' + p.is_on_sale + ' promo ' + JSON.stringify(p.promotion)).join(' || '));
+  await new Promise(r => setTimeout(r, 150));
 }
-console.log('scanned', n, 'on sale', sale, 'with promotion text', [...titles.values()].reduce((a, b) => a + b, 0));
-[...titles.entries()].sort((a, b) => b[1] - a[1]).slice(0, 40).forEach(([t, c]) => console.log('PROMO', c, '|', t));
-if (sample) console.log('SAMPLE', JSON.stringify(Object.fromEntries(Object.entries(sample).filter(([k]) => /promo|offer|sale|price|discount|tag|badge/i.test(k)))).slice(0, 900));
-for (const u of ['/offers', '/offers?per_page=20', '/products?source=offers&per_page=5', '/products?source=sales&per_page=5', '/special-offers']){
-  const r = await fetch(API + u, { headers: H }); const t = await r.text();
-  console.log('GET', u, r.status, t.slice(0, 500).replace(/\s+/g, ' '));
-}
+const one = off.find(r => !r.kids);
+if (one){ const j = await (await fetch(`${API}/products?source=categories&source_value[]=${one.id}&per_page=1`, { headers: H })).json(); const p = j.data && j.data[0];
+  if (p){ const d = await (await fetch(`${API}/products/${p.id}/details`, { headers: H })).json(); console.log('DETAILKEYS', Object.keys(d.data || {}).join(','));
+    console.log('DETAIL', JSON.stringify(Object.fromEntries(Object.entries(d.data || {}).filter(([k]) => /promo|offer|sale|discount|tag|badge|notify|subtitle/i.test(k)))).slice(0, 1200)); } }
