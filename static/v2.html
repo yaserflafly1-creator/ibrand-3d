@@ -46,6 +46,9 @@ button{font-family:var(--font)}
   background:rgba(59,29,54,.82);color:#fff;font-size:13px;border-radius:999px;padding:9px 16px;white-space:nowrap;pointer-events:none;transition:opacity .6s}
 .hint.gone{opacity:0}
 
+.stk{display:block;width:fit-content;margin-top:6px;font-size:13px;font-weight:800}.stk.yes{color:#1f8a4c}.stk.no{color:#e0202e}
+#pAdd:disabled{opacity:.55;cursor:not-allowed}
+.item.out{opacity:.6}.item .oos{display:block;font-style:normal;font-size:12px;font-weight:700;color:#e0202e}
 .ofchip{display:block;width:fit-content;margin-top:6px;padding:4px 12px;border-radius:999px;background:#e0202e;color:#fff;font-size:14px;font-weight:800;direction:rtl}
 .goCart{position:fixed;z-index:6;left:50%;transform:translateX(-50%);bottom:calc(env(safe-area-inset-bottom,0px) + 74px);white-space:nowrap;
   display:flex;align-items:center;gap:9px;border:0;border-radius:999px;background:var(--pink);color:#fff;
@@ -956,7 +959,7 @@ function build(renderer){
   }
   const runW = (str, ch) => str.replace(/[^0-9.]/g,'').length * ch * GW/GH * .66;
   // product names on the tags: drawn into small text sheets only for the shelves right next to the shopper
-  const NAME_C = 4, NAME_R = 16, NAME_CW = 256, NAME_CH = 64, nameSheets = [], nameOpen = new Map();
+  const NAME_C = 4, NAME_R = 8, NAME_CW = 256, NAME_CH = 64, nameSheets = [], nameOpen = new Map();
   function nameOnTag(a, n, cx, yb, z, w, hgt, p){
     if (!p.name) return;
     const c = a(cx, yb, z), k0 = Math.round(c[0] / 2.4) + '_' + Math.round(c[2] / 2.4) + '_' + Math.round(n[0]) + '_' + Math.round(n[2]);
@@ -966,7 +969,7 @@ function build(renderer){
     const u0 = col / NAME_C, u1 = (col + 1) / NAME_C, v1 = 1 - row / NAME_R, v0 = 1 - (row + 1) / NAME_R;
     quad(B, [a(cx-w/2,yb,z), a(cx+w/2,yb,z), a(cx+w/2,yb+hgt,z), a(cx-w/2,yb+hgt,z)], n, C_WHITE, null, [u0,v0, u1,v0, u1,v1, u0,v1]);
   }
-  const nameMeshes = [], NAME_N = isIOS ? 4 : (isSmall ? 6 : 12), NAME_NEAR = 4.2;
+  const nameMeshes = [], NAME_N = isIOS ? 8 : (isSmall ? 12 : 24), NAME_NEAR = 4.2;   // half-size sheets, one drawn per tick: no hitch while walking
   function drawNames(names){
     const c = document.createElement('canvas'); c.width = NAME_C * NAME_CW; c.height = NAME_R * NAME_CH;
     const x = c.getContext('2d'); x.fillStyle = '#2a1b27'; x.textAlign = 'center'; x.textBaseline = 'middle'; x.direction = 'rtl';
@@ -990,7 +993,7 @@ function build(renderer){
     const byDist = nameMeshes.slice().sort((a, b) => a.dist - b.dist); let made = 0;
     byDist.forEach((nm, i) => {
       if (i < NAME_N && nm.dist < NAME_NEAR){
-        if (!nm.tex && made < 2){ made++; nm.tex = drawNames(nm.names);
+        if (!nm.tex && made < 1){ made++; nm.tex = drawNames(nm.names);
           nm.mesh.material = new THREE.MeshBasicMaterial({map:nm.tex, transparent:true, depthWrite:false, toneMapped:false}); nm.mesh.visible = true; }
       } else if (nm.tex && (i >= NAME_N + 2 || nm.dist > NAME_NEAR + 2)) dropNames(nm);
     });
@@ -1672,8 +1675,47 @@ function build(renderer){
 
   // ---------- cart (kept in this browser; checkout moves it into the ibrand.com.sa cart) ----------
   let cart = store.get('ib3d-cart', {});
+  // ---------- the shopper's pickup branch or delivery address, as chosen on ibrand.com.sa ----------
+  // The store passes it in the link (?scope=…&allocation_id=…&allocation_type=branch|address). With it, the pharmacy
+  // asks Salla whether a product is in stock for that branch/address; without it, everything works as before.
+  const ALLOC = (() => { try {
+    const q = new URLSearchParams(location.search), h = new URLSearchParams(location.hash.replace(/^#/, '')), g = k => q.get(k) || h.get(k);
+    const id = g('allocation_id'), a = id && /^\d+$/.test(id) ? {scope:(g('scope') || '').replace(/\D/g, ''), id, type:g('allocation_type') === 'address' ? 'address' : 'branch'} : null;
+    if (a){ sessionStorage.setItem('ib3d-alloc', JSON.stringify(a)); return a; }
+    return JSON.parse(sessionStorage.getItem('ib3d-alloc') || 'null'); } catch(e){ return null; } })();
+  const SF = 'https://api.salla.dev/store/v1', SFH = {'Store-Identifier':'1972477543', 'Accept':'application/json', 'Accept-Language':'ar'};
+  const allocQ = () => (ALLOC.scope ? '&scope=' + ALLOC.scope : '') + '&allocation_id=' + ALLOC.id + '&allocation_type=' + ALLOC.type;
+  const availMemo = new Map();
+  // -> Map(id -> in stock for this shopper), or null when it could not be checked (then nothing is blocked)
+  async function availability(ids){
+    if (!ALLOC) return null;
+    const now = Date.now(), out = new Map(), need = [];
+    ids.map(String).forEach(id => { const m = availMemo.get(id); if (m && now - m.t < 300000) out.set(id, m.ok); else need.push(id); });
+    try {
+      for (let i = 0; i < need.length; i += 40){
+        const part = need.slice(i, i + 40);
+        const r = await fetch(SF + '/products?source=selected&per_page=50&' + part.map(id => 'source_value[]=' + id).join('&') + allocQ(), {headers:SFH});
+        if (!r.ok) throw new Error('http ' + r.status);
+        const got = new Set(((await r.json()).data || []).filter(p => p.is_available !== false && p.is_out_of_stock !== true).map(p => String(p.id)));
+        part.forEach(id => { const ok = got.has(id); availMemo.set(id, {ok, t:now}); out.set(id, ok); });
+      }
+    } catch(e){ return out.size ? out : null; }
+    return out;
+  }
+  const HERE = () => ALLOC && ALLOC.type === 'address' ? 'للتوصيل لعنوانك' : 'في فرعك';
+  let cartOut = new Set();
+  function checkCart(){
+    if (!ALLOC || !Object.keys(cart).length) return;
+    availability(Object.keys(cart)).then(m => { if (!m) return; const s2 = new Set(); m.forEach((ok, id) => { if (!ok && cart[id]) s2.add(id); });
+      const same = s2.size === cartOut.size && [...s2].every(x => cartOut.has(x)); cartOut = s2; if (!same) saveCart(); });
+  }
+  if (ALLOC) setTimeout(async () => { try {
+    if (ALLOC.type === 'branch'){ const j = await (await fetch(SF + '/branches?per_page=100', {headers:SFH})).json(), b = (j.data || []).find(x => String(x.id) === ALLOC.id);
+      toast(b ? 'تتسوق الآن من مخزون فرع ' + b.name : 'تتسوق الآن من مخزون فرعك'); }
+    else toast('تتسوق الآن من مخزون الفرع الأقرب لعنوانك'); } catch(e){} checkCart(); }, 4000);
+  const inCart = it => !cartOut.has(String(it.id));
   const cartCount = () => Object.values(cart).reduce((a, it) => a + it.qty, 0);
-  const cartTotal = () => Object.values(cart).reduce((a, it) => a + (it.price || 0) * it.qty, 0);
+  const cartTotal = () => Object.values(cart).filter(inCart).reduce((a, it) => a + (it.price || 0) * it.qty, 0);
   function saveCart(){
     store.set('ib3d-cart', cart); const n = cartCount(), b = $('#cartCount'); b.textContent = n; b.hidden = !n; renderCart();
     try{ cartItemsSync(); }catch(e){}
@@ -1683,8 +1725,9 @@ function build(renderer){
     const cur = cart[p.id] || {id:p.id, name:p.name, price:p.price, img:p.img, url:p.url, qty:0};
     cur.qty = Math.min(10, cur.qty + qty); cur.price = p.price; cart[p.id] = cur; saveCart();
   }
-  function checkoutUrl(){ const items = Object.values(cart).map(it => it.id + ':' + it.qty).join(','); return 'https://ibrand.com.sa/ar/cart' + (items ? '#ib3d=' + items : ''); }
-  function checkout(){ if (!cartCount()){ toast('سلتك فاضية، أضف منتجات من الرفوف'); return; } window.open(checkoutUrl(), '_blank', 'noopener'); toast('فتحنا سلتك في المتجر'); }
+  function checkoutUrl(){ const items = Object.values(cart).filter(inCart).map(it => it.id + ':' + it.qty).join(','); return 'https://ibrand.com.sa/ar/cart' + (items ? '#ib3d=' + items : ''); }
+  function checkout(){ if (!Object.values(cart).some(inCart)){ toast(cartCount() ? 'منتجات سلتك غير متوفرة ' + HERE() : 'سلتك فاضية، أضف منتجات من الرفوف'); return; }
+    if (!cartCount()){ toast('سلتك فاضية، أضف منتجات من الرفوف'); return; } window.open(checkoutUrl(), '_blank', 'noopener'); toast('فتحنا سلتك في المتجر'); }
   function renderCart(){
     const box = $('#cartItems'); box.innerHTML = '';
     const items = Object.values(cart);
@@ -1693,6 +1736,7 @@ function build(renderer){
       const row = document.createElement('div'); row.className = 'item';
       const img = document.createElement('img'); img.src = it.img; img.alt = ''; row.appendChild(img);
       const nm = document.createElement('div'); nm.className = 'nm'; nm.textContent = it.name; const pr = document.createElement('b'); pr.textContent = it.price ? money(it.price * it.qty) : ''; nm.appendChild(pr); row.appendChild(nm);
+      if (!inCart(it)){ row.classList.add('out'); const o = document.createElement('i'); o.className = 'oos'; o.textContent = 'غير متوفر ' + HERE() + ' — لن يُنقل للمتجر'; nm.appendChild(o); }
       const q = document.createElement('div'); q.className = 'qty';
       const mk = (t, fn, lbl) => { const b = document.createElement('button'); b.type='button'; b.textContent = t; b.setAttribute('aria-label', lbl); b.onclick = fn; return b; };
       const sp = document.createElement('span'); sp.textContent = it.qty;
@@ -1702,8 +1746,8 @@ function build(renderer){
     $('#cartTotal').textContent = money(cartTotal()); $('#cartTotalRow').hidden = !items.length; $('#cartActions').hidden = !items.length;
   }
   saveCart();
-  $('#cartBtn').addEventListener('click', () => { closeAll(); $('#cart').hidden = false; });
-  $('#goCart').addEventListener('click', () => { closeAll(); $('#cart').hidden = false; });
+  $('#cartBtn').addEventListener('click', () => { closeAll(); $('#cart').hidden = false; checkCart(); });
+  $('#goCart').addEventListener('click', () => { closeAll(); $('#cart').hidden = false; checkCart(); });
   $('#cCheckout').addEventListener('click', checkout); $('#aCheckout').addEventListener('click', () => { $('#added').hidden = true; checkout(); }); $('#xCheckout').addEventListener('click', checkout);
   document.querySelectorAll('[data-close]').forEach(b => b.addEventListener('click', () => { $('#' + b.dataset.close).hidden = true; }));
   function closeAll(){ ['added','cart','search','service','exit'].forEach(id => $('#' + id).hidden = true); }
@@ -1751,6 +1795,13 @@ function build(renderer){
     $('#pCta').href = p.url; $('#pCta').textContent = 'عرض المنتج في المتجر ←';
     const sub = $('#pSub'); sub.href = sec.url || STORE; sub.textContent = 'تسوّق ' + (sec.name || 'المتجر'); sub.hidden = !sec.main;
     panel.hidden = false; panel.scrollTop = 0; document.body.classList.add('sheet'); markChip(key);
+    // is it in stock for this shopper's branch / address?
+    const add = $('#pAdd'); add.disabled = false; add.textContent = 'أضف للسلة';
+    if (ALLOC && typeof p.price === 'number') availability([p.id]).then(m => {
+      if (current !== p || !m || !m.has(String(p.id))) return;
+      const ok = m.get(String(p.id)), b = document.createElement('span'); b.className = 'stk ' + (ok ? 'yes' : 'no'); b.textContent = (ok ? '✓ متوفر ' : '✕ غير متوفر ') + HERE(); pr.append(b);
+      if (!ok){ add.disabled = true; add.textContent = 'غير متوفر ' + HERE(); }
+    });
   }
   $('#qMinus').addEventListener('click', () => { qty = Math.max(1, qty - 1); $('#qVal').textContent = qty; });
   $('#qPlus').addEventListener('click', () => { qty = Math.min(10, qty + 1); $('#qVal').textContent = qty; });
@@ -1760,7 +1811,7 @@ function build(renderer){
       ? highlight.position.clone()
       : camera.position.clone().add(new THREE.Vector3(-Math.sin(view.yaw), -.25, -Math.cos(view.yaw)).multiplyScalar(1.1));
     flyToCart(src, qty);
-    addToCart(current, qty);
+    addToCart(current, qty); checkCart();
     $('#aImg').src = current.img; $('#aName').textContent = (qty > 1 ? qty + ' × ' : '') + current.name;
     $('#aSum').textContent = cartCount() + ' منتج في السلة • ' + money(cartTotal());
     setTimeout(() => { $('#added').hidden = false; }, reduceMotion ? 0 : 780);

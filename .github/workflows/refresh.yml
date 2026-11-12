@@ -15,7 +15,9 @@ permissions:
 
 concurrency:
   group: pages
-  cancel-in-progress: true
+  # never cut a running refresh short: with hourly runs a cancelled build would never get to save its photo cache.
+  # A newer run simply waits for the current one, and only the newest waiting run is kept.
+  cancel-in-progress: false
 
 jobs:
   build:
