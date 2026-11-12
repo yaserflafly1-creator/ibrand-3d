@@ -1536,20 +1536,29 @@ function build(renderer){
   // ---------- iBrand boards high on the walls ----------
   {
     const dots = (x, W, Hh, col) => { x.fillStyle = col; [[.08,.2,90],[.9,.78,130],[.82,.14,46],[.16,.86,60],[.5,1.05,170]].forEach(([u, v, r]) => { x.beginPath(); x.arc(u*W, v*Hh, r, 0, Math.PI*2); x.fill(); }); };
-    const two = (x, W, big, small, c1, c2) => { x.textAlign = 'center'; x.textBaseline = 'middle'; x.direction = 'rtl';
-      x.fillStyle = c1; fitText(x, big, W - 160, 800, 150); x.fillText(big, W/2, 185);
-      x.fillStyle = c2; fitText(x, small, W - 220, 700, 60); x.fillText(small, W/2, 335); };
-    const pinkB = (big, small) => canvasTex(1024, 448, (x, W, Hh) => { const g = x.createLinearGradient(0, 0, W, Hh); g.addColorStop(0, '#f08bbb'); g.addColorStop(1, '#c9518b'); x.fillStyle = g; x.fillRect(0, 0, W, Hh); dots(x, W, Hh, 'rgba(255,255,255,.13)'); two(x, W, big, small, '#ffffff', 'rgba(255,255,255,.92)'); });
-    const whiteB = (big, small) => canvasTex(1024, 448, (x, W, Hh) => { x.fillStyle = '#ffffff'; x.fillRect(0, 0, W, Hh); dots(x, W, Hh, 'rgba(232,115,168,.12)'); x.strokeStyle = PINK; x.lineWidth = 18; x.strokeRect(9, 9, W - 18, Hh - 18); two(x, W, big, small, PINK_DEEP, PLUM); });
-    // the kind of lines real pharmacies hang on their walls
+    // boards in the style of the real iBrand branches: white wall, a watercolour splash with a short line, or plain lettering
+    const splash = (x, cx, cy, rx, ry, cols, seed) => { let sd = seed; const rnd = () => (sd = (sd * 16807) % 2147483647) / 2147483647;
+      for (let i = 0; i < 70; i++){ const a = rnd() * Math.PI * 2, d = Math.sqrt(rnd()), px = cx + Math.cos(a) * d * rx, py = cy + Math.sin(a) * d * ry, r = (.28 + rnd() * .5) * ry * (1.15 - d * .55);
+        const g = x.createRadialGradient(px, py, 0, px, py, r), c = cols[(rnd() * cols.length) | 0]; g.addColorStop(0, c + 'aa'); g.addColorStop(.7, c + '66'); g.addColorStop(1, c + '00');
+        x.fillStyle = g; x.beginPath(); x.arc(px, py, r, 0, Math.PI * 2); x.fill(); } };
+    const base = (x, W, Hh) => { x.fillStyle = '#ffffff'; x.fillRect(0, 0, W, Hh); x.textAlign = 'center'; x.textBaseline = 'middle'; };
+    // the line sits inside the splash, in white
+    const splashB = (big, cols, seed) => canvasTex(1024, 448, (x, W, Hh) => { base(x, W, Hh); splash(x, W/2, Hh/2, 300, 150, cols, seed);
+      x.direction = 'rtl'; x.fillStyle = '#ffffff'; fitText(x, big, 480, 800, 150); x.fillText(big, W/2, Hh/2 + 4); });
+    // a splash above, the line under it in two languages
+    const underB = (ar, en, cols, cEn, seed) => canvasTex(1024, 448, (x, W, Hh) => { base(x, W, Hh); splash(x, W/2, 140, 210, 95, cols, seed);
+      x.direction = 'ltr'; x.fillStyle = cEn; x.font = '700 62px Arial, sans-serif'; x.fillText(en, W/2, 300);
+      x.direction = 'rtl'; x.fillStyle = '#1d1d1f'; fitText(x, ar, W - 200, 800, 78); x.fillText(ar, W/2, 385); });
+    // plain lettering on the white wall
+    const plainB = (ar, en, cAr, cEn) => canvasTex(1024, 448, (x, W, Hh) => { base(x, W, Hh);
+      x.direction = 'rtl'; x.fillStyle = cAr; fitText(x, ar, W - 200, 800, 170); x.fillText(ar, W/2, 165);
+      x.direction = 'ltr'; x.fillStyle = cEn; x.font = '800 96px Arial, sans-serif'; x.fillText(en, W/2, 335); });
     const boards = [
-      pinkB('صحتك أولاً', 'صيدليات اي براند'),
-      canvasTex(1024, 448, (x, W, Hh) => { x.fillStyle = PLUM; x.fillRect(0, 0, W, Hh); dots(x, W, Hh, 'rgba(232,115,168,.2)');
-        x.fillStyle = PINK; x.textAlign = 'center'; x.textBaseline = 'middle'; x.direction = 'ltr'; x.font = '800 190px Arial, sans-serif'; x.fillText('iBRAND', W/2, 180);
-        x.fillStyle = '#ffffff'; x.direction = 'rtl'; fitText(x, 'اي براند', W - 150, 700, 80); x.fillText('اي براند', W/2, 340); }),
-      whiteB('جمالك يبدأ من هنا', 'عناية • جمال • صحة'),
-      pinkB('عنايتك تهمنا', 'صيدليات اي براند'),
-      whiteB('لكل أفراد العائلة', 'كل ما تحتاجه في مكان واحد')
+      splashB('لجمالك', ['#d98bb0', '#8e4a8f', '#c0669e', '#6f3a78'], 11),
+      plainB('صحتك', 'Health', '#8a8a8a', '#1f6b45'),
+      underB('احتياجاتك اليومية', 'Daily Essentials', ['#e9b9a2', '#d99a80', '#f0cdb8'], '#c46a4e', 23),
+      underB('جمالك في روحك', 'Lovely Inside Out', ['#7c2a34', '#5e1f29', '#96404a'], '#3a3a3c', 37),
+      plainB('العناية بالرجل', 'MAN CARE', '#1d1d1f', '#1d1d1f')
     ].map(t => new THREE.MeshBasicMaterial({map:t, toneMapped:false}));
     const PWd = 4.6, PHt = PWd*448/1024, rim = std('#ffffff', {roughness:.4}); let bi = 0;
     const board = (x, y, z, yaw) => { const g = new THREE.Group(); g.position.set(x, y, z); g.rotation.y = yaw;

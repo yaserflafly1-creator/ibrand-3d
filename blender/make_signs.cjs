@@ -12,9 +12,10 @@ for (const [k,[c,ar,en,cats]] of Object.entries(Z)){
   items.push(['hdr_'+k, 512, 512, `<div style="width:512px;height:512px;background:#fff;${F}">` + cats.map(t => `<div style="height:128px;box-sizing:border-box;border-bottom:14px solid ${c};display:flex;align-items:center;justify-content:center;font-size:58px;font-weight:800;color:${c}" dir="rtl">${t}</div>`).join('') + `</div>`]);
   items.push(['floor_'+k, 1024, 256, `<div style="width:1024px;height:256px;display:flex;align-items:center;justify-content:center;font-size:150px;font-weight:800;color:${c};${F}" dir="rtl">${ar}</div>`]);
 }
-const board = (bg, fg, big, small, extra='') => `<div style="width:1024px;height:512px;background:${bg};display:flex;flex-direction:column;align-items:center;justify-content:center;color:${fg};${F}${extra}" dir="rtl"><div style="font-size:132px;font-weight:800;line-height:1.3">${big}</div><div style="font-size:52px;font-weight:700;opacity:.92">${small}</div></div>`;
-items.push(['board_1', 1024, 512, board('linear-gradient(135deg,#f08bbb,#d9589a)', '#fff', 'صحتك أولاً', 'صيدليات اي براند')]);
-items.push(['board_3', 1024, 512, board('#fff', '#d9589a', 'جمالك يبدأ من هنا', 'عناية • جمال • صحة', 'box-sizing:border-box;border:14px solid #e873a8;')]);
+// wall boards in the style of the real branches: a watercolour splash with a short line, or plain lettering on white
+const blob = (cols) => `<div style="position:absolute;left:212px;top:76px;width:600px;height:360px;filter:blur(14px);background:` + [[30,40,cols[0]],[62,34,cols[1]],[48,62,cols[2]],[72,60,cols[0]],[24,66,cols[1]],[50,44,cols[2]]].map(([x,y,c]) => `radial-gradient(ellipse at ${x}% ${y}%, ${c} 0%, ${c}cc 24%, transparent 46%)`).join(',') + `"></div>`;
+items.push(['board_1', 1024, 512, `<div style="position:relative;width:1024px;height:512px;background:#fff;${F}">${blob(['#c0669e','#8e4a8f','#d98bb0'])}<div style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center;color:#fff;font-size:170px;font-weight:800" dir="rtl">لجمالك</div></div>`]);
+items.push(['board_3', 1024, 512, `<div style="width:1024px;height:512px;background:#fff;display:flex;flex-direction:column;align-items:center;justify-content:center;${F}"><div style="font-size:190px;font-weight:800;color:#8a8a8a;line-height:1.25" dir="rtl">صحتك</div><div style="font-size:110px;font-weight:800;color:#1f6b45;font-family:Arial">Health</div></div>`]);
 // board_2 is the official wordmark (made from the logo file, not drawn here)
 items.push(['cashier', 1024, 256, `<div style="width:1024px;height:256px;background:#3b1d36;display:flex;align-items:center;justify-content:center;color:#fff;font-size:120px;font-weight:800;${F}" dir="rtl">الكاشير</div>`]);
 (async () => {
