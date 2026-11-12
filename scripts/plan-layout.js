@@ -93,7 +93,7 @@
       if (top !== null){ b.hdr = hdrOf(rep[top]); b.kind = rep[top]._fx || 0; } });
     return bays;
   }
-  const ZCOL = ZINFO.map(z => { const c = new THREE.Color(z.hex); return {hex:z.hex, c:[c.r, c.g, c.b], hi:'#' + c.clone().lerp(new THREE.Color('#ffffff'), .3).getHexString(), lo:'#' + c.clone().lerp(new THREE.Color('#000000'), .25).getHexString()}; });
+  const ZCOL = ZINFO.map(z => { const c = new THREE.Color(z.hex); const cl = c.clone().convertSRGBToLinear(); return {hex:z.hex, c:[cl.r, cl.g, cl.b], hi:'#' + c.clone().lerp(new THREE.Color('#ffffff'), .3).getHexString(), lo:'#' + c.clone().lerp(new THREE.Color('#000000'), .25).getHexString()}; });
   // real branch fixtures: 1.2 m bays, 60 cm deep, 4 shelves, 2 m aisles (BW / GONDOLA are set for this page)
   const SP = 3.4, CA = 2.0, AISLE_W = 2.0, SIDE_A = 2.0, BACK_A = 2.0, ROW_T = 2*GONDOLA.d + .04, PITCH = ROW_T + AISLE_W, WALL_D = GWALL.d;
   const NBACK = Math.floor((2*SP - .4) / BW), AMAX = 1500;   // floor area target (m²)

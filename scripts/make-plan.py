@@ -91,6 +91,14 @@ rep("        putProduct(key, F, bx + it.x, it.y, d/2 - .1 - (it.back || 0),", " 
 rep("  const BW = 1.0;", "  const BW = 1.2;")
 rep("  const GONDOLA = {h:1.8, d:.5, levels:[.12, .45, .78, 1.11, 1.44]};", "  const GONDOLA = {h:1.8, d:.6, levels:[.14, .56, .98, 1.40]};")
 rep("    const w = x1 - x0 - .04, cx = (x0 + x1)/2, hh = .42, a = F.at, n = F.n;", "    const w = x1 - x0 - .04, cx = (x0 + x1)/2, hh = .30, a = F.at, n = F.n;")
+# Blender look: the sign above each bay is a frame in the department colour round a white label
+rep("    quad(HDR, [a(cx-w/2,y,z), a(cx+w/2,y,z), a(cx+w/2,y+hh,z), a(cx-w/2,y+hh,z)], n(0,0,1), C_WHITE);",
+    "    quad(HDR, [a(cx-w/2,y,z), a(cx+w/2,y,z), a(cx+w/2,y+hh,z), a(cx-w/2,y+hh,z)], n(0,0,1), HDR_C);\n"
+    "    quad(HDR, [a(cx-w/2+.045,y+.04,z+.003), a(cx+w/2-.045,y+.04,z+.003), a(cx+w/2-.045,y+hh-.035,z+.003), a(cx-w/2+.045,y+hh-.035,z+.003)], n(0,0,1), C_WHITE);")
+rep("const tw = Math.min(w - .1, (hh - .12) * 1024/TRH)", "const tw = Math.min(w - .16, (hh - .13) * 1024/TRH)")
+# the band above the wall shelving is iBrand plum instead of wood
+rep("g.addColorStop(0,'#b7875a'); g.addColorStop(.5,'#c89a6b'); g.addColorStop(1,'#9c7048');", "g.addColorStop(0,'#3b1d36'); g.addColorStop(.5,'#45233f'); g.addColorStop(1,'#35192f');")
+
 
 # one header board per gondola (1.2 m), not one wide board across a brand's bays
 rep("        const same = curH && prev && prev.id === curH.id;", "        const same = false;")

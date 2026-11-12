@@ -858,7 +858,7 @@ function build(renderer){
       if (top !== null){ b.hdr = hdrOf(rep[top]); b.kind = rep[top]._fx || 0; } });
     return bays;
   }
-  const ZCOL = ZINFO.map(z => { const c = new THREE.Color(z.hex); return {hex:z.hex, c:[c.r, c.g, c.b], hi:'#' + c.clone().lerp(new THREE.Color('#ffffff'), .3).getHexString(), lo:'#' + c.clone().lerp(new THREE.Color('#000000'), .25).getHexString()}; });
+  const ZCOL = ZINFO.map(z => { const c = new THREE.Color(z.hex); const cl = c.clone().convertSRGBToLinear(); return {hex:z.hex, c:[cl.r, cl.g, cl.b], hi:'#' + c.clone().lerp(new THREE.Color('#ffffff'), .3).getHexString(), lo:'#' + c.clone().lerp(new THREE.Color('#000000'), .25).getHexString()}; });
   // real branch fixtures: 1.2 m bays, 60 cm deep, 4 shelves, 2 m aisles (BW / GONDOLA are set for this page)
   const SP = 3.4, CA = 2.0, AISLE_W = 2.0, SIDE_A = 2.0, BACK_A = 2.0, ROW_T = 2*GONDOLA.d + .04, PITCH = ROW_T + AISLE_W, WALL_D = GWALL.d;
   const NBACK = Math.floor((2*SP - .4) / BW), AMAX = 1500;   // floor area target (m²)
@@ -1081,7 +1081,8 @@ function build(renderer){
   const BA = DATA && DATA.brandAtlas;
   function header(F, x0, x1, y, z, hdr, key){
     const w = x1 - x0 - .04, cx = (x0 + x1)/2, hh = .30, a = F.at, n = F.n;
-    quad(HDR, [a(cx-w/2,y,z), a(cx+w/2,y,z), a(cx+w/2,y+hh,z), a(cx-w/2,y+hh,z)], n(0,0,1), C_WHITE);
+    quad(HDR, [a(cx-w/2,y,z), a(cx+w/2,y,z), a(cx+w/2,y+hh,z), a(cx-w/2,y+hh,z)], n(0,0,1), HDR_C);
+    quad(HDR, [a(cx-w/2+.045,y+.04,z+.003), a(cx+w/2-.045,y+.04,z+.003), a(cx+w/2-.045,y+hh-.035,z+.003), a(cx-w/2+.045,y+hh-.035,z+.003)], n(0,0,1), C_WHITE);
     quad(HDR, [a(cx-w/2,y-.001,z+.002), a(cx+w/2,y-.001,z+.002), a(cx+w/2,y+.035,z+.002), a(cx-w/2,y+.035,z+.002)], n(0,0,1), HDR_C);
     boxInto(STRUCT, F, cx, y + hh/2, z - .05, w, hh, .09, '#f3f3f3');
     const info = hdr && hdr.big && DATA.brands && DATA.brands[hdr.brandId];
@@ -1091,7 +1092,7 @@ function build(renderer){
       quad(HLOGO, [a(cx-lw/2,yc-lh/2,z+.004), a(cx+lw/2,yc-lh/2,z+.004), a(cx+lw/2,yc+lh/2,z+.004), a(cx-lw/2,yc+lh/2,z+.004)], n(0,0,1), C_WHITE, null, [u0,v0, u1,v0, u1,v1, u0,v1]);
     } else {
       const label = hdr && hdr.big ? null : (hdr && hdr.force ? SEC[hdr.force].name : (hdr && hdr.label) || (SEC[key] ? SEC[key].name : ''));
-      const tw = Math.min(w - .1, (hh - .12) * 1024/TRH), th = tw * TRH/1024, yc = y + hh/2 + .01;
+      const tw = Math.min(w - .16, (hh - .13) * 1024/TRH), th = tw * TRH/1024, yc = y + hh/2 + .01;
       if (label) quad(HTITLE, [a(cx-tw/2,yc-th/2,z+.004), a(cx+tw/2,yc-th/2,z+.004), a(cx+tw/2,yc+th/2,z+.004), a(cx-tw/2,yc+th/2,z+.004)], n(0,0,1), C_WHITE, null, titleUV(label));
       else brandNameHeader(F, cx, yc, z+.004, w, hh, hdr.name);
     }
@@ -1802,7 +1803,7 @@ function build(renderer){
   screen(0, 3.45, zF - .15, Math.PI, 2.0);
   // warm wood band along the side walls above the shelving
   {
-    const woodTex = canvasTex(512, 128, (x,w,h)=>{ for (let i=0;i<8;i++){ const y=i*16; const g=x.createLinearGradient(0,y,0,y+16); g.addColorStop(0,'#b7875a'); g.addColorStop(.5,'#c89a6b'); g.addColorStop(1,'#9c7048'); x.fillStyle=g; x.fillRect(0,y,w,14); x.fillStyle='#6b4a2e'; x.fillRect(0,y+14,w,2); } });
+    const woodTex = canvasTex(512, 128, (x,w,h)=>{ for (let i=0;i<8;i++){ const y=i*16; const g=x.createLinearGradient(0,y,0,y+16); g.addColorStop(0,'#3b1d36'); g.addColorStop(.5,'#45233f'); g.addColorStop(1,'#35192f'); x.fillStyle=g; x.fillRect(0,y,w,14); x.fillStyle='#6b4a2e'; x.fillRect(0,y+14,w,2); } });
     woodTex.wrapS = woodTex.wrapT = THREE.RepeatWrapping; woodTex.repeat.set(fl/2, 1);
     const woodMat = new THREE.MeshStandardMaterial({map:woodTex, roughness:.65, envMapIntensity:.3});
     [-1,1].forEach(sd=>{ const band=new THREE.Mesh(new THREE.PlaneGeometry(fl, .9), woodMat); band.rotation.y = -sd*Math.PI/2; band.position.set(sd*(Wx-.005), 3.15, zMid); scene.add(band); });
