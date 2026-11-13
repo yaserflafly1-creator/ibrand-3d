@@ -13,14 +13,13 @@ permissions:
   pages: write
   id-token: write
 
-concurrency:
-  group: pages
-  # never cut a running refresh short: with hourly runs a cancelled build would never get to save its photo cache.
-  # A newer run simply waits for the current one, and only the newest waiting run is kept.
-  cancel-in-progress: false
+# Builds queue behind each other (a cancelled build would never save its photo cache); the AI cut runs beside them without holding up the next build.
 
 jobs:
   build:
+    concurrency:
+      group: pages-build
+      cancel-in-progress: false
     runs-on: ubuntu-latest
     timeout-minutes: 300
     steps:
@@ -37,6 +36,12 @@ jobs:
             .cache/pages1
           key: tiles8-${{ github.run_id }}
           restore-keys: tiles8-
+      - name: Restore AI photo cuts
+        uses: actions/cache/restore@v4
+        with:
+          path: .cache/aicut
+          key: aicut-${{ github.run_id }}
+          restore-keys: aicut-
       - name: Cache basisu encoder
         id: basisu-cache
         uses: actions/cache@v4
@@ -75,13 +80,59 @@ jobs:
             .cache/basis6
             .cache/pages1
           key: tiles8-${{ github.run_id }}
+      - uses: actions/upload-artifact@v4
+        with:
+          name: ai-todo
+          path: ai-todo.json
+          if-no-files-found: ignore
       - uses: actions/configure-pages@v5
       - uses: actions/upload-pages-artifact@v3
         with:
           path: site
 
+  # Photos the plain cut-out could not handle are cut by an AI model here, beside the deploy, a batch per run; the next refresh uses them.
+  cut:
+    needs: build
+    concurrency:
+      group: pages-aicut
+      cancel-in-progress: false
+    runs-on: ubuntu-latest
+    timeout-minutes: 70
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - uses: actions/download-artifact@v4
+        with:
+          name: ai-todo
+        continue-on-error: true
+      - name: Restore AI photo cuts
+        uses: actions/cache/restore@v4
+        with:
+          path: .cache/aicut
+          key: aicut-${{ github.run_id }}
+          restore-keys: aicut-
+      - name: Cut
+        run: |
+          [ -s ai-todo.json ] || { echo "nothing to cut"; exit 0; }
+          mkdir cutter && cp scripts/ai-cut.mjs cutter/ && cd cutter && npm init -y >/dev/null && npm pkg set type=module
+          npm install @imgly/background-removal-node@1.4.5 >/dev/null
+          mkdir -p ../.cache/aicut && ln -s ../.cache .cache && cp ../ai-todo.json . && node ai-cut.mjs
+        env:
+          CUT_MINUTES: 45
+      - name: Save AI photo cuts
+        if: always()
+        uses: actions/cache/save@v4
+        with:
+          path: .cache/aicut
+          key: aicut-${{ github.run_id }}
+
   deploy:
     needs: build
+    concurrency:
+      group: pages-deploy
+      cancel-in-progress: false
     runs-on: ubuntu-latest
     environment:
       name: github-pages

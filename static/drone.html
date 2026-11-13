@@ -563,25 +563,28 @@ function build(renderer){
   }
   // What a pack is on the shelf: a carton (box), a rounded body (bottles, tubes, jars) or a flat cut-out (photos of several pieces, wide tins).
   // The build reads each pack's outline at 9 heights (p.pf); a pack as wide at the top, middle and bottom as its photo is a carton.
-  const pfRow = (p, k) => [parseInt(p.pf[2*k], 16) / 15, parseInt(p.pf[2*k+1], 16) / 15];
+  const pfRow = (p, k) => [parseInt(p.pf.substr(4*k, 2), 16) / 255, parseInt(p.pf.substr(4*k + 2, 2), 16) / 255];
+  // Only a single, upright, symmetric pack gets a rounded body; anything the outline leaves in doubt keeps its photo as it is.
   function shapeOf(p){
     if (p._sh) return p._sh;
     const old = isBox(p) ? 'box' : 'flat';
-    if (p.card || !p.pf || p.pf.length < 18 || NO_ROUND) return p._sh = old;
-    const wd = k => { const r = pfRow(p, k); return r[1] - r[0]; };
-    if (wd(0) > .9 && wd(4) > .9 && wd(8) > .9) return p._sh = 'box';
-    const a = p.aspect || 1;
-    if (a > 1.8 || (a > .6 && (p.rect || 1) < .8)) return p._sh = old;   // wide tubs (up to 1.8 : 1) are round too; flatter than that is a tin shot at an angle or a carton on its side
+    if (p.card || !p.pf || p.pf.length !== 36 || NO_ROUND) return p._sh = old;
+    const R = []; for (let k = 0; k < 9; k++){ const r = pfRow(p, k); R.push({w: r[1] - r[0], c: (r[0] + r[1]) / 2}); }
+    if (R[0].w > .9 && R[4].w > .9 && R[8].w > .9) return p._sh = 'box';                       // as wide at the top, middle and bottom as its photo: a carton
+    const a = p.aspect || 1, body = R.slice(2), mc = body.reduce((s, r) => s + r.c, 0) / body.length;
+    if (a > 1.8 || (p.rect || 1) < .62) return p._sh = old;                                     // a tin shot at an angle, or several pieces in one photo
+    if (body.some(r => Math.abs(r.c - mc) > .06) || Math.abs(mc - .5) > .06) return p._sh = old; // leaning or lopsided: not one upright pack
+    if (body.some(r => r.w < .45)) return p._sh = old;                                          // a waist that thin is two things, not one body
+    for (let k = 3; k < 9; k++) if (Math.abs(R[k].w - R[k-1].w) > .3) return p._sh = old;        // a sudden step in width: a pack beside its box
     return p._sh = 'round';
   }
   const NO_ROUND = !/[?&]round=1\b/.test(location.search),   // rounded packs stay a trial (add ?round=1) until they look right on every kind of pack
-        RB = isSmall ? 4 : 8, RC0 = isSmall ? 2 : 3, RTH0 = 1.36, RCF = isSmall ? 5 : 8;
-  let AROUND = true;      // island displays are seen from every side, so packs there get a whole body; gondola shelves only ever show the front half
+        RB = isSmall ? 4 : 8, RCF = isSmall ? 5 : 6;
   function roundPack(T, F, cx, y, cz, w, h, d, p, place, c, u0, u1, vb, vt){
-    const a = F.at, n = F.n, rzMax = Math.min(w * .42, d * .5), zc = cz - rzMax, step = 8 / RB, rows = [], RC = AROUND ? RCF : RC0, RTH = AROUND ? Math.PI : RTH0;
+    const a = F.at, n = F.n, rzMax = Math.min(w * .42, d * .5), zc = cz - rzMax, step = 8 / RB, rows = [], RC = RCF, RTH = Math.PI;   // a whole body everywhere: half a body looks hollow from the side of an aisle
     for (let j = 0; j <= RB; j++){ const [L, R] = pfRow(p, j * step), f = j / RB, rx = Math.max(.002, w * (R - L) / 2), xc = cx - w/2 + w * (L + R) / 2, rz = Math.min(rx * .85, rzMax), pts = [];
       for (let s2 = 0; s2 <= RC; s2++){ const th = -RTH + 2 * RTH * s2 / RC, sx = Math.sin(th), cz2 = Math.cos(th), X = xc + sx * rx, nl = Math.hypot(sx * rz, cz2 * rx) || 1;
-        pts.push({v:a(X, y + h * (1 - f), zc + cz2 * rz), n:n(sx * rz / nl, 0, cz2 * rx / nl), uv:[u0 + (X - (cx - w/2)) / w * (u1 - u0), vt - f * (vt - vb)]}); }
+        pts.push({v:a(X, y + h * (1 - f), zc + cz2 * rz), n:n(sx * rz / nl, 0, cz2 * rx / nl), uv:[u0 + (Math.max(xc - rx * .96, Math.min(xc + rx * .96, X)) - (cx - w/2)) / w * (u1 - u0), vt - Math.max(.01, Math.min(.99, f)) * (vt - vb)]}); }
       rows.push(pts); }
     for (let j = 0; j < RB; j++) for (let s2 = 0; s2 < RC; s2++){ const A = rows[j+1][s2], B = rows[j+1][s2+1], C = rows[j][s2+1], D = rows[j][s2];
       quadN(T, [A.v, B.v, C.v, D.v], [A.n, B.n, C.n, D.n], c, place, [...A.uv, ...B.uv, ...C.uv, ...D.uv]); }
@@ -1105,8 +1108,7 @@ function build(renderer){
       if (!bay) return;
       const bx = x0 + b*BW;
       bay.items.forEach(it => {
-        AROUND = false;
-        putProduct(key, F, bx + it.x, it.y, d/2 - .1 - (it.back || 0), it.w, it.h, it.d, it.p, isBox(it.p) ? ROWS : 1, it.yaw || 0); AROUND = true;
+        putProduct(key, F, bx + it.x, it.y, d/2 - .1 - (it.back || 0), it.w, it.h, it.d, it.p, isBox(it.p) ? ROWS : 1, it.yaw || 0);
         if (it.first !== false) priceTag(F, bx + it.x, it.y, d/2 - .025, it.p, tagW(bay, it));
       });
     });

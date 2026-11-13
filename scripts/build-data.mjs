@@ -174,7 +174,32 @@ function cutout(data, w, h, thr = 247){
   return { kept: kept / (w*h), box: maxX < 0 ? null : { left:minX, top:minY, width:maxX-minX+1, height:maxY-minY+1 } };
 }
 
-async function makeTile(imgUrl){
+// Photos the plain cut-out cannot handle (white packs on white, ad-style backgrounds) get a second chance from an AI background cut.
+// The cut itself runs in a separate job (scripts/ai-cut.mjs writes .cache/aicut/<hash>.webp); here it is only checked and used.
+const AIC = '.cache/aicut', aiTodo = new Map(), aiStats = { used: 0, rejected: 0, waiting: 0 };
+const exists = f => fs.access(f).then(() => true, () => false);
+async function fromAI(h, imgUrl, base){
+  const f = `${AIC}/${h}.webp`;
+  if (!(await exists(f))){ if (!(await exists(`${AIC}/${h}.bad`))){ aiTodo.set(h, imgUrl); aiStats.waiting++; return null; } return { no: true }; }
+  try {
+    const S = 600, { data, info } = await sharp(f).resize(S, S, { fit: 'contain', background: { r:0, g:0, b:0, alpha:0 } }).ensureAlpha().raw().toBuffer({ resolveWithObject: true });
+    let solid = 0, soft = 0, l = S, r = -1, t = S, b = -1;
+    for (let y = 0; y < S; y++) for (let x = 0; x < S; x++){ const i = (y * S + x) * 4 + 3, a = data[i];
+      if (a > 200) solid++; else if (a > 40) soft++;
+      if (a >= 128){ data[i] = 255; if (x < l) l = x; if (x > r) r = x; if (y < t) t = y; if (y > b) b = y; } else data[i] = 0; }
+    // a good cut is mostly solid: faded or half-erased results (a photo of an eye, a white jar the model ate into) are refused
+    if (solid < S * S * .03 || soft > (solid + soft) * .22 || r < 0){ aiStats.rejected++; return { no: true }; }
+    const box = { left: l, top: t, width: r - l + 1, height: b - t + 1 }, band = Math.max(2, Math.round(Math.min(box.width, box.height) * .08));
+    let op = 0, er = 0, eg = 0, eb = 0, en = 0;
+    for (let y = t; y <= b; y++) for (let x = l; x <= r; x++){ const i = (y * S + x) * 4; if (!data[i+3]) continue; op++;
+      if (x - l < band || r - x < band || y - t < band || b - y < band){ er += data[i]; eg += data[i+1]; eb += data[i+2]; en++; } }
+    const hex = v => Math.round(v).toString(16).padStart(2, '0');
+    const png = await sharp(data, { raw: info }).extract(box).resize(TPX, TPX, { fit: 'contain', background: { r:0, g:0, b:0, alpha:0 } }).png().toBuffer();
+    aiStats.used++;
+    return { png, meta: { ...base, aspect: +(box.width / box.height).toFixed(3), card: false, rect: +(op / (box.width * box.height)).toFixed(2), c: en ? '#' + hex(er/en) + hex(eg/en) + hex(eb/en) : '#dddddd', ai: 1 } };
+  } catch (e){ aiStats.rejected++; return { no: true }; }
+}
+async function makeTile(imgUrl, h){
   const r = await fetch(imgUrl, { headers: { 'User-Agent': headers['User-Agent'] } });
   if (!r.ok) throw new Error('img ' + r.status);
   const buf = Buffer.from(await r.arrayBuffer());
@@ -198,8 +223,10 @@ async function makeTile(imgUrl){
   }
   const pk = pkN ? +(pkP / pkN).toFixed(2) : 0;
   const asCard = async () => {
+    const ai = h ? await fromAI(h, imgUrl, { sig, pk, psig, ah }) : null;
+    if (ai && ai.png) return ai;
     const png = await sharp(buf).rotate().flatten({ background:'#ffffff' }).resize(TPX, TPX, { fit:'cover' }).png().toBuffer();
-    return { png, meta: { aspect: 1, card: true, rect: 1, c: '#eeeeee', sig, pk, psig, ah } };
+    return { png, meta: { aspect: 1, card: true, rect: 1, c: '#eeeeee', sig, pk, psig, ah, ...(ai && ai.no ? { aiNo: 1 } : {}) } };
   };
   if (!res.box || res.kept < 0.04 || res.kept > 0.97) return asCard();
   // the flood leaked into the product itself (white bottles, cream tubs): keep the photo on a card instead
@@ -238,7 +265,7 @@ async function makeTile(imgUrl){
 }
 
 // The pack's outline, for giving bottles, tubes and jars their rounded body in the pharmacy:
-// at 9 heights from top to bottom, where the pack starts and ends across its own width (one hex digit each, 0 = left edge, f = right edge).
+// at 9 heights from top to bottom, where the pack starts and ends across its own width (two hex digits each, 00 = left edge, ff = right edge).
 async function profileOf(png, aspect){
   const { data, info } = await sharp(png).ensureAlpha().raw().toBuffer({ resolveWithObject: true });
   const W = info.width, H = info.height, cw = aspect <= 1 ? W * aspect : W, ch = aspect <= 1 ? H : H / aspect, x0 = (W - cw) / 2, y0 = (H - ch) / 2;
@@ -249,8 +276,8 @@ async function profileOf(png, aspect){
       for (let x = 0; x < W; x++) if (data[(y * W + x) * 4 + 3] > 40){ if (x < l) l = x; break; }
       for (let x = W - 1; x >= 0; x--) if (data[(y * W + x) * 4 + 3] > 40){ if (x > r) r = x; break; }
     }
-    const q = v => Math.max(0, Math.min(15, Math.round((v - x0) / cw * 15))).toString(16);
-    out += r < 0 ? '78' : q(l) + q(r + 1);
+    const q = v => Math.max(0, Math.min(255, Math.round((v - x0) / cw * 255))).toString(16).padStart(2, '0');
+    out += r < 0 ? '7f80' : q(l) + q(r + 1);
   }
   return out;
 }
@@ -261,10 +288,14 @@ async function tileFor(img){
   try {
     const [png, meta] = await Promise.all([fs.readFile(pngPath), fs.readFile(metaPath, 'utf8')]);
     const m = JSON.parse(meta);
-    if (!m.card && !m.pf){ m.pf = await profileOf(png, m.aspect || 1); await fs.writeFile(metaPath, JSON.stringify(m)); }
+    if (m.card && !m.aiNo){
+      if (await exists(`${AIC}/${h}.webp`) || await exists(`${AIC}/${h}.bad`)) throw new Error('remake with the AI cut');
+      aiTodo.set(h, fullImg(img)); aiStats.waiting++;
+    }
+    if (!m.card && (!m.pf || m.pf.length !== 36)){ m.pf = await profileOf(png, m.aspect || 1); await fs.writeFile(metaPath, JSON.stringify(m)); }
     tileStats.cached++; return { png, meta: m };
   } catch {}
-  const t = await makeTile(fullImg(img));
+  const t = await makeTile(fullImg(img), h);
   if (!t.meta.card) t.meta.pf = await profileOf(t.png, t.meta.aspect || 1);
   await fs.writeFile(pngPath, t.png); await fs.writeFile(metaPath, JSON.stringify(t.meta));
   tileStats.made++; return t;
@@ -297,7 +328,7 @@ async function packSection(key, items, opts = {}){
     const big = `atlas/${key}-${pg}.webp`, small = `atlas/${key}-${pg}-m.webp`, tiny = `atlas/${key}-${pg}-s.webp`;
     // HD pieces: 2 rows x half width at 512 px per product (crisp close-ups within 4096-wide textures)
     const hd = [];
-    const pkey = crypto.createHash('sha1').update(JSON.stringify([5, PC, TPX, TILE, HQ, HC, !!opts.noBasis, !!BASISU, chunk.map(({ it }) => imgHash(it.img))])).digest('hex').slice(0, 24);
+    const pkey = crypto.createHash('sha1').update(JSON.stringify([5, PC, TPX, TILE, HQ, HC, !!opts.noBasis, !!BASISU, chunk.map(({ it, t }) => imgHash(it.img) + (t.meta.ai ? 'a' : ''))])).digest('hex').slice(0, 24);
     const pdir = `${PCACHE}/${pkey}`, bigBn = big.replace('.webp', '.basis'); pagesUsed.add(pkey);
     // every file of this page: [name in the cache, name on the site]
     const files = [['big.webp', big], ['m.webp', small], ['s.webp', tiny]];
@@ -564,6 +595,8 @@ async function main(){
   console.log('MISSING LOGOS ' + missing.length + ': ' + missing.join(' | '));
   // a refresh that could not read the whole store must never replace a good one with half-empty shelves
   if (listBroken) throw new Error('store listings were cut short ' + listBroken + ' time(s) — keeping the previous build');
+  try { await fs.mkdir(AIC, { recursive: true }); await fs.writeFile('ai-todo.json', JSON.stringify([...aiTodo].map(([h, url]) => ({ h, url })))); } catch (e){ console.log('ai todo not written', e.message); }
+  console.log('ai cut', JSON.stringify(aiStats), 'todo', aiTodo.size);
   console.log('ON SHELVES', result.counts.onShelves, 'hidden Rx', rx.size, 'skipped hidden/out-of-stock', skippedUnavail);
   // offers: every running multi-buy offer has its own category in the store, named like "ميدو 1+1 (5/12/2026)".
   // Products in it carry the offer (of) and its last day (oe), so the shelves can flag them.
