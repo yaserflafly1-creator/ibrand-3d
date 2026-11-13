@@ -1661,27 +1661,19 @@ function build(renderer){
   const allocQ = () => (ALLOC.scope ? '&scope=' + ALLOC.scope : '') + '&allocation_id=' + ALLOC.id + '&allocation_type=' + ALLOC.type;
   const availMemo = new Map();
   // -> Map(id -> in stock for this shopper), or null when it could not be checked (then nothing is blocked)
-  // Salla's listing does not filter by branch for hand-picked ids, but every product carries the list of branches that have it in stock.
-  // So the check is: is the shopper's branch in that list. If the allocation is not one of the store's branches, nothing is blocked.
-  let branchIds = null;
-  const knownBranch = async () => {
-    if (!branchIds) branchIds = fetch(SF + '/branches?per_page=100', {headers:SFH}).then(r => r.json()).then(j => new Set((j.data || []).map(x => String(x.id)))).catch(() => { branchIds = null; return null; });
-    const set = await branchIds; return !!set && set.has(String(ALLOC.id));
-  };
+  // Salla's product listings ignore the shopper's branch (checked against the live store), and a product's "branches" list is not stock either.
+  // The one call that answers for a branch is the product's own details: 200 with that branch's quantity, or 404 "sold out" there.
   async function availability(ids){
-    if (!ALLOC || !(await knownBranch())) return null;
+    if (!ALLOC) return null;
     const now = Date.now(), out = new Map(), need = [];
     ids.map(String).forEach(id => { const m = availMemo.get(id); if (m && now - m.t < 300000) out.set(id, m.ok); else need.push(id); });
-    try {
-      for (let i = 0; i < need.length; i += 40){
-        const part = need.slice(i, i + 40);
-        const r = await fetch(SF + '/products?source=selected&per_page=50&' + part.map(id => 'source_value[]=' + id).join('&') + allocQ(), {headers:SFH});
-        if (!r.ok) throw new Error('http ' + r.status);
-        const got = new Set(((await r.json()).data || []).filter(p => p.is_available !== false && p.is_out_of_stock !== true && (!Array.isArray(p.branches) || p.branches.some(x => String(x.id) === String(ALLOC.id)))).map(p => String(p.id)));
-        part.forEach(id => { const ok = got.has(id); availMemo.set(id, {ok, t:now}); out.set(id, ok); });
-      }
-    } catch(e){ return out.size ? out : null; }
-    return out;
+    const one = async id => { try {
+      const r = await fetch(SF + '/products/' + id + '/details?x=1' + allocQ(), {headers:SFH});
+      if (r.status !== 200 && r.status !== 404) return;                    // anything else: unknown, so nothing is blocked
+      const ok = r.status === 200; availMemo.set(id, {ok, t:now}); out.set(id, ok);
+    } catch(e){} };
+    for (let i = 0; i < need.length; i += 6) await Promise.all(need.slice(i, i + 6).map(one));
+    return out.size ? out : null;
   }
   const HERE = () => ALLOC && ALLOC.type === 'address' ? 'للتوصيل لعنوانك' : 'في فرعك';
   let cartOut = new Set();
