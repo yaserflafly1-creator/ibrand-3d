@@ -27,17 +27,8 @@ await fs.writeFile('audit/audit.json', JSON.stringify(list.map(({ buf, ...r }) =
 // sample of 50, spread over the reasons
 const groups = {}; list.filter(it => it.buf).forEach(it => (groups[it.reason] = groups[it.reason] || []).push(it));
 const pick = []; const keys = Object.keys(groups); for (let r = 0; pick.length < 50 && r < 400; r++){ const g = groups[keys[r % keys.length]]; const it = g[Math.floor((r * 7919) % g.length)]; if (it && !pick.includes(it)) pick.push(it); }
-const { removeBackground } = await import('@imgly/background-removal-node');
-const C = 256, cells = [];
-for (const [n, it] of pick.entries()){
-  try { const png = await sharp(it.buf).rotate().resize(1024, 1024, { fit: 'inside' }).png().toBuffer(); const t = Date.now();
-    const out = Buffer.from(await (await removeBackground(new Blob([png], { type: 'image/png' }), { model: 'medium', output: { format: 'image/png' } })).arrayBuffer());
-    const before = await sharp(it.buf).rotate().flatten({ background: '#ffffff' }).resize(C, C, { fit: 'contain', background: '#ffffff' }).png().toBuffer();
-    const after = await sharp(out).resize(C, C, { fit: 'contain', background: { r:0,g:0,b:0,alpha:0 } }).flatten({ background: '#ec78aa' }).png().toBuffer();
-    cells.push({ before, after }); console.log('cut', n, it.reason, Date.now() - t, 'ms');
-  } catch (e){ console.log('cut failed', n, e.message); } }
-const cols = 5, rows = Math.ceil(cells.length / cols);
-await sharp({ create: { width: cols * C * 2, height: rows * C, channels: 3, background: '#ffffff' } }).composite(cells.flatMap((c, k) => [
-  { input: c.before, left: (k % cols) * C * 2, top: Math.floor(k / cols) * C }, { input: c.after, left: (k % cols) * C * 2 + C, top: Math.floor(k / cols) * C }])).jpeg({ quality: 82 }).toFile('audit/sample.jpg');
+// the cut itself runs in its own process (scripts/photo-cut.mjs): its image library and this one cannot share a process
+await fs.mkdir('audit/cut', { recursive: true });
+for (const [n, it] of pick.entries()) await fs.writeFile(`audit/in/${n}.png`, await sharp(it.buf).rotate().resize(1024, 1024, { fit: 'inside' }).png().toBuffer());
 await fs.writeFile('audit/sample.json', JSON.stringify(pick.map(({ buf, ...r }) => r)));
-console.log('done', cells.length);
+console.log('sample written', pick.length);

@@ -8,7 +8,10 @@ jobs:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with: { node-version: 20 }
-      - run: npm install --no-save sharp@0.33.5 @imgly/background-removal-node@1.4.5
+      - run: npm install --no-save sharp@0.33.5
       - run: node scripts/photo-audit.mjs
+      - run: mkdir cutter && cp scripts/photo-cut.mjs cutter/ && cd cutter && npm init -y >/dev/null && npm pkg set type=module && npm install @imgly/background-removal-node@1.4.5 && ln -s ../audit audit && node photo-cut.mjs
+      - run: node scripts/photo-sheet.mjs
       - uses: actions/upload-artifact@v4
+        if: always()
         with: { name: audit, path: audit/*.j* }
