@@ -774,6 +774,18 @@ function build(renderer){
         next(); }, next); };
     for (let c = 0; c < 4; c++) next();
   }
+  // one page's small photo sheet on demand (the cart needs a pack's photo even when its shelf is far away and not loaded yet)
+  const thumbWait = {};
+  function ensureThumb(key, pg, done){
+    const k = key + ':' + pg, sd = DATA.sections[key], src = sd && sd.pagesS && sd.pagesS[pg];
+    if (thumbMat[k] || !src) return;
+    if (thumbWait[k]){ thumbWait[k].push(done); return; }
+    thumbWait[k] = [done];
+    loadPageTex(src + AV, t => { sRGB(t); t.generateMipmaps = !isSmall; if (isSmall) t.minFilter = THREE.LinearFilter;
+      if (!thumbMat[k]){ const m = new THREE.MeshStandardMaterial({map:t, alphaTest:.5, roughness:.4, envMapIntensity:.55, side:THREE.DoubleSide}); m.userData.thumb = true; thumbMat[k] = m;
+        pageMeshes.forEach(pm => { if (pm.key + ':' + pm.pg === k && pm.mesh.material === placeholderMat) pm.mesh.material = m; }); }
+      const cbs = thumbWait[k]; delete thumbWait[k]; cbs.forEach(f => { try { f(); } catch(e){} }); }, () => { delete thumbWait[k]; });
+  }
   function dropPm(pm){
     pm.pendingUrl = null;
     if (pm.url){ releaseTex(pm.url); pm.url = null; pm.lvl = -1; }
@@ -1844,7 +1856,8 @@ function build(renderer){
     let geo = packGeo.get(gk);
     if (!geo){ const [u0, u1, vb, vt] = tileUV(sd, p); geo = new THREE.PlaneGeometry(w, h); const uv = geo.attributes.uv;
       for (let i = 0; i < uv.count; i++) uv.setXY(i, uv.getX(i) < .5 ? u0 : u1, uv.getY(i) < .5 ? vb : vt); packGeo.set(gk, geo); if (packGeo.size > 80) packGeo.delete(packGeo.keys().next().value); }
-    const shared = thumbMat[key + ':' + p.pg], mat = shared || new THREE.MeshStandardMaterial({color:p.c || '#eeb2cb', roughness:.5, side:THREE.DoubleSide});
+    const shared = thumbMat[key + ':' + p.pg]; if (!shared) ensureThumb(key, p.pg, () => { try { cartItemsSync(); } catch(e){} });
+    const mat = shared || new THREE.MeshStandardMaterial({color:p.c || '#eeb2cb', roughness:.5, side:THREE.DoubleSide});
     const g = new THREE.Group(), m1 = new THREE.Mesh(geo, mat); g.add(m1);
     if (crossed){ const m2 = new THREE.Mesh(geo, mat); m2.rotation.y = Math.PI / 2; g.add(m2); }
     g.userData = {own: shared ? null : mat, h, w}; return g;
