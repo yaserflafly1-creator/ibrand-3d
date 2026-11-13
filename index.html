@@ -1661,8 +1661,15 @@ function build(renderer){
   const allocQ = () => (ALLOC.scope ? '&scope=' + ALLOC.scope : '') + '&allocation_id=' + ALLOC.id + '&allocation_type=' + ALLOC.type;
   const availMemo = new Map();
   // -> Map(id -> in stock for this shopper), or null when it could not be checked (then nothing is blocked)
+  // Salla's listing does not filter by branch for hand-picked ids, but every product carries the list of branches that have it in stock.
+  // So the check is: is the shopper's branch in that list. If the allocation is not one of the store's branches, nothing is blocked.
+  let branchIds = null;
+  const knownBranch = async () => {
+    if (!branchIds) branchIds = fetch(SF + '/branches?per_page=100', {headers:SFH}).then(r => r.json()).then(j => new Set((j.data || []).map(x => String(x.id)))).catch(() => { branchIds = null; return null; });
+    const set = await branchIds; return !!set && set.has(String(ALLOC.id));
+  };
   async function availability(ids){
-    if (!ALLOC) return null;
+    if (!ALLOC || !(await knownBranch())) return null;
     const now = Date.now(), out = new Map(), need = [];
     ids.map(String).forEach(id => { const m = availMemo.get(id); if (m && now - m.t < 300000) out.set(id, m.ok); else need.push(id); });
     try {
@@ -1670,7 +1677,7 @@ function build(renderer){
         const part = need.slice(i, i + 40);
         const r = await fetch(SF + '/products?source=selected&per_page=50&' + part.map(id => 'source_value[]=' + id).join('&') + allocQ(), {headers:SFH});
         if (!r.ok) throw new Error('http ' + r.status);
-        const got = new Set(((await r.json()).data || []).filter(p => p.is_available !== false && p.is_out_of_stock !== true).map(p => String(p.id)));
+        const got = new Set(((await r.json()).data || []).filter(p => p.is_available !== false && p.is_out_of_stock !== true && (!Array.isArray(p.branches) || p.branches.some(x => String(x.id) === String(ALLOC.id)))).map(p => String(p.id)));
         part.forEach(id => { const ok = got.has(id); availMemo.set(id, {ok, t:now}); out.set(id, ok); });
       }
     } catch(e){ return out.size ? out : null; }
