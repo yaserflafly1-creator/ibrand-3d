@@ -135,6 +135,9 @@ body.sheet .altBtns{display:none}
 .results button:hover,.results button:focus-visible{background:var(--pink-soft);outline:none}
 .results img{width:42px;height:42px;object-fit:contain;flex:none;background:#fff;border-radius:8px}
 .results small{display:block;color:var(--muted)}
+.branchRow{display:flex;justify-content:space-between;gap:10px;align-items:center;width:100%;border:1px dashed var(--line);background:var(--ground);border-radius:12px;padding:9px 12px;font:700 13.5px var(--font);color:var(--plum);cursor:pointer;text-align:right}
+.branchRow b{color:var(--pink);font-weight:800;flex:none}
+.pickBranch{display:block;margin-top:6px;border:0;background:transparent;color:var(--pink);font:700 13.5px var(--font);text-decoration:underline;cursor:pointer;padding:4px 0}
 .results .none{color:var(--muted);padding:12px;text-align:center}
 
 .svc-card .who{display:flex;gap:12px;align-items:center}
@@ -223,6 +226,7 @@ body.sheet .altBtns{display:none}
 <aside class="drawer" id="cart" hidden aria-label="السلة">
   <button class="close" type="button" data-close="cart" aria-label="إغلاق">×</button>
   <h3>سلتك في الصيدلية</h3>
+  <button class="branchRow" type="button" id="cBranch"></button>
   <div class="items" id="cartItems"></div>
   <div class="total" id="cartTotalRow" hidden><span>المجموع</span><span id="cartTotal">0</span></div>
   <div class="choice" id="cartActions" hidden>
@@ -235,6 +239,13 @@ body.sheet .altBtns{display:none}
   <button class="close" type="button" data-close="search" aria-label="إغلاق">×</button>
   <input id="q" type="search" placeholder="ابحث باسم المنتج أو الماركة… مثل: نيفيا، بانادول" autocomplete="off">
   <div class="results" id="results"></div>
+</div>
+
+<div class="search" id="branch" hidden role="dialog" aria-label="اختر فرعك">
+  <button class="close" type="button" data-close="branch" aria-label="إغلاق">×</button>
+  <input id="bq" type="search" placeholder="اختر فرع الاستلام… اكتب اسم المدينة أو الحي" autocomplete="off">
+  <div class="results" id="bres"></div>
+  <small style="color:var(--muted);padding:2px 6px;line-height:1.6">للتوصيل للمنزل: اختر عنوانك من المتجر ثم ادخل الصيدلية من هناك.</small>
 </div>
 
 <div class="modal" id="service" hidden>
@@ -938,13 +949,13 @@ function build(renderer){
     if (!p.name) return;
     const c = a(cx, yb, z), k0 = Math.round(c[0] / 2.4) + '_' + Math.round(c[2] / 2.4) + '_' + Math.round(n[0]) + '_' + Math.round(n[2]);
     let B = nameOpen.get(k0);
-    if (!B || B.names.length >= NAME_C * NAME_R){ B = Bucket(true); B.names = []; nameOpen.set(k0, B); nameSheets.push(B); }
-    const i = B.names.length, col = i % NAME_C, row = (i / NAME_C) | 0; B.names.push(p.name);
+    if (!B || B.names.length >= NAME_C * NAME_R){ B = Bucket(true); B.names = []; B.ids = []; nameOpen.set(k0, B); nameSheets.push(B); }
+    const i = B.names.length, col = i % NAME_C, row = (i / NAME_C) | 0; B.names.push(p.name); B.ids.push(String(p.id));
     const u0 = col / NAME_C, u1 = (col + 1) / NAME_C, v1 = 1 - row / NAME_R, v0 = 1 - (row + 1) / NAME_R;
     quad(B, [a(cx-w/2,yb,z), a(cx+w/2,yb,z), a(cx+w/2,yb+hgt,z), a(cx-w/2,yb+hgt,z)], n, C_WHITE, null, [u0,v0, u1,v0, u1,v1, u0,v1]);
   }
   const nameMeshes = [], NAME_N = isIOS ? 8 : (isSmall ? 12 : 24), NAME_NEAR = 4.2;   // half-size sheets, one drawn per tick: no hitch while walking
-  function drawNames(names){
+  function drawNames(names, out){
     const c = document.createElement('canvas'); c.width = NAME_C * NAME_CW; c.height = NAME_R * NAME_CH;
     const x = c.getContext('2d'); x.fillStyle = '#2a1b27'; x.textAlign = 'center'; x.textBaseline = 'middle'; x.direction = 'rtl';
     x.font = '700 23px "Almarai", Tahoma, sans-serif';
@@ -956,6 +967,7 @@ function build(renderer){
         else if (lines.length < 2) lines.push(w); else { cut = true; break; } }
       if (cut){ let l = lines[1]; while (l.length > 2 && x.measureText(l + '…').width > maxW) l = l.slice(0, -1); lines[1] = l + '…'; }
       const cx = (i % NAME_C) * NAME_CW + NAME_CW / 2, cy = ((i / NAME_C) | 0) * NAME_CH + NAME_CH / 2;
+      if (out && out.has(i)){ x.fillStyle = '#c21f2f'; x.fillRect(cx - NAME_CW/2 + 6, cy - NAME_CH/2 + 5, NAME_CW - 12, NAME_CH - 10); x.fillStyle = '#fff'; x.fillText('غير متوفر', cx, cy + 1, maxW); x.fillStyle = '#2a1b27'; return; }
       lines.forEach((l, j) => x.fillText(l, cx, cy + (j - (lines.length - 1) / 2) * 27 + 1, maxW));
     });
     const t = sRGB(new THREE.CanvasTexture(c)); t.anisotropy = Math.min(4, renderer.capabilities.getMaxAnisotropy()); return t;
@@ -967,7 +979,7 @@ function build(renderer){
     const byDist = nameMeshes.slice().sort((a, b) => a.dist - b.dist); let made = 0;
     byDist.forEach((nm, i) => {
       if (i < NAME_N && nm.dist < NAME_NEAR){
-        if (!nm.tex && made < 1){ made++; nm.tex = drawNames(nm.names);
+        if (!nm.tex && made < 1){ made++; nm.tex = drawNames(nm.names, nm.out);
           nm.mesh.material = new THREE.MeshBasicMaterial({map:nm.tex, transparent:true, depthWrite:false, toneMapped:false}); nm.mesh.visible = true; }
       } else if (nm.tex && (i >= NAME_N + 2 || nm.dist > NAME_NEAR + 2)) dropNames(nm);
     });
@@ -1644,7 +1656,7 @@ function build(renderer){
     if (HTITLE.idx.length) scene.add(meshOf(HTITLE, new THREE.MeshBasicMaterial({map:titleTex, toneMapped:false})));
   }
   nameSheets.forEach(B => { if (!B.idx.length) return; const mesh = meshOf(B, placeholderMat); mesh.visible = false; mesh.renderOrder = 2; scene.add(mesh);
-    nameMeshes.push({mesh, names:B.names, tex:null, center:mesh.geometry.boundingSphere.center, radius:mesh.geometry.boundingSphere.radius}); });
+    nameMeshes.push({mesh, names:B.names, ids:B.ids, out:null, tex:null, center:mesh.geometry.boundingSphere.center, radius:mesh.geometry.boundingSphere.radius}); });
   updatePages(); setInterval(updatePages, 350); updateNames(); setInterval(updateNames, 300);
 
   // ---------- cart (kept in this browser; checkout moves it into the ibrand.com.sa cart) ----------
@@ -1652,13 +1664,14 @@ function build(renderer){
   // ---------- the shopper's pickup branch or delivery address, as chosen on ibrand.com.sa ----------
   // The store passes it in the link (?scope=…&allocation_id=…&allocation_type=branch|address). With it, the pharmacy
   // asks Salla whether a product is in stock for that branch/address; without it, everything works as before.
-  const ALLOC = (() => { try {
+  const SCOPE = '1979508938';
+  let ALLOC = (() => { try {
     const q = new URLSearchParams(location.search), h = new URLSearchParams(location.hash.replace(/^#/, '')), g = k => q.get(k) || h.get(k);
     const id = g('allocation_id'), a = id && /^\d+$/.test(id) ? {scope:(g('scope') || '').replace(/\D/g, ''), id, type:g('allocation_type') === 'address' ? 'address' : 'branch'} : null;
     if (a){ sessionStorage.setItem('ib3d-alloc', JSON.stringify(a)); return a; }
     return JSON.parse(sessionStorage.getItem('ib3d-alloc') || 'null'); } catch(e){ return null; } })();
   const SF = 'https://api.salla.dev/store/v1', SFH = {'Store-Identifier':'1972477543', 'Accept':'application/json', 'Accept-Language':'ar'};
-  const allocQ = () => (ALLOC.scope ? '&scope=' + ALLOC.scope : '') + '&allocation_id=' + ALLOC.id + '&allocation_type=' + ALLOC.type;
+  const allocQ = () => '&scope=' + (ALLOC.scope || SCOPE) + '&allocation_id=' + ALLOC.id + '&allocation_type=' + ALLOC.type;
   const availMemo = new Map();
   // -> Map(id -> in stock for this shopper), or null when it could not be checked (then nothing is blocked)
   // Salla's product listings ignore the shopper's branch (checked against the live store), and a product's "branches" list is not stock either.
@@ -1682,10 +1695,48 @@ function build(renderer){
     availability(Object.keys(cart)).then(m => { if (!m) return; const s2 = new Set(); m.forEach((ok, id) => { if (!ok && cart[id]) s2.add(id); });
       const same = s2.size === cartOut.size && [...s2].every(x => cartOut.has(x)); cartOut = s2; if (!same) saveCart(); });
   }
-  if (ALLOC) setTimeout(async () => { try {
-    if (ALLOC.type === 'branch'){ const j = await (await fetch(SF + '/branches?per_page=100', {headers:SFH})).json(), b = (j.data || []).find(x => String(x.id) === ALLOC.id);
+  let branchList = null;
+  const branches = () => branchList || (branchList = fetch(SF + '/branches?per_page=100', {headers:SFH}).then(r => r.json())
+    .then(j => (j.data || []).filter(x => x.pickable !== false).sort((a, b) => String(a.name).localeCompare(String(b.name), 'ar'))).catch(() => { branchList = null; return []; }));
+  let branchName = '';
+  async function announceAlloc(){ try {
+    if (!ALLOC) return;
+    if (ALLOC.type === 'branch'){ const b = (await branches()).find(x => String(x.id) === ALLOC.id); branchName = b ? b.name : ''; try { renderCart(); } catch(e){}
       toast(b ? 'تتسوق الآن من مخزون فرع ' + b.name : 'تتسوق الآن من مخزون فرعك'); }
-    else toast('تتسوق الآن من مخزون الفرع الأقرب لعنوانك'); } catch(e){} checkCart(); }, 4000);
+    else toast('تتسوق الآن من مخزون الفرع الأقرب لعنوانك'); } catch(e){} }
+  if (ALLOC) setTimeout(() => { announceAlloc(); checkCart(); }, 4000);
+  // the shopper can pick (or change) the pickup branch inside the pharmacy; delivery addresses are chosen in the store itself
+  function setAlloc(a){
+    ALLOC = a; try { a ? sessionStorage.setItem('ib3d-alloc', JSON.stringify(a)) : sessionStorage.removeItem('ib3d-alloc'); } catch(e){}
+    availMemo.clear(); cartOut = new Set(); branchName = '';
+    nameMeshes.forEach(nm => { if (nm.out){ nm.out = null; dropNames(nm); } nm.chk = 0; });
+    saveCart(); if (a){ announceAlloc(); checkCart(); } else toast('تعرض الآن كل المنتجات دون تحديد فرع');
+    if (current && !panel.hidden) showProduct(current, curKey);
+  }
+  async function openBranches(){
+    closeAll(); const box = $('#branch'), list = $('#bres'), q = $('#bq'); box.hidden = false; q.value = ''; list.innerHTML = '<div class="none">جارٍ تحميل الفروع…</div>';
+    const all = await branches();
+    const draw = () => { const t = q.value.trim(); list.innerHTML = '';
+      const add = (label, sub, fn, on) => { const b = document.createElement('button'); b.type = 'button'; const d = document.createElement('div'); d.textContent = label; if (sub){ const sm = document.createElement('small'); sm.textContent = sub; d.appendChild(sm); }
+        if (on) b.style.background = 'var(--pink-soft)'; b.appendChild(d); b.onclick = () => { box.hidden = true; fn(); }; list.appendChild(b); };
+      if (!t) add('كل الفروع', 'عرض كل المنتجات دون تحديد فرع', () => setAlloc(null), !ALLOC);
+      all.filter(x => !t || String(x.name).includes(t)).forEach(x => add(x.name, 'استلام من الفرع', () => setAlloc({scope:SCOPE, id:String(x.id), type:'branch'}), ALLOC && ALLOC.type === 'branch' && ALLOC.id === String(x.id)));
+      if (!list.children.length) list.innerHTML = '<div class="none">لا يوجد فرع بهذا الاسم</div>'; };
+    q.oninput = draw; draw();
+  }
+  // on the shelf the shopper stands at, tags of products their branch does not have turn into a red "not in your branch" label
+  let stillAt = null, stillT = 0;
+  setInterval(() => {
+    if (!ALLOC || !nameMeshes.length) return;
+    const cp = camera.position, now = Date.now();
+    if (!stillAt || stillAt.distanceToSquared(cp) > .04){ stillAt = cp.clone(); stillT = now; return; }
+    if (now - stillT < 1200) return;
+    let best = null; nameMeshes.forEach(nm => { if (nm.tex && nm.dist < 2.6 && now - (nm.chk || 0) > 300000 && (!best || nm.dist < best.dist)) best = nm; });
+    if (!best) return; best.chk = now; const a0 = ALLOC;
+    availability(best.ids).then(m => { if (!m || ALLOC !== a0) return; const out = new Set(); best.ids.forEach((id, i) => { if (m.get(id) === false) out.add(i); });
+      const same = (best.out ? best.out.size : 0) === out.size && [...out].every(i => best.out && best.out.has(i));
+      if (!same){ best.out = out.size ? out : null; dropNames(best); } });
+  }, 500);
   const inCart = it => !cartOut.has(String(it.id));
   const cartCount = () => Object.values(cart).reduce((a, it) => a + it.qty, 0);
   const cartTotal = () => Object.values(cart).filter(inCart).reduce((a, it) => a + (it.price || 0) * it.qty, 0);
@@ -1698,11 +1749,12 @@ function build(renderer){
     const cur = cart[p.id] || {id:p.id, name:p.name, price:p.price, img:p.img, url:p.url, qty:0};
     cur.qty = Math.min(10, cur.qty + qty); cur.price = p.price; cart[p.id] = cur; saveCart();
   }
-  function checkoutUrl(){ const items = Object.values(cart).filter(inCart).map(it => it.id + ':' + it.qty).join(','); return 'https://ibrand.com.sa/ar/cart' + (items ? '#ib3d=' + items : ''); }
+  function checkoutUrl(){ const items = Object.values(cart).filter(inCart).map(it => it.id + ':' + it.qty).join(','); return 'https://ibrand.com.sa/ar/cart' + (ALLOC ? '?' + allocQ().slice(1) : '') + (items ? '#ib3d=' + items : ''); }
   function checkout(){ if (!Object.values(cart).some(inCart)){ toast(cartCount() ? 'منتجات سلتك غير متوفرة ' + HERE() : 'سلتك فاضية، أضف منتجات من الرفوف'); return; }
     if (!cartCount()){ toast('سلتك فاضية، أضف منتجات من الرفوف'); return; } window.open(checkoutUrl(), '_blank', 'noopener'); toast('فتحنا سلتك في المتجر'); }
   function renderCart(){
     const box = $('#cartItems'); box.innerHTML = '';
+    const br = $('#cBranch'); if (br){ br.textContent = !ALLOC ? 'لم تحدد فرعاً بعد' : ALLOC.type === 'address' ? 'توصيل لعنوانك' : (branchName ? 'فرع ' + branchName : 'فرعك المحدد'); const c = document.createElement('b'); c.textContent = ALLOC ? 'تغيير' : 'اختر فرعك'; br.appendChild(c); br.onclick = openBranches; }
     const items = Object.values(cart);
     if (!items.length){ box.innerHTML = '<div class="empty">سلتك فاضية.<br>اضغط على أي منتج في الرفوف واختر «أضف للسلة».</div>'; }
     items.forEach(it => {
@@ -1723,7 +1775,7 @@ function build(renderer){
   $('#goCart').addEventListener('click', () => { closeAll(); $('#cart').hidden = false; checkCart(); });
   $('#cCheckout').addEventListener('click', checkout); $('#aCheckout').addEventListener('click', () => { $('#added').hidden = true; checkout(); }); $('#xCheckout').addEventListener('click', checkout);
   document.querySelectorAll('[data-close]').forEach(b => b.addEventListener('click', () => { $('#' + b.dataset.close).hidden = true; }));
-  function closeAll(){ ['added','cart','search','service','exit'].forEach(id => $('#' + id).hidden = true); }
+  function closeAll(){ ['added','cart','search','service','exit','branch'].forEach(id => $('#' + id).hidden = true); }
   let toastT = null; function toast(t){ const el = $('#toast'); el.textContent = t; el.hidden = false; clearTimeout(toastT); toastT = setTimeout(()=>el.hidden = true, 2600); }
 
   // ---------- sections, product panel ----------
@@ -1734,7 +1786,7 @@ function build(renderer){
     b.addEventListener('click', () => select(sec, true)); chips.appendChild(b); chipEls[sec.key] = b;
   });
   { const b = document.createElement('button'); b.className = 'chip svc'; b.type='button'; b.textContent = 'اسأل الصيدلي'; b.addEventListener('click', () => { flyTo(new THREE.Vector3(staff[0].position.x * .4, EYE, zC + 2.2), new THREE.Vector3(staff[0].position.x, 1.55, zC - 1.2)); openService(false); }); chips.appendChild(b); }
-  const panel = $('#panel'); let current = null, qty = 1;
+  const panel = $('#panel'); let current = null, curKey = null, qty = 1;
   function markChip(key){ Object.entries(chipEls).forEach(([k,el])=>el.setAttribute('aria-pressed', k===key ? 'true':'false')); }
   function select(sec, fromChip){
     hideHint(); current = null;
@@ -1753,7 +1805,7 @@ function build(renderer){
     if (sec.focus) flyTo(sec.focus.pos, sec.focus.target);
   }
   function showProduct(p, key){
-    hideHint(); current = p; qty = 1; $('#qVal').textContent = qty;
+    hideHint(); current = p; curKey = key; qty = 1; $('#qVal').textContent = qty;
     const sec = SEC[key] || {name:''};
     $('#pEyebrow').textContent = sec.name + (p.brand ? ' • ' + p.brand : '');
     $('#pName').textContent = p.name;
@@ -1770,6 +1822,7 @@ function build(renderer){
     panel.hidden = false; panel.scrollTop = 0; document.body.classList.add('sheet'); markChip(key);
     // is it in stock for this shopper's branch / address?
     const add = $('#pAdd'); add.disabled = false; add.textContent = 'أضف للسلة';
+    if (!ALLOC && typeof p.price === 'number'){ const pb = document.createElement('button'); pb.type = 'button'; pb.className = 'pickBranch'; pb.textContent = 'اختر فرعك لمعرفة التوفر'; pb.onclick = openBranches; pr.append(pb); }
     if (ALLOC && typeof p.price === 'number') availability([p.id]).then(m => {
       if (current !== p || !m || !m.has(String(p.id))) return;
       const ok = m.get(String(p.id)), b = document.createElement('span'); b.className = 'stk ' + (ok ? 'yes' : 'no'); b.textContent = (ok ? '✓ متوفر ' : '✕ غير متوفر ') + HERE(); pr.append(b);
