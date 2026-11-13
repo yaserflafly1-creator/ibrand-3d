@@ -1649,10 +1649,14 @@ function build(renderer){
     const units = []; for (const it of Object.values(cart)) for (let q = 0; q < it.qty && units.length < 15 + flyers.length; q++) units.push(it);
     units.splice(Math.max(0, units.length - flyers.length));        // the ones still in the air land later
     let plain = 0;
-    units.forEach((it, i) => { const pl = PLACE.get(it.id) || PLACE.get(String(it.id)), g = pl && pl.p ? packMesh(pl.p, pl.key, .2 + ((i * 37) % 10) * .006, true) : null;
+    // each pack lies back in the basket with its face turned up toward the shopper (who stands at the handle and looks down into it),
+    // two across and in rows away from the handle, like groceries laid in a trolley
+    units.forEach((it, i) => { const pl = PLACE.get(it.id) || PLACE.get(String(it.id)), g = pl && pl.p ? packMesh(pl.p, pl.key, .21) : null;
       if (!g){ plain++; return; }
-      g.position.set([0, -.14, .14][i % 3], .5 + Math.floor(i / 6) * .1 + g.userData.h / 2, [0, .2, -.22][Math.floor(i / 3) % 3] || 0);
-      g.rotation.y = (i * .7) % 1.2; g.rotation.z = (((i * 53) % 7) - 3) * .035; cartPacks.add(g); });
+      const layer = i >= 12 ? 1 : 0, j = layer ? i - 12 : i, col = layer ? j % 3 : j % 2, row = layer ? 1 + (j / 3 | 0) * 2 : (j / 2) | 0, tilt = 1.0;
+      const holder = new THREE.Group(); holder.userData = g.userData;
+      holder.position.set(layer ? (col - 1) * .15 : (col ? .13 : -.13) + (((i * 37) % 5) - 2) * .008, .47 + layer * .09 + g.userData.h / 2 * Math.cos(tilt), -.3 + row * .125);
+      holder.rotation.y = Math.PI + (((i * 53) % 7) - 3) * .05; g.rotation.x = -tilt; g.rotation.z = (((i * 29) % 5) - 2) * .04; holder.add(g); cartPacks.add(holder); });
     const total = Math.min(18, plain);
     for (let i = 0; i < total; i++){
       cartDummy.position.set([0, -.14, .14][i % 3], .54 + Math.floor(i / 6) * .14, [0, .2, -.22][Math.floor(i / 3) % 3] || 0);
