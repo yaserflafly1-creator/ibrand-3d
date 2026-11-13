@@ -237,15 +237,35 @@ async function makeTile(imgUrl){
   return { png, meta: { aspect: +aspect.toFixed(3), card: false, rect: +(opaque / (b.width*b.height)).toFixed(2), c: en ? '#' + hex(er/en) + hex(eg/en) + hex(eb/en) : '#dddddd', sig, pk, psig, ah } };
 }
 
+// The pack's outline, for giving bottles, tubes and jars their rounded body in the pharmacy:
+// at 9 heights from top to bottom, where the pack starts and ends across its own width (one hex digit each, 0 = left edge, f = right edge).
+async function profileOf(png, aspect){
+  const { data, info } = await sharp(png).ensureAlpha().raw().toBuffer({ resolveWithObject: true });
+  const W = info.width, H = info.height, cw = aspect <= 1 ? W * aspect : W, ch = aspect <= 1 ? H : H / aspect, x0 = (W - cw) / 2, y0 = (H - ch) / 2;
+  let out = '';
+  for (let k = 0; k < 9; k++){
+    const yc = y0 + (.03 + .94 * k / 8) * ch; let l = W, r = -1;
+    for (let y = Math.max(0, Math.round(yc - ch * .025)); y <= Math.min(H - 1, Math.round(yc + ch * .025)); y++){
+      for (let x = 0; x < W; x++) if (data[(y * W + x) * 4 + 3] > 40){ if (x < l) l = x; break; }
+      for (let x = W - 1; x >= 0; x--) if (data[(y * W + x) * 4 + 3] > 40){ if (x > r) r = x; break; }
+    }
+    const q = v => Math.max(0, Math.min(15, Math.round((v - x0) / cw * 15))).toString(16);
+    out += r < 0 ? '78' : q(l) + q(r + 1);
+  }
+  return out;
+}
 const tileStats = { cached: 0, made: 0, failed: 0 };
 async function tileFor(img){
   const h = crypto.createHash('sha1').update(img).digest('hex').slice(0, 20);
   const pngPath = `${CACHE}/${h}.png`, metaPath = `${CACHE}/${h}.json`;
   try {
     const [png, meta] = await Promise.all([fs.readFile(pngPath), fs.readFile(metaPath, 'utf8')]);
-    tileStats.cached++; return { png, meta: JSON.parse(meta) };
+    const m = JSON.parse(meta);
+    if (!m.card && !m.pf){ m.pf = await profileOf(png, m.aspect || 1); await fs.writeFile(metaPath, JSON.stringify(m)); }
+    tileStats.cached++; return { png, meta: m };
   } catch {}
   const t = await makeTile(fullImg(img));
+  if (!t.meta.card) t.meta.pf = await profileOf(t.png, t.meta.aspect || 1);
   await fs.writeFile(pngPath, t.png); await fs.writeFile(metaPath, JSON.stringify(t.meta));
   tileStats.made++; return t;
 }
