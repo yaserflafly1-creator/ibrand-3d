@@ -626,7 +626,7 @@ function build(renderer){
     if (p.onSale && p.regular > p.price && h > .07){ const a2 = F.at, sz = Math.min(.05, w*.5), sx = cx + w/2 - sz*.6, sy = y + h - sz*.6, sz2 = cz + .004;
       quad(STICK, [a2(sx-sz/2,sy-sz/2,sz2), a2(sx+sz/2,sy-sz/2,sz2), a2(sx+sz/2,sy+sz/2,sz2), a2(sx-sz/2,sy+sz/2,sz2)], F.n(0,0,1), C_WHITE, null, [0,0, 1,0, 1,1, 0,1]); }
     if (!PLACE.has(p.id) || (SEC[key].main && !SEC[PLACE.get(p.id).key].main)){
-      PLACE.set(p.id, {key, pos:new THREE.Vector3(...a(cx, y + h/2, cz)), normal:new THREE.Vector3(...n(0,0,1))});
+      PLACE.set(p.id, {key, p, pos:new THREE.Vector3(...a(cx, y + h/2, cz)), normal:new THREE.Vector3(...n(0,0,1))});
     }
   }
   function finishProducts(){
@@ -1606,17 +1606,41 @@ function build(renderer){
   // items leap off the shelf, arc through the air and drop into the moving cart
   const flyers = [];
   const flyBoxGeo = new THREE.BoxGeometry(.16, .18, .13);
-  function flyToCart(from, count){
+  // the pack itself, cut out of its own shelf photo: what hops off the shelf, flies, and then sits in the cart
+  const packGeo = new Map();
+  function packMesh(p, key, hgt, crossed){
+    const sd = DATA && DATA.sections[key]; if (!sd || p.tile == null) return null;
+    const a = p.card ? 1 : (p.aspect || 1), h = a > 1 ? hgt / a : hgt, w = h * a, gk = key + ':' + p.id + ':' + hgt;
+    let geo = packGeo.get(gk);
+    if (!geo){ const [u0, u1, vb, vt] = tileUV(sd, p); geo = new THREE.PlaneGeometry(w, h); const uv = geo.attributes.uv;
+      for (let i = 0; i < uv.count; i++) uv.setXY(i, uv.getX(i) < .5 ? u0 : u1, uv.getY(i) < .5 ? vb : vt); packGeo.set(gk, geo); if (packGeo.size > 80) packGeo.delete(packGeo.keys().next().value); }
+    const shared = thumbMat[key + ':' + p.pg], mat = shared || new THREE.MeshStandardMaterial({color:p.c || '#eeb2cb', roughness:.5, side:THREE.DoubleSide});
+    const g = new THREE.Group(), m1 = new THREE.Mesh(geo, mat); g.add(m1);
+    if (crossed){ const m2 = new THREE.Mesh(geo, mat); m2.rotation.y = Math.PI / 2; g.add(m2); }
+    g.userData = {own: shared ? null : mat, h, w}; return g;
+  }
+  function flyToCart(from, count, p, key){
     const n = Math.min(count || 1, 3);
     for (let i = 0; i < n; i++){
-      const m = new THREE.Mesh(flyBoxGeo, new THREE.MeshStandardMaterial({color:'#eeb2cb', roughness:.5, envMapIntensity:.6}));
+      const pk = p ? packMesh(p, key || (PLACE.get(p.id) || {}).key, .2) : null;
+      const m = pk || new THREE.Mesh(flyBoxGeo, new THREE.MeshStandardMaterial({color:'#eeb2cb', roughness:.5, envMapIntensity:.6}));
       m.position.copy(from); scene.add(m);
-      flyers.push({ m, from: from.clone(), t0: performance.now() + i * 130, dur: 680 });
+      flyers.push({ m, pack: !!pk, from: from.clone(), t0: performance.now() + i * 130, dur: pk ? 900 : 680 });
     }
   }
+  const cartPacks = new THREE.Group(); pushCart.add(cartPacks);
   const cartDummy = new THREE.Object3D();
   function cartItemsSync(){
-    const total = Math.max(0, Math.min(18, Object.values(cart).reduce((a, it) => a + it.qty, 0) - flyers.length));
+    // what is in the cart is shown as the packs themselves (up to 15); anything without a shelf photo falls back to a plain box
+    while (cartPacks.children.length){ const c = cartPacks.children.pop(); if (c.userData.own) c.userData.own.dispose(); }
+    const units = []; for (const it of Object.values(cart)) for (let q = 0; q < it.qty && units.length < 15 + flyers.length; q++) units.push(it);
+    units.splice(Math.max(0, units.length - flyers.length));        // the ones still in the air land later
+    let plain = 0;
+    units.forEach((it, i) => { const pl = PLACE.get(it.id) || PLACE.get(String(it.id)), g = pl && pl.p ? packMesh(pl.p, pl.key, .2 + ((i * 37) % 10) * .006, true) : null;
+      if (!g){ plain++; return; }
+      g.position.set([0, -.14, .14][i % 3], .5 + Math.floor(i / 6) * .1 + g.userData.h / 2, [0, .2, -.22][Math.floor(i / 3) % 3] || 0);
+      g.rotation.y = (i * .7) % 1.2; g.rotation.z = (((i * 53) % 7) - 3) * .035; cartPacks.add(g); });
+    const total = Math.min(18, plain);
     for (let i = 0; i < total; i++){
       cartDummy.position.set([0, -.14, .14][i % 3], .54 + Math.floor(i / 6) * .14, [0, .2, -.22][Math.floor(i / 3) % 3] || 0);
       cartDummy.rotation.y = (i * .7) % 1.2;
@@ -1882,7 +1906,7 @@ function build(renderer){
     const src = highlight.visible
       ? highlight.position.clone()
       : camera.position.clone().add(new THREE.Vector3(-Math.sin(view.yaw), -.25, -Math.cos(view.yaw)).multiplyScalar(1.1));
-    flyToCart(src, qty);
+    flyToCart(src, qty, current, curKey);
     addToCart(current, qty); checkCart();
     $('#aImg').src = current.img; $('#aName').textContent = (qty > 1 ? qty + ' × ' : '') + current.name;
     $('#aSum').textContent = cartCount() + ' منتج في السلة • ' + money(cartTotal());
@@ -1961,6 +1985,8 @@ function build(renderer){
     if (hit.object.userData.svc) { const pers = staff.find(s => { let q = hit.object; while (q){ if (q === s) return true; q = q.parent; } return false; }); return {svc:true, female: pers ? pers.userData.female : false}; }
     const places = hit.object.userData.places, place = places && hit.faceIndex != null ? places[hit.faceIndex >> 1] : null;
     if (!place) return null;
+    // a tap between two packs passes through the shelf and lands on the back of a pack in the next aisle: that is not a tap on it
+    if (hit.face && Math.abs(hit.face.normal.y) < .6 && ray.ray.direction.dot(hit.face.normal) > .08) return {blocked:true};
     const o = ray.ray.origin, pt = hit.point; let normal = hit.face ? hit.face.normal.clone() : new THREE.Vector3(0,0,1);
     // the side or top of a pack still belongs to the shelf face it stands on
     { const pl = PLACE.get(place.p.id);
@@ -1995,7 +2021,7 @@ function build(renderer){
   async function quickAdd(h){
     const p = h.prod;
     if (ALLOC){ const m = await availability([p.id]); if (m && m.get(String(p.id)) === false) return toast('غير متوفر ' + HERE()); }
-    try { flyToCart(h.point.clone(), 1); } catch(e){}
+    try { flyToCart(h.point.clone(), 1, p, h.key); } catch(e){}
     addToCart(p, 1); checkCart(); toast('أضيف للسلة: ' + p.name);
   }
   // a tap on a far shelf walks you to it (round the gondolas, never through them) and turns you to face it
@@ -2018,6 +2044,7 @@ function build(renderer){
   el.addEventListener('pointerup', e => {
     el.style.cursor = 'grab'; if (!down) return; const moved = Math.hypot(e.clientX-down.x, e.clientY-down.y); down = null; if (moved >= 7) return;
     const h = pick(e); if (!h) return floorTap(e);
+    if (h.blocked) return;
     if (h.door === 'out') return openExit();
     if (h.door === 'in') return toast('أهلاً بك في صيدلية اي براند');
     if (h.svc) return openService(h.female);
@@ -2154,6 +2181,7 @@ function build(renderer){
     const t = -o.y / d.y, p = new THREE.Vector3(o.x + d.x*t, 0, o.z + d.z*t); clampV(p);
     const cx = camera.position.x, cz = camera.position.z, dist = Math.hypot(p.x - cx, p.z - cz);
     if (dist < .5 || dist > 45) return;
+    if (!(droneMode && alt > 2.6) && hiddenByFixture(o, p)) return;   // that spot of floor is behind a gondola: the tap was on the shelf, not on the floor
     let path = null;
     if (droneMode && alt > 2.6) path = [{x:p.x, z:p.z}];          // flying above the shelves: straight there
     else { try { path = findPath(cx, cz, p.x, p.z); } catch(e){ path = null; } }
@@ -2298,7 +2326,15 @@ function build(renderer){
     for (let i = flyers.length - 1; i >= 0; i--){
       const f = flyers[i], k = (now - f.t0) / f.dur;
       if (k < 0) continue;
-      if (k >= 1){ scene.remove(f.m); f.m.material.dispose(); flyers.splice(i, 1); cartItemsSync(); cartPulse = now; continue; }
+      if (k >= 1){ scene.remove(f.m); if (f.pack){ if (f.m.userData.own) f.m.userData.own.dispose(); } else f.m.material.dispose(); flyers.splice(i, 1); cartItemsSync(); cartPulse = now; continue; }
+      if (f.pack){
+        // first a little hop on the spot (as if it jumped off the shelf), then the flight into the cart, always facing the shopper
+        f.m.quaternion.copy(camera.quaternion);
+        if (k < .22){ const q = k / .22; f.m.position.set(f.from.x, f.from.y + Math.sin(Math.PI * q) * .07, f.from.z); f.m.scale.setScalar(1 + .25 * Math.sin(Math.PI * q)); continue; }
+        const k2 = (k - .22) / .78, e3 = k2 * k2 * (3 - 2 * k2);
+        f.m.position.set(f.from.x + (pushCart.position.x - f.from.x) * e3, f.from.y + (.6 - f.from.y) * e3 + Math.sin(Math.PI * k2) * .7, f.from.z + (pushCart.position.z - f.from.z) * e3);
+        f.m.rotateZ(Math.sin(k2 * Math.PI * 2) * .35); f.m.scale.setScalar(1 - .15 * k2); continue;
+      }
       const e2 = k * k * (3 - 2 * k);
       f.m.position.set(
         f.from.x + (pushCart.position.x - f.from.x) * e2,
