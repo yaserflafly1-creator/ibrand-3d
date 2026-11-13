@@ -1,5 +1,7 @@
 name: photo-audit
 on: workflow_dispatch
+permissions:
+  contents: write
 jobs:
   audit:
     runs-on: ubuntu-latest
@@ -12,6 +14,8 @@ jobs:
       - run: node scripts/photo-audit.mjs
       - run: mkdir cutter && cp scripts/photo-cut.mjs cutter/ && cd cutter && npm init -y >/dev/null && npm pkg set type=module && npm install @imgly/background-removal-node@1.4.5 && ln -s ../audit audit && node photo-cut.mjs
       - run: node scripts/photo-sheet.mjs
-      - uses: actions/upload-artifact@v4
-        if: always()
-        with: { name: audit, path: audit/*.j* }
+      - name: Keep the results on a side branch
+        run: |
+          mkdir out && cp audit/*.j* out/ && cd out && git init -q -b audit-out && git add -A
+          git -c user.name=bot -c user.email=bot@users.noreply.github.com commit -q -m "photo audit results"
+          git push -f "https://x-access-token:${{ github.token }}@github.com/${{ github.repository }}.git" audit-out
