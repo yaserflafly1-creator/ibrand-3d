@@ -1228,9 +1228,12 @@ function build(renderer){
         r.forEach((i, k) => { const g = Math.min(k ? i.x - r[k-1].x : 9, k < r.length - 1 ? r[k+1].x - i.x : 9); bay._tg.set(i, Math.max(.07, Math.min(.11, g - .004))); }); }); }
     return bay._tg.get(it) || .11;
   }
+  const PLUSB = Bucket(true); let plusMesh = null;      // the "+" under every price tag: one tap puts the product in the cart
   function priceTag(F, cx, y, z, p, tw = .11){
     if (typeof p.price !== 'number') return;
     const sale = p.onSale && p.regular > p.price, a = F.at, n = F.n(0,0,1);
+    { const th0 = (sale ? .07 : .045) + .027, by = y - .014 - th0 - .004, bx = cx - tw/2 + .013, r = .0135, zz = z + .0018;
+      quad(PLUSB, [a(bx-r,by-r,zz), a(bx+r,by-r,zz), a(bx+r,by+r,zz), a(bx-r,by+r,zz)], n, C_WHITE, {p, add:true}, [0,0, 1,0, 1,1, 0,1]); }
     const NH = .027, sc = Math.min(1, (tw - .006) / .08), th = (sale ? .07 : .045) + NH, top = y - .014, ty = top - th;
     quad(PTAG, [a(cx-tw/2,ty,z), a(cx+tw/2,ty,z), a(cx+tw/2,top,z), a(cx-tw/2,top,z)], n, sale ? C_SALE : C_TAG);
     quad(PTAG, [a(cx-tw/2,top-.006,z+.0005), a(cx+tw/2,top-.006,z+.0005), a(cx+tw/2,top,z+.0005), a(cx-tw/2,top,z+.0005)], n, sale ? C_SALEBAR : C_TAGBAR);
@@ -1915,6 +1918,9 @@ function build(renderer){
           x.fillStyle = '#ffffff'; x.direction = 'ltr'; let fs = 44; do { x.font = '800 ' + fs + 'px Arial, sans-serif'; fs -= 2; } while (x.measureText(t).width > 94 && fs > 16); x.fillText(t, cx, cy + 12); }); });
       const m = meshOf(OFFB, new THREE.MeshBasicMaterial({map:offTex, transparent:true, alphaTest:.3, toneMapped:false})); m.renderOrder = 3; scene.add(m);
     }
+    if (PLUSB.idx.length){ const pt = canvasTex(96, 96, (x, w, h) => { x.clearRect(0, 0, w, h); x.fillStyle = '#e8559f'; x.beginPath(); x.arc(w/2, h/2, w/2 - 3, 0, 7); x.fill(); x.strokeStyle = '#fff'; x.lineWidth = 5; x.stroke();
+        x.lineWidth = 11; x.lineCap = 'round'; x.beginPath(); x.moveTo(w/2, h*.27); x.lineTo(w/2, h*.73); x.moveTo(w*.27, h/2); x.lineTo(w*.73, h/2); x.stroke(); });
+      plusMesh = meshOf(PLUSB, new THREE.MeshBasicMaterial({map:pt, transparent:true, alphaTest:.3, toneMapped:false})); plusMesh.renderOrder = 3; scene.add(plusMesh); }
     if (PDIG.idx.length){ const m = meshOf(PDIG, new THREE.MeshBasicMaterial({map:glyphTex, transparent:true, alphaTest:.15, toneMapped:false})); scene.add(m); }
     if (STICK.idx.length){
       const st = canvasTex(128, 128, (x,w,h)=>{ x.fillStyle='#d92b3a'; x.beginPath(); for (let i=0;i<24;i++){ const r = i%2 ? 52 : 63, a = i/24*Math.PI*2; x.lineTo(w/2+Math.cos(a)*r, h/2+Math.sin(a)*r); } x.closePath(); x.fill();
@@ -2173,7 +2179,7 @@ function build(renderer){
 
   // ---------- picking ----------
   const ray = new THREE.Raycaster(), mouse = new THREE.Vector2();
-  const pickables = [...productMeshes, ...svcTargets, ...doorTargets, ...navTargets];
+  const pickables = [...productMeshes, ...svcTargets, ...doorTargets, ...navTargets]; if (plusMesh) pickables.push(plusMesh);
   function pick(ev){
     const r = renderer.domElement.getBoundingClientRect();
     mouse.set(((ev.clientX-r.left)/r.width)*2-1, -((ev.clientY-r.top)/r.height)*2+1);
@@ -2195,7 +2201,7 @@ function build(renderer){
     const flying = droneMode && alt > 2.6, gd = Math.hypot(pt.x - o.x, pt.z - o.z);
     const facing = -(ray.ray.direction.x * normal.x + ray.ray.direction.z * normal.z) / (Math.hypot(ray.ray.direction.x, ray.ray.direction.z) || 1);
     const near = flying ? hit.distance < 6.5 : (gd < NEAR_PICK && (facing > .34 || gd < 1.5));
-    return {prod:place.p, key:place.key, point:pt, normal, near};
+    return {prod:place.p, key:place.key || (PLACE.get(place.p.id) || {}).key, point:pt, normal, near, add:!!place.add};
   }
   const NEAR_PICK = 3.3;
   // true when the straight line from the eye to a point passes through another shelf unit (below its top)
@@ -2214,6 +2220,13 @@ function build(renderer){
       if (ok && Math.min(o.y + dy * t0, o.y + dy * t1) < ob.fh) return true;
     }
     return false;
+  }
+  // the "+" under a price tag: straight into the cart (after checking the shopper's branch has it)
+  async function quickAdd(h){
+    const p = h.prod;
+    if (ALLOC){ const m = await availability([p.id]); if (m && m.get(String(p.id)) === false) return toast('غير متوفر ' + HERE()); }
+    try { flyToCart(h.point.clone(), 1); } catch(e){}
+    addToCart(p, 1); checkCart(); toast('أضيف للسلة: ' + p.name);
   }
   // a tap on a far shelf walks you to it (round the gondolas, never through them) and turns you to face it
   let farHint = 0;
@@ -2241,6 +2254,7 @@ function build(renderer){
     if (h.nav){ const sec = SEC[h.nav]; if (sec) select(sec, true); return; }
     if (h.prod){
       if (!h.near) return walkToShelf(h);
+      if (h.add) return quickAdd(h);
       showProduct(h.prod, h.key);
       const n = h.normal.clone().setY(0).normalize();
       highlight.position.copy(h.point).addScaledVector(n, .05); highlight.lookAt(h.point.clone().add(n)); highlight.visible = true; highlight.userData.t0 = performance.now();
