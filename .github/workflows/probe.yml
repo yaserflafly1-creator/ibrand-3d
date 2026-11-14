@@ -1,0 +1,17 @@
+name: probe-details
+on: workflow_dispatch
+permissions:
+  contents: write
+jobs:
+  probe:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: 20 }
+      - run: node scripts/probe-details.mjs
+      - run: |
+          cd out && git init -q -b probe-out && git add -A
+          git -c user.name=bot -c user.email=bot@users.noreply.github.com commit -q -m "probe"
+          git push -f "https://x-access-token:${{ github.token }}@github.com/${{ github.repository }}.git" probe-out
