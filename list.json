@@ -1,0 +1,2494 @@
+{
+ "status": 200,
+ "body": {
+  "status": 200,
+  "success": true,
+  "data": [
+   {
+    "id": "1210933938",
+    "scope_id": null,
+    "source": "23",
+    "synced_at": {
+     "price": "2026-11-04T14:57:09",
+     "sale_price": "2026-11-04T14:57:09",
+     "sale_end": "2026-11-04T14:57:09",
+     "status": "2026-11-04T14:57:09",
+     "image": "2026-11-04T14:57:09",
+     "original_image": "2026-11-04T07:56:10",
+     "promotion_title": "2026-11-04T07:57:16",
+     "subtitle": "2026-11-04T07:57:16",
+     "name": "2026-11-04T07:57:16",
+     "description": "2026-11-04T07:57:16",
+     "categories": "2026-11-04T07:57:16"
+    },
+    "sort": 0,
+    "name": "بانتين بلسم أدڤانسد ريبير لترميم وإصلاح قوة ومرونة الشعر بالبيبتيد 350 مل",
+    "description": "للشعر الضعيف الذي يتكسر بسهولة، يقدم بلسم بانتين أدڤانسد ريبير بالبيبتيد (Pantene Advanced Repair Peptide Conditioner) عناية تركز على القوة والمرونة؛ إذ يساعد على إصلاح الشعر وجعله أكثر مقاومة للتكسر مع نعومة واضحة. العبوة 350 مل. المواصفات | Specifications • اسم المنتج: بانتين بلسم أدڤانسد ريبير لترميم وإصلاح قوة ومرونة الشعر بالبيبتيد 350 مل • العلامة التجارية: بانتين | Pantene • النوع: بلسم ترميم – Advanced Repair Peptides • الحجم: 350 مل • مناسب لـ: الشعر الضعيف والمعرض للتكسر المكونات الأساسية | Key Ingredients • البيبتيد (Peptides): يساعد على تعزيز قوة الشعر ومرونته ومقاومته للتكسر. • تركيبة بانتين أدڤانسد ريبير. المميزات | Product Features • يساعد على إصلاح الشعر وتعزيز قوته ومرونته. • يقلل التشابك ويسهّل التمشيط. • يمنح نعومة ولمعاناً. • يُكمّل شامبو وماسك البيبتيد. طريقة الاستخدام | How to Use • بعد غسل الشعر بالشامبو، اعصر الماء الزائد. • وزّع البلسم على أطوال الشعر وأطرافه بعيداً عن الجذور. • اتركه لمدة دقيقة إلى دقيقتين. • اشطف جيداً بالماء. إرشادات السلامة والتخزين | Safety Instructions • للاستخدام الخارجي فقط. • تجنب ملامسة العينين، وفي حال حدوث ذلك تُشطف بالماء جيداً. • أوقف الاستخدام في حال ظهور تهيج. • يُحفظ بعيداً عن متناول الأطفال في مكان بارد وجاف بعيداً عن أشعة الشمس المباشرة. الأسئلة الشائعة | FAQ • س: ما الفرق بين بلسم البيبتيد والكولاجين؟ ج: بلسم البيبتيد يركز على القوة والمرونة، وبلسم الكولاجين يركز على الحيوية والتوازن. • س: هل يناسب الشعر المتكسر؟ ج: نعم، تركيبته موجهة لتعزيز قوة الشعر ومرونته.",
+    "url": "https://ibrand.com.sa/ar/بانتين-بلسم-أدڤانسد-ريبير-لترميم-وإصلاح-قوة-ومرونة-الشعر-بالبيبتيد-350-مل/p1210933938",
+    "promotion_title": "",
+    "subtitle": "",
+    "type": "product",
+    "status": "sale",
+    "weight": "0.01",
+    "calories": null,
+    "sku": "8006530436663",
+    "rating": null,
+    "quantity": null,
+    "sold_quantity": 0,
+    "max_quantity": null,
+    "is_taxable": true,
+    "category": {
+     "name": "بلسم",
+     "url": null
+    },
+    "sale_channels_external": [],
+    "original_image": "https://cdn.salla.sa/yKErG/6ml0fGO47kkPEfmYhjpnqHVHsBqph2NXhToBxZ0U.jpg",
+    "image": {
+     "url": "https://cdn.salla.sa/yKErG/9af9ba1a-12d0-481f-9f64-473062c47e38-500x500-6ml0fGO47kkPEfmYhjpnqHVHsBqph2NXhToBxZ0U.jpg"
+    },
+    "brand": {
+     "id": "1100781286",
+     "url": null,
+     "name": "بانتين"
+    },
+    "tags": [],
+    "can_add_note": false,
+    "can_upload_file": false,
+    "is_on_sale": false,
+    "is_hidded_quantity": false,
+    "is_available": true,
+    "is_donation": false,
+    "is_out_of_stock": false,
+    "is_require_shipping": true,
+    "is_dynamic_pricing": false,
+    "regular_price": 23.95,
+    "price": 23.95,
+    "sale_price": null,
+    "starting_price": null,
+    "currency": "SAR",
+    "mpn": null,
+    "gtin": null,
+    "google_taxonomy_id": null,
+    "discount_ends": null,
+    "discount_starts": null,
+    "has_options": false,
+    "pinned": false,
+    "mahly_category_id": null,
+    "spam_status": 0,
+    "branches": [
+     {
+      "id": "219662292"
+     },
+     {
+      "id": "1765793758"
+     },
+     {
+      "id": "1418236302"
+     },
+     {
+      "id": "1352249558"
+     },
+     {
+      "id": "1913608431"
+     },
+     {
+      "id": "632888608"
+     },
+     {
+      "id": "2006217342"
+     },
+     {
+      "id": "2023925660"
+     },
+     {
+      "id": "1114023561"
+     },
+     {
+      "id": "1034453357"
+     },
+     {
+      "id": "1804835320"
+     },
+     {
+      "id": "1759719263"
+     },
+     {
+      "id": "236693507"
+     },
+     {
+      "id": "1990754820"
+     },
+     {
+      "id": "535382438"
+     },
+     {
+      "id": "2015232732"
+     },
+     {
+      "id": "48055581"
+     },
+     {
+      "id": "2024865065"
+     },
+     {
+      "id": "957088548"
+     },
+     {
+      "id": "424760569"
+     },
+     {
+      "id": "1380165369"
+     },
+     {
+      "id": "1717680860"
+     },
+     {
+      "id": "273983860"
+     },
+     {
+      "id": "6719480"
+     },
+     {
+      "id": "566933964"
+     },
+     {
+      "id": "627029894"
+     },
+     {
+      "id": "1088719265"
+     },
+     {
+      "id": "2014260688"
+     },
+     {
+      "id": "534318898"
+     },
+     {
+      "id": "263266363"
+     },
+     {
+      "id": "1824892346"
+     },
+     {
+      "id": "624759277"
+     },
+     {
+      "id": "731902933"
+     },
+     {
+      "id": "802343908"
+     },
+     {
+      "id": "2087711955"
+     },
+     {
+      "id": "775625692"
+     },
+     {
+      "id": "1559450266"
+     },
+     {
+      "id": "538994515"
+     },
+     {
+      "id": "1690140416"
+     },
+     {
+      "id": "1675479487"
+     },
+     {
+      "id": "505029842"
+     },
+     {
+      "id": "741930610"
+     },
+     {
+      "id": "336146593"
+     },
+     {
+      "id": "2119100537"
+     },
+     {
+      "id": "185318315"
+     },
+     {
+      "id": "1481654852"
+     },
+     {
+      "id": "859323824"
+     },
+     {
+      "id": "384884102"
+     },
+     {
+      "id": "1834080377"
+     },
+     {
+      "id": "1291064909"
+     },
+     {
+      "id": "708665669"
+     },
+     {
+      "id": "975966624"
+     },
+     {
+      "id": "1460440173"
+     },
+     {
+      "id": "918419893"
+     },
+     {
+      "id": "1680530385"
+     }
+    ],
+    "branches_v2": [
+     {
+      "visibility": "1",
+      "branch_id": "270876",
+      "branch_name": "مكة المكرمة - الشرايع ٦٤",
+      "sale_status": "1"
+     },
+     {
+      "visibility": "1",
+      "branch_id": "596216",
+      "branch_name": "جدة - الصفا",
+      "sale_status": "1"
+     },
+     {
+      "visibility": "1",
+      "branch_id": "334635",
+      "branch_name": "جازان - أبو عريش",
+      "sale_status": "1"
+     },
+     {
+      "visibility": "1",
+      "branch_id": "1489082",
+      "branch_name": "جدة - حي الأمير فواز",
+      "sale_status": "1"
+     },
+     {
+      "visibility": "1",
+      "branch_id": "1456040",
+      "branch_name": "جدة - النسيم",
+      "sale_status": "1"
+     },
+     {
+      "visibility": "1",
+      "branch_id": "1520477",
+      "branch_name": "تبوك - البوادي",
+      "sale_status": "1"
+     },
+     {
+      "visibility": "1",
+      "branch_id": "1477335",
+      "branch_name": "الطائف - مثملة",
+      "sale_status": "1"
+     },
+     {
+      "visibility": "1",
+      "branch_id": "594809",
+      "branch_name": "جدة - الحمدانية",
+      "sale_status": "1"
+     },
+     {
+      "visibility": "1",
+      "branch_id": "1491351",
+      "branch_name": "الطائف - شارع شهار العام",
+      "sale_status": "1"
+     },
+     {
+      "visibility": "1",
+      "branch_id": "521846",
+      "branch_name": "المدينه المنورة - العزيزية",
+      "sale_status": "1"
+     },
+     {
+      "visibility": "1",
+      "branch_id": "1475973",
+      "branch_name": "ينبع البحر - عمر بن الخطاب",
+      "sale_status": "1"
+     },
+     {
+      "visibility": "1",
+      "branch_id": "1488800",
+      "branch_name": "جدة - الواحة",
+      "sale_status": "1"
+     },
+     {
+      "visibility": "1",
+      "branch_id": "1488902",
+      "branch_name": "جدة - السنابل",
+      "sale_status": "1"
+     },
+     {
+      "visibility": "1",
+      "branch_id": "94666",
+      "branch_name": "الباحة - بني سار",
+      "sale_status": "1"
+     },
+     {
+      "visibility": "1",
+      "branch_id": "1936763",
+      "branch_name": "الطائف - الخمسين",
+      "sale_status": "1"
+     },
+     {
+      "visibility": "1",
+      "branch_id": "160889",
+      "branch_name": "جازان - المطار",
+      "sale_status": "1"
+     },
+     {
+      "visibility": "1",
+      "branch_id": "334969",
+      "branch_name": "ابها - حي الموظفين",
+      "sale_status": "1"
+     },
+     {
+      "visibility": "1",
+      "branch_id": "720163",
+      "branch_name": "خميس - الخزان",
+      "sale_status": "1"
+     },
+     {
+      "visibility": "1",
+      "branch_id": "676466",
+      "branch_name": "مكة المكرمة - العزيزية",
+      "sale_status": "1"
+     },
+     {
+      "visibility": "1",
+      "branch_id": "1490039",
+      "branch_name": "خميس - هايبر المدينة العسكرية",
+      "sale_status": "1"
+     },
+     {
+      "visibility": "1",
+      "branch_id": "644373",
+      "branch_name": "مكة المكرمة - الخضراء",
+      "sale_status": "1"
+     },
+     {
+      "visibility": "1",
+      "branch_id": "1399882",
+      "branch_name": "مكة المكرمة - النوارية",
+      "sale_status": "1"
+     },
+     {
+      "visibility": "1",
+      "branch_id": "262",
+      "branch_name": "مكة المكرمة - ش محمد بن جبير",
+      "sale_status": "1"
+     },
+     {
+      "visibility": "1",
+      "branch_id": "488673",
+      "branch_name": "المدينة المنورة - ساري",
+      "sale_status": "1"
+     },
+     {
+      "visibility": "1",
+      "branch_id": "1361471",
+      "branch_name": "الرياض - الملز",
+      "sale_status": "1"
+     },
+     {
+      "visibility": "1",
+      "branch_id": "418636",
+      "branch_name": "ابها - الحزام",
+      "sale_status": "1"
+     },
+     {
+      "visibility": "1",
+      "branch_id": "24433",
+      "branch_name": "المستودع الرئيسي",
+      "sale_status": "1"
+     },
+     {
+      "visibility": "1",
+      "branch_id": "1489938",
+      "branch_name": "المدينة المنورة - شوران",
+      "sale_status": "1"
+     },
+     {
+      "visibility": "1",
+      "branch_id": "488674",
+      "branch_name": "الطائف - الجيش",
+      "sale_status": "1"
+     },
+     {
+      "visibility": "1",
+      "branch_id": "1481475",
+      "branch_name": "خميس - الربيع",
+      "sale_status": "1"
+     },
+     {
+      "visibility": "1",
+      "branch_id": "1477339",
+      "branch_name": "حفر الباطن - الخالدية",
+      "sale_status": "1"
+     },
+     {
+      "visibility": "1",
+      "branch_id": "1498364",
+      "branch_name": "مدن اخرى - ارامكس",
+      "sale_status": "1"
+     },
+     {
+      "visibility": "1",
+      "branch_id": "933",
+      "branch_name": "الطائف - ش الستين الحوية",
+      "sale_status": "1"
+     },
+     {
+      "visibility": "1",
+      "branch_id": "760641",
+      "branch_name": "مكة المكرمة - الزايدي",
+      "sale_status": "1"
+     },
+     {
+      "visibility": "1",
+      "branch_id": "2100088",
+      "branch_name": "ينبع -  الهيئة الملكية",
+      "sale_status": "1"
+     },
+     {
+      "visibility": "1",
+      "branch_id": "554145",
+      "branch_name": "مكة المكرمة - الممشى القديم",
+      "sale_status": "1"
+     },
+     {
+      "visibility": "1",
+      "branch_id": "1490062",
+      "branch_name": "الباحة - بلجرشي",
+      "sale_status": "1"
+     },
+     {
+      "visibility": "1",
+      "branch_id": "1475934",
+      "branch_name": "الرياض - المصيف",
+      "sale_status": "1"
+     },
+     {
+      "visibility": "1",
+      "branch_id": "1741278",
+      "branch_name": "القصيم - عنيزة",
+      "sale_status": "1"
+     },
+     {
+      "visibility": "1",
+      "branch_id": "594817",
+      "branch_name": "الطائف - ش ابوبكر",
+      "sale_status": "1"
+     },
+     {
+      "visibility": "1",
+      "branch_id": "1488697",
+      "branch_name": "جدة - السامر",
+      "sale_status": "1"
+     },
+     {
+      "visibility": "1",
+      "branch_id": "1489936",
+      "branch_name": "المدينة المنورة - الهجرة",
+      "sale_status": "1"
+     },
+     {
+      "visibility": "1",
+      "branch_id": "261",
+      "branch_name": "الطائف - ش خالد بن الوليد",
+      "sale_status": "1"
+     },
+     {
+      "visibility": "1",
+      "branch_id": "517923",
+      "branch_name": "جدة - حراء",
+      "sale_status": "1"
+     },
+     {
+      "visibility": "1",
+      "branch_id": "1467182",
+      "branch_name": "جدة - عابر القارات",
+      "sale_status": "1"
+     },
+     {
+      "visibility": "1",
+      "branch_id": "158922",
+      "branch_name": "جازان - الكورنيش",
+      "sale_status": "1"
+     },
+     {
+      "visibility": "1",
+      "branch_id": "1475957",
+      "branch_name": "الرياض - النسيم",
+      "sale_status": "1"
+     },
+     {
+      "visibility": "1",
+      "branch_id": "2174417",
+      "branch_name": "جدة - الشاطيء",
+      "sale_status": "1"
+     },
+     {
+      "visibility": "1",
+      "branch_id": "1475945",
+      "branch_name": "الرياض - السويدي",
+      "sale_status": "1"
+     },
+     {
+      "visibility": "1",
+      "branch_id": "274781",
+      "branch_name": "الطائف - القيم",
+      "sale_status": "1"
+     },
+     {
+      "visibility": "1",
+      "branch_id": "1361471",
+      "branch_name": "الرياض - الملز",
+      "sale_status": "2"
+     },
+     {
+      "visibility": "1",
+      "branch_id": "1488874",
+      "branch_name": "جدة - الصالحية",
+      "sale_status": "1"
+     },
+     {
+      "visibility": "1",
+      "branch_id": "1409502",
+      "branch_name": "الخرج - ط الملك فهد",
+      "sale_status": "1"
+     },
+     {
+      "visibility": "1",
+      "branch_id": "1520478",
+      "branch_name": "تبوك - سلطانه",
+      "sale_status": "1"
+     },
+     {
+      "visibility": "1",
+      "branch_id": "767091",
+      "branch_name": "مكة المكرمة - الصفراء",
+      "sale_status": "1"
+     },
+     {
+      "visibility": "1",
+      "branch_id": "1741599",
+      "branch_name": "القصيم - الرس",
+      "sale_status": "1"
+     }
+    ],
+    "has_preorder_campaign": false,
+    "preorder": [],
+    "sub_products": [],
+    "custom_url": "",
+    "hash_id": 1210933938,
+    "store_status": "active",
+    "bundle_type": 1,
+    "is_bundle": false,
+    "active_advance": false,
+    "with_tax": true,
+    "position": 1,
+    "is_free_shipping": false,
+    "unlimited_quantity": false,
+    "features": {
+     "availability_notify": {
+      "email": true,
+      "sms": true,
+      "mobile": true,
+      "whatsapp": false
+     },
+     "show_rating": false
+    }
+   },
+   {
+    "id": "1695529140",
+    "scope_id": null,
+    "source": "23",
+    "synced_at": {
+     "price": "2026-11-04T14:57:09",
+     "sale_price": "2026-11-04T14:57:09",
+     "sale_end": "2026-11-04T14:57:09",
+     "status": "2026-11-04T14:57:09",
+     "image": "2026-11-04T14:57:09",
+     "original_image": "2026-11-04T07:56:10",
+     "promotion_title": "2026-11-04T07:57:16",
+     "subtitle": "2026-11-04T07:57:16",
+     "name": "2026-11-04T07:57:16",
+     "description": "2026-11-04T07:57:16",
+     "categories": "2026-11-04T07:57:16"
+    },
+    "sort": 0,
+    "name": "بانتين شامبو أدڤانسد ريبير لترميم وإصلاح قوة ومرونة الشعر بالبيبتيد 350 مل",
+    "description": "شامبو بانتين أدڤانسد ريبير بالبيبتيد (Pantene Advanced Repair Peptide Shampoo) يضع أساس روتين تقوية الشعر؛ ينظف بلطف ويساعد على إصلاح الشعر وتعزيز قوته ومرونته منذ الغسلة الأولى. العبوة 350 مل. المواصفات | Specifications • اسم المنتج: بانتين شامبو أدڤانسد ريبير لترميم وإصلاح قوة ومرونة الشعر بالبيبتيد 350 مل • العلامة التجارية: بانتين | Pantene • النوع: شامبو ترميم – Advanced Repair Peptides • الحجم: 350 مل • مناسب لـ: الشعر الضعيف والمعرض للتكسر المكونات الأساسية | Key Ingredients • البيبتيد (Peptides): يساعد على تعزيز قوة الشعر ومرونته ومقاومته للتكسر. • تركيبة بانتين أدڤانسد ريبير. المميزات | Product Features • ينظف بلطف مع العناية بالشعر. • يساعد على تعزيز قوة الشعر ومرونته. • يقلل مظهر التكسر مع الاستخدام المنتظم. • يُكمّل بلسم وماسك البيبتيد. طريقة الاستخدام | How to Use • بلّل الشعر جيداً. • ضع كمية مناسبة من الشامبو ودلّك فروة الرأس والشعر حتى تتكون رغوة. • اشطف جيداً بالماء. • أتبعه ببلسم من نفس السلسلة لأفضل النتائج. إرشادات السلامة والتخزين | Safety Instructions • للاستخدام الخارجي فقط. • تجنب ملامسة العينين، وفي حال حدوث ذلك تُشطف بالماء جيداً. • أوقف الاستخدام في حال ظهور تهيج. • يُحفظ بعيداً عن متناول الأطفال في مكان بارد وجاف بعيداً عن أشعة الشمس المباشرة. الأسئلة الشائعة | FAQ • س: لمن هذا الشامبو؟ ج: للشعر الضعيف والمعرض للتكسر. • س: هل أستخدمه مع البلسم؟ ج: نعم، للحصول على أفضل النتائج أتبعه ببلسم البيبتيد.",
+    "url": "https://ibrand.com.sa/ar/بانتين-شامبو-أدڤانسد-ريبير-لترميم-وإصلاح-قوة-ومرونة-الشعر-بالبيبتيد-350-مل/p1695529140",
+    "promotion_title": "",
+    "subtitle": "",
+    "type": "product",
+    "status": "sale",
+    "weight": "0.01",
+    "calories": null,
+    "sku": "8006530311670",
+    "rating": null,
+    "quantity": null,
+    "sold_quantity": 0,
+    "max_quantity": null,
+    "is_taxable": true,
+    "category": {
+     "name": "الشامبوهات اليوميه",
+     "url": null
+    },
+    "sale_channels_external": [],
+    "original_image": "https://cdn.salla.sa/yKErG/L8GF0k3XmIIByfmn6ygiBP4vLIEaH9wkCY2I5aKP.jpg",
+    "image": {
+     "url": "https://cdn.salla.sa/yKErG/bee104a2-fee6-4f0d-b271-360c3fd2c01c-500x500-L8GF0k3XmIIByfmn6ygiBP4vLIEaH9wkCY2I5aKP.jpg"
+    },
+    "brand": {
+     "id": "1100781286",
+     "url": null,
+     "name": "بانتين"
+    },
+    "tags": [],
+    "can_add_note": false,
+    "can_upload_file": false,
+    "is_on_sale": false,
+    "is_hidded_quantity": false,
+    "is_available": true,
+    "is_donation": false,
+    "is_out_of_stock": false,
+    "is_require_shipping": true,
+    "is_dynamic_pricing": false,
+    "regular_price": 23.95,
+    "price": 23.95,
+    "sale_price": null,
+    "starting_price": null,
+    "currency": "SAR",
+    "mpn": null,
+    "gtin": null,
+    "google_taxonomy_id": null,
+    "discount_ends": null,
+    "discount_starts": null,
+    "has_options": false,
+    "pinned": false,
+    "mahly_category_id": null,
+    "spam_status": 0,
+    "branches": [
+     {
+      "id": "219662292"
+     },
+     {
+      "id": "1765793758"
+     },
+     {
+      "id": "1418236302"
+     },
+     {
+      "id": "1352249558"
+     },
+     {
+      "id": "1913608431"
+     },
+     {
+      "id": "632888608"
+     },
+     {
+      "id": "2006217342"
+     },
+     {
+      "id": "2023925660"
+     },
+     {
+      "id": "1114023561"
+     },
+     {
+      "id": "1034453357"
+     },
+     {
+      "id": "1804835320"
+     },
+     {
+      "id": "1759719263"
+     },
+     {
+      "id": "236693507"
+     },
+     {
+      "id": "1990754820"
+     },
+     {
+      "id": "535382438"
+     },
+     {
+      "id": "2015232732"
+     },
+     {
+      "id": "48055581"
+     },
+     {
+      "id": "2024865065"
+     },
+     {
+      "id": "957088548"
+     },
+     {
+      "id": "424760569"
+     },
+     {
+      "id": "1380165369"
+     },
+     {
+      "id": "1717680860"
+     },
+     {
+      "id": "273983860"
+     },
+     {
+      "id": "6719480"
+     },
+     {
+      "id": "566933964"
+     },
+     {
+      "id": "627029894"
+     },
+     {
+      "id": "1088719265"
+     },
+     {
+      "id": "2014260688"
+     },
+     {
+      "id": "534318898"
+     },
+     {
+      "id": "263266363"
+     },
+     {
+      "id": "1824892346"
+     },
+     {
+      "id": "624759277"
+     },
+     {
+      "id": "731902933"
+     },
+     {
+      "id": "802343908"
+     },
+     {
+      "id": "2087711955"
+     },
+     {
+      "id": "775625692"
+     },
+     {
+      "id": "1559450266"
+     },
+     {
+      "id": "538994515"
+     },
+     {
+      "id": "1690140416"
+     },
+     {
+      "id": "1675479487"
+     },
+     {
+      "id": "505029842"
+     },
+     {
+      "id": "741930610"
+     },
+     {
+      "id": "336146593"
+     },
+     {
+      "id": "2119100537"
+     },
+     {
+      "id": "185318315"
+     },
+     {
+      "id": "1481654852"
+     },
+     {
+      "id": "859323824"
+     },
+     {
+      "id": "384884102"
+     },
+     {
+      "id": "1834080377"
+     },
+     {
+      "id": "1291064909"
+     },
+     {
+      "id": "708665669"
+     },
+     {
+      "id": "975966624"
+     },
+     {
+      "id": "1460440173"
+     },
+     {
+      "id": "918419893"
+     },
+     {
+      "id": "1680530385"
+     }
+    ],
+    "branches_v2": [
+     {
+      "visibility": "1",
+      "branch_id": "270876",
+      "branch_name": "مكة المكرمة - الشرايع ٦٤",
+      "sale_status": "1"
+     },
+     {
+      "visibility": "1",
+      "branch_id": "596216",
+      "branch_name": "جدة - الصفا",
+      "sale_status": "1"
+     },
+     {
+      "visibility": "1",
+      "branch_id": "1489082",
+      "branch_name": "جدة - حي الأمير فواز",
+      "sale_status": "1"
+     },
+     {
+      "visibility": "1",
+      "branch_id": "334635",
+      "branch_name": "جازان - أبو عريش",
+      "sale_status": "1"
+     },
+     {
+      "visibility": "1",
+      "branch_id": "1456040",
+      "branch_name": "جدة - النسيم",
+      "sale_status": "1"
+     },
+     {
+      "visibility": "1",
+      "branch_id": "1520477",
+      "branch_name": "تبوك - البوادي",
+      "sale_status": "1"
+     },
+     {
+      "visibility": "1",
+      "branch_id": "1477335",
+      "branch_name": "الطائف - مثملة",
+      "sale_status": "1"
+     },
+     {
+      "visibility": "1",
+      "branch_id": "594809",
+      "branch_name": "جدة - الحمدانية",
+      "sale_status": "1"
+     },
+     {
+      "visibility": "1",
+      "branch_id": "1491351",
+      "branch_name": "الطائف - شارع شهار العام",
+      "sale_status": "1"
+     },
+     {
+      "visibility": "1",
+      "branch_id": "521846",
+      "branch_name": "المدينه المنورة - العزيزية",
+      "sale_status": "1"
+     },
+     {
+      "visibility": "1",
+      "branch_id": "1475973",
+      "branch_name": "ينبع البحر - عمر بن الخطاب",
+      "sale_status": "1"
+     },
+     {
+      "visibility": "1",
+      "branch_id": "1488902",
+      "branch_name": "جدة - السنابل",
+      "sale_status": "1"
+     },
+     {
+      "visibility": "1",
+      "branch_id": "94666",
+      "branch_name": "الباحة - بني سار",
+      "sale_status": "1"
+     },
+     {
+      "visibility": "1",
+      "branch_id": "1488800",
+      "branch_name": "جدة - الواحة",
+      "sale_status": "1"
+     },
+     {
+      "visibility": "1",
+      "branch_id": "1936763",
+      "branch_name": "الطائف - الخمسين",
+      "sale_status": "1"
+     },
+     {
+      "visibility": "1",
+      "branch_id": "160889",
+      "branch_name": "جازان - المطار",
+      "sale_status": "1"
+     },
+     {
+      "visibility": "1",
+      "branch_id": "334969",
+      "branch_name": "ابها - حي الموظفين",
+      "sale_status": "1"
+     },
+     {
+      "visibility": "1",
+      "branch_id": "720163",
+      "branch_name": "خميس - الخزان",
+      "sale_status": "1"
+     },
+     {
+      "visibility": "1",
+      "branch_id": "676466",
+      "branch_name": "مكة المكرمة - العزيزية",
+      "sale_status": "1"
+     },
+     {
+      "visibility": "1",
+      "branch_id": "1399882",
+      "branch_name": "مكة المكرمة - النوارية",
+      "sale_status": "1"
+     },
+     {
+      "visibility": "1",
+      "branch_id": "644373",
+      "branch_name": "مكة المكرمة - الخضراء",
+      "sale_status": "1"
+     },
+     {
+      "visibility": "1",
+      "branch_id": "1490039",
+      "branch_name": "خميس - هايبر المدينة العسكرية",
+      "sale_status": "1"
+     },
+     {
+      "visibility": "1",
+      "branch_id": "262",
+      "branch_name": "مكة المكرمة - ش محمد بن جبير",
+      "sale_status": "1"
+     },
+     {
+      "visibility": "1",
+      "branch_id": "488673",
+      "branch_name": "المدينة المنورة - ساري",
+      "sale_status": "1"
+     },
+     {
+      "visibility": "1",
+      "branch_id": "1361471",
+      "branch_name": "الرياض - الملز",
+      "sale_status": "1"
+     },
+     {
+      "visibility": "1",
+      "branch_id": "418636",
+      "branch_name": "ابها - الحزام",
+      "sale_status": "1"
+     },
+     {
+      "visibility": "1",
+      "branch_id": "24433",
+      "branch_name": "المستودع الرئيسي",
+      "sale_status": "1"
+     },
+     {
+      "visibility": "1",
+      "branch_id": "1489938",
+      "branch_name": "المدينة المنورة - شوران",
+      "sale_status": "1"
+     },
+     {
+      "visibility": "1",
+      "branch_id": "488674",
+      "branch_name": "الطائف - الجيش",
+      "sale_status": "1"
+     },
+     {
+      "visibility": "1",
+      "branch_id": "1481475",
+      "branch_name": "خميس - الربيع",
+      "sale_status": "1"
+     },
+     {
+      "visibility": "1",
+      "branch_id": "1477339",
+      "branch_name": "حفر الباطن - الخالدية",
+      "sale_status": "1"
+     },
+     {
+      "visibility": "1",
+      "branch_id": "1498364",
+      "branch_name": "مدن اخرى - ارامكس",
+      "sale_status": "1"
+     },
+     {
+      "visibility": "1",
+      "branch_id": "760641",
+      "branch_name": "مكة المكرمة - الزايدي",
+      "sale_status": "1"
+     },
+     {
+      "visibility": "1",
+      "branch_id": "2100088",
+      "branch_name": "ينبع -  الهيئة الملكية",
+      "sale_status": "1"
+     },
+     {
+      "visibility": "1",
+      "branch_id": "1490062",
+      "branch_name": "الباحة - بلجرشي",
+      "sale_status": "1"
+     },
+     {
+      "visibility": "1",
+      "branch_id": "933",
+      "branch_name": "الطائف - ش الستين الحوية",
+      "sale_status": "1"
+     },
+     {
+      "visibility": "1",
+      "branch_id": "554145",
+      "branch_name": "مكة المكرمة - الممشى القديم",
+      "sale_status": "1"
+     },
+     {
+      "visibility": "1",
+      "branch_id": "1475934",
+      "branch_name": "الرياض - المصيف",
+      "sale_status": "1"
+     },
+     {
+      "visibility": "1",
+      "branch_id": "1741278",
+      "branch_name": "القصيم - عنيزة",
+      "sale_status": "1"
+     },
+     {
+      "visibility": "1",
+      "branch_id": "594817",
+      "branch_name": "الطائف - ش ابوبكر",
+      "sale_status": "1"
+     },
+     {
+      "visibility": "1",
+      "branch_id": "1488697",
+      "branch_name": "جدة - السامر",
+      "sale_status": "1"
+     },
+     {
+      "visibility": "1",
+      "branch_id": "1489936",
+      "branch_name": "المدينة المنورة - الهجرة",
+      "sale_status": "1"
+     },
+     {
+      "visibility": "1",
+      "branch_id": "261",
+      "branch_name": "الطائف - ش خالد بن الوليد",
+      "sale_status": "1"
+     },
+     {
+      "visibility": "1",
+      "branch_id": "517923",
+      "branch_name": "جدة - حراء",
+      "sale_status": "1"
+     },
+     {
+      "visibility": "1",
+      "branch_id": "1467182",
+      "branch_name": "جدة - عابر القارات",
+      "sale_status": "1"
+     },
+     {
+      "visibility": "1",
+      "branch_id": "158922",
+      "branch_name": "جازان - الكورنيش",
+      "sale_status": "1"
+     },
+     {
+      "visibility": "1",
+      "branch_id": "1475957",
+      "branch_name": "الرياض - النسيم",
+      "sale_status": "1"
+     },
+     {
+      "visibility": "1",
+      "branch_id": "2174417",
+      "branch_name": "جدة - الشاطيء",
+      "sale_status": "1"
+     },
+     {
+      "visibility": "1",
+      "branch_id": "1475945",
+      "branch_name": "الرياض - السويدي",
+      "sale_status": "1"
+     },
+     {
+      "visibility": "1",
+      "branch_id": "274781",
+      "branch_name": "الطائف - القيم",
+      "sale_status": "1"
+     },
+     {
+      "visibility": "1",
+      "branch_id": "1361471",
+      "branch_name": "الرياض - الملز",
+      "sale_status": "2"
+     },
+     {
+      "visibility": "1",
+      "branch_id": "1488874",
+      "branch_name": "جدة - الصالحية",
+      "sale_status": "1"
+     },
+     {
+      "visibility": "1",
+      "branch_id": "1409502",
+      "branch_name": "الخرج - ط الملك فهد",
+      "sale_status": "1"
+     },
+     {
+      "visibility": "1",
+      "branch_id": "767091",
+      "branch_name": "مكة المكرمة - الصفراء",
+      "sale_status": "1"
+     },
+     {
+      "visibility": "1",
+      "branch_id": "1520478",
+      "branch_name": "تبوك - سلطانه",
+      "sale_status": "1"
+     },
+     {
+      "visibility": "1",
+      "branch_id": "1741599",
+      "branch_name": "القصيم - الرس",
+      "sale_status": "1"
+     }
+    ],
+    "has_preorder_campaign": false,
+    "preorder": [],
+    "sub_products": [],
+    "custom_url": "",
+    "hash_id": 1695529140,
+    "store_status": "active",
+    "bundle_type": 1,
+    "is_bundle": false,
+    "active_advance": false,
+    "with_tax": true,
+    "position": 2,
+    "is_free_shipping": false,
+    "unlimited_quantity": false,
+    "features": {
+     "availability_notify": {
+      "email": true,
+      "sms": true,
+      "mobile": true,
+      "whatsapp": false
+     },
+     "show_rating": false
+    }
+   },
+   {
+    "id": "186816939",
+    "scope_id": null,
+    "source": "23",
+    "synced_at": {
+     "price": "2026-11-04T07:57:16",
+     "sale_price": "2026-11-04T07:57:16",
+     "sale_end": "2026-11-04T07:57:16",
+     "status": "2026-11-04T07:57:16",
+     "image": "2026-11-04T07:57:16",
+     "original_image": "2026-11-04T07:56:10",
+     "promotion_title": "2026-11-04T07:57:16",
+     "subtitle": "2026-11-04T07:57:16",
+     "name": "2026-11-04T07:57:16",
+     "description": "2026-11-04T07:57:16",
+     "categories": "2026-11-04T07:57:16"
+    },
+    "sort": 0,
+    "name": "بانتين ماسك أدڤانسد ريبير لترميم وإصلاح قوة ومرونة الشعر بالبيبتيد 300 مل",
+    "description": "ماسك بانتين أدڤانسد ريبير بالبيبتيد (Pantene Advanced Repair Peptide Hair Mask) علاج أسبوعي مكثف للشعر الضعيف والمتكسر، يساعد على إصلاح الشعر واستعادة قوته ومرونته ليبدو أكثر صحة ولمعاناً. العبوة 300 مل. المواصفات | Specifications • اسم المنتج: بانتين ماسك أدڤانسد ريبير لترميم وإصلاح قوة ومرونة الشعر بالبيبتيد 300 مل • العلامة التجارية: بانتين | Pantene • النوع: ماسك ترميم – Advanced Repair Peptides • الحجم: 300 مل • مناسب لـ: الشعر الضعيف والمتكسر المكونات الأساسية | Key Ingredients • البيبتيد (Peptides): يساعد على تعزيز قوة الشعر ومرونته ومقاومته للتكسر. • تركيبة بانتين أدڤانسد ريبير المكثفة. المميزات | Product Features • عناية مكثفة لإصلاح الشعر وتعزيز قوته ومرونته. • يمنح نعومة ولمعاناً. • قوام غني للاستخدام الأسبوعي. • يُكمّل شامبو وبلسم البيبتيد. طريقة الاستخدام | How to Use • بعد الغسل بالشامبو، اعصر الماء الزائد من الشعر. • وزّع كمية وافرة من الماسك على أطوال الشعر وأطرافه. • اتركه من 3 إلى 5 دقائق. • اشطف جيداً، ويُستخدم مرة إلى مرتين أسبوعياً. إرشادات السلامة والتخزين | Safety Instructions • للاستخدام الخارجي فقط. • تجنب ملامسة العينين، وفي حال حدوث ذلك تُشطف بالماء جيداً. • أوقف الاستخدام في حال ظهور تهيج. • يُحفظ بعيداً عن متناول الأطفال في مكان بارد وجاف بعيداً عن أشعة الشمس المباشرة. الأسئلة الشائعة | FAQ • س: كم مرة يُستخدم؟ ج: مرة إلى مرتين أسبوعياً. • س: هل يفيد الشعر المتكسر؟ ج: نعم، تركيبة البيبتيد موجهة لتعزيز القوة والمرونة.",
+    "url": "https://ibrand.com.sa/ar/بانتين-ماسك-أدڤانسد-ريبير-لترميم-وإصلاح-قوة-ومرونة-الشعر-بالبيبتيد-300-مل/p186816939",
+    "promotion_title": "",
+    "subtitle": "",
+    "type": "product",
+    "status": "sale",
+    "weight": "0.01",
+    "calories": null,
+    "sku": "8006530276993",
+    "rating": null,
+    "quantity": null,
+    "sold_quantity": 0,
+    "max_quantity": null,
+    "is_taxable": true,
+    "category": {
+     "name": "ماسكات الشعر",
+     "url": null
+    },
+    "sale_channels_external": [],
+    "original_image": "https://cdn.salla.sa/yKErG/sfaISpoRmhqjuTvm49MacrQZUHviZKN7nTKjRCi7.jpg",
+    "image": {
+     "url": "https://cdn.salla.sa/yKErG/b35ccf8d-79a4-4e9d-a980-9ef626680e0b-500x500-sfaISpoRmhqjuTvm49MacrQZUHviZKN7nTKjRCi7.jpg"
+    },
+    "brand": {
+     "id": "1100781286",
+     "url": null,
+     "name": "بانتين"
+    },
+    "tags": [],
+    "can_add_note": false,
+    "can_upload_file": false,
+    "is_on_sale": false,
+    "is_hidded_quantity": false,
+    "is_available": true,
+    "is_donation": false,
+    "is_out_of_stock": false,
+    "is_require_shipping": true,
+    "is_dynamic_pricing": false,
+    "regular_price": 29.95,
+    "price": 29.95,
+    "sale_price": null,
+    "starting_price": null,
+    "currency": "SAR",
+    "mpn": null,
+    "gtin": null,
+    "google_taxonomy_id": null,
+    "discount_ends": null,
+    "discount_starts": null,
+    "has_options": false,
+    "pinned": false,
+    "mahly_category_id": null,
+    "spam_status": 0,
+    "branches": [
+     {
+      "id": "219662292"
+     },
+     {
+      "id": "1765793758"
+     },
+     {
+      "id": "1418236302"
+     },
+     {
+      "id": "1352249558"
+     },
+     {
+      "id": "1913608431"
+     },
+     {
+      "id": "632888608"
+     },
+     {
+      "id": "2006217342"
+     },
+     {
+      "id": "2023925660"
+     },
+     {
+      "id": "1114023561"
+     },
+     {
+      "id": "1034453357"
+     },
+     {
+      "id": "1804835320"
+     },
+     {
+      "id": "1759719263"
+     },
+     {
+      "id": "236693507"
+     },
+     {
+      "id": "1990754820"
+     },
+     {
+      "id": "535382438"
+     },
+     {
+      "id": "2015232732"
+     },
+     {
+      "id": "48055581"
+     },
+     {
+      "id": "2024865065"
+     },
+     {
+      "id": "957088548"
+     },
+     {
+      "id": "424760569"
+     },
+     {
+      "id": "1380165369"
+     },
+     {
+      "id": "1717680860"
+     },
+     {
+      "id": "273983860"
+     },
+     {
+      "id": "6719480"
+     },
+     {
+      "id": "566933964"
+     },
+     {
+      "id": "627029894"
+     },
+     {
+      "id": "1088719265"
+     },
+     {
+      "id": "2014260688"
+     },
+     {
+      "id": "534318898"
+     },
+     {
+      "id": "263266363"
+     },
+     {
+      "id": "1824892346"
+     },
+     {
+      "id": "624759277"
+     },
+     {
+      "id": "731902933"
+     },
+     {
+      "id": "802343908"
+     },
+     {
+      "id": "2087711955"
+     },
+     {
+      "id": "775625692"
+     },
+     {
+      "id": "1559450266"
+     },
+     {
+      "id": "538994515"
+     },
+     {
+      "id": "1690140416"
+     },
+     {
+      "id": "1675479487"
+     },
+     {
+      "id": "505029842"
+     },
+     {
+      "id": "741930610"
+     },
+     {
+      "id": "336146593"
+     },
+     {
+      "id": "2119100537"
+     },
+     {
+      "id": "185318315"
+     },
+     {
+      "id": "1481654852"
+     },
+     {
+      "id": "859323824"
+     },
+     {
+      "id": "384884102"
+     },
+     {
+      "id": "1834080377"
+     },
+     {
+      "id": "1291064909"
+     },
+     {
+      "id": "708665669"
+     },
+     {
+      "id": "975966624"
+     },
+     {
+      "id": "1460440173"
+     },
+     {
+      "id": "918419893"
+     },
+     {
+      "id": "1680530385"
+     }
+    ],
+    "branches_v2": [
+     {
+      "visibility": "1",
+      "branch_id": "270876",
+      "branch_name": "مكة المكرمة - الشرايع ٦٤",
+      "sale_status": "1"
+     },
+     {
+      "visibility": "1",
+      "branch_id": "596216",
+      "branch_name": "جدة - الصفا",
+      "sale_status": "1"
+     },
+     {
+      "visibility": "1",
+      "branch_id": "334635",
+      "branch_name": "جازان - أبو عريش",
+      "sale_status": "1"
+     },
+     {
+      "visibility": "1",
+      "branch_id": "1489082",
+      "branch_name": "جدة - حي الأمير فواز",
+      "sale_status": "1"
+     },
+     {
+      "visibility": "1",
+      "branch_id": "1456040",
+      "branch_name": "جدة - النسيم",
+      "sale_status": "1"
+     },
+     {
+      "visibility": "1",
+      "branch_id": "1520477",
+      "branch_name": "تبوك - البوادي",
+      "sale_status": "1"
+     },
+     {
+      "visibility": "1",
+      "branch_id": "1477335",
+      "branch_name": "الطائف - مثملة",
+      "sale_status": "1"
+     },
+     {
+      "visibility": "1",
+      "branch_id": "594809",
+      "branch_name": "جدة - الحمدانية",
+      "sale_status": "1"
+     },
+     {
+      "visibility": "1",
+      "branch_id": "1491351",
+      "branch_name": "الطائف - شارع شهار العام",
+      "sale_status": "1"
+     },
+     {
+      "visibility": "1",
+      "branch_id": "521846",
+      "branch_name": "المدينه المنورة - العزيزية",
+      "sale_status": "1"
+     },
+     {
+      "visibility": "1",
+      "branch_id": "1475973",
+      "branch_name": "ينبع البحر - عمر بن الخطاب",
+      "sale_status": "1"
+     },
+     {
+      "visibility": "1",
+      "branch_id": "1488800",
+      "branch_name": "جدة - الواحة",
+      "sale_status": "1"
+     },
+     {
+      "visibility": "1",
+      "branch_id": "94666",
+      "branch_name": "الباحة - بني سار",
+      "sale_status": "1"
+     },
+     {
+      "visibility": "1",
+      "branch_id": "1488902",
+      "branch_name": "جدة - السنابل",
+      "sale_status": "1"
+     },
+     {
+      "visibility": "1",
+      "branch_id": "1936763",
+      "branch_name": "الطائف - الخمسين",
+      "sale_status": "1"
+     },
+     {
+      "visibility": "1",
+      "branch_id": "160889",
+      "branch_name": "جازان - المطار",
+      "sale_status": "1"
+     },
+     {
+      "visibility": "1",
+      "branch_id": "334969",
+      "branch_name": "ابها - حي الموظفين",
+      "sale_status": "1"
+     },
+     {
+      "visibility": "1",
+      "branch_id": "720163",
+      "branch_name": "خميس - الخزان",
+      "sale_status": "1"
+     },
+     {
+      "visibility": "1",
+      "branch_id": "676466",
+      "branch_name": "مكة المكرمة - العزيزية",
+      "sale_status": "1"
+     },
+     {
+      "visibility": "1",
+      "branch_id": "1399882",
+      "branch_name": "مكة المكرمة - النوارية",
+      "sale_status": "1"
+     },
+     {
+      "visibility": "1",
+      "branch_id": "1490039",
+      "branch_name": "خميس - هايبر المدينة العسكرية",
+      "sale_status": "1"
+     },
+     {
+      "visibility": "1",
+      "branch_id": "644373",
+      "branch_name": "مكة المكرمة - الخضراء",
+      "sale_status": "1"
+     },
+     {
+      "visibility": "1",
+      "branch_id": "262",
+      "branch_name": "مكة المكرمة - ش محمد بن جبير",
+      "sale_status": "1"
+     },
+     {
+      "visibility": "1",
+      "branch_id": "488673",
+      "branch_name": "المدينة المنورة - ساري",
+      "sale_status": "1"
+     },
+     {
+      "visibility": "1",
+      "branch_id": "1361471",
+      "branch_name": "الرياض - الملز",
+      "sale_status": "1"
+     },
+     {
+      "visibility": "1",
+      "branch_id": "24433",
+      "branch_name": "المستودع الرئيسي",
+      "sale_status": "1"
+     },
+     {
+      "visibility": "1",
+      "branch_id": "418636",
+      "branch_name": "ابها - الحزام",
+      "sale_status": "1"
+     },
+     {
+      "visibility": "1",
+      "branch_id": "1489938",
+      "branch_name": "المدينة المنورة - شوران",
+      "sale_status": "1"
+     },
+     {
+      "visibility": "1",
+      "branch_id": "488674",
+      "branch_name": "الطائف - الجيش",
+      "sale_status": "1"
+     },
+     {
+      "visibility": "1",
+      "branch_id": "1481475",
+      "branch_name": "خميس - الربيع",
+      "sale_status": "1"
+     },
+     {
+      "visibility": "1",
+      "branch_id": "1477339",
+      "branch_name": "حفر الباطن - الخالدية",
+      "sale_status": "1"
+     },
+     {
+      "visibility": "1",
+      "branch_id": "1498364",
+      "branch_name": "مدن اخرى - ارامكس",
+      "sale_status": "1"
+     },
+     {
+      "visibility": "1",
+      "branch_id": "933",
+      "branch_name": "الطائف - ش الستين الحوية",
+      "sale_status": "1"
+     },
+     {
+      "visibility": "1",
+      "branch_id": "2100088",
+      "branch_name": "ينبع -  الهيئة الملكية",
+      "sale_status": "1"
+     },
+     {
+      "visibility": "1",
+      "branch_id": "554145",
+      "branch_name": "مكة المكرمة - الممشى القديم",
+      "sale_status": "1"
+     },
+     {
+      "visibility": "1",
+      "branch_id": "1490062",
+      "branch_name": "الباحة - بلجرشي",
+      "sale_status": "1"
+     },
+     {
+      "visibility": "1",
+      "branch_id": "760641",
+      "branch_name": "مكة المكرمة - الزايدي",
+      "sale_status": "1"
+     },
+     {
+      "visibility": "1",
+      "branch_id": "1475934",
+      "branch_name": "الرياض - المصيف",
+      "sale_status": "1"
+     },
+     {
+      "visibility": "1",
+      "branch_id": "1741278",
+      "branch_name": "القصيم - عنيزة",
+      "sale_status": "1"
+     },
+     {
+      "visibility": "1",
+      "branch_id": "594817",
+      "branch_name": "الطائف - ش ابوبكر",
+      "sale_status": "1"
+     },
+     {
+      "visibility": "1",
+      "branch_id": "1488697",
+      "branch_name": "جدة - السامر",
+      "sale_status": "1"
+     },
+     {
+      "visibility": "1",
+      "branch_id": "1489936",
+      "branch_name": "المدينة المنورة - الهجرة",
+      "sale_status": "1"
+     },
+     {
+      "visibility": "1",
+      "branch_id": "261",
+      "branch_name": "الطائف - ش خالد بن الوليد",
+      "sale_status": "1"
+     },
+     {
+      "visibility": "1",
+      "branch_id": "517923",
+      "branch_name": "جدة - حراء",
+      "sale_status": "1"
+     },
+     {
+      "visibility": "1",
+      "branch_id": "1467182",
+      "branch_name": "جدة - عابر القارات",
+      "sale_status": "1"
+     },
+     {
+      "visibility": "1",
+      "branch_id": "158922",
+      "branch_name": "جازان - الكورنيش",
+      "sale_status": "1"
+     },
+     {
+      "visibility": "1",
+      "branch_id": "1475957",
+      "branch_name": "الرياض - النسيم",
+      "sale_status": "1"
+     },
+     {
+      "visibility": "1",
+      "branch_id": "1475945",
+      "branch_name": "الرياض - السويدي",
+      "sale_status": "1"
+     },
+     {
+      "visibility": "1",
+      "branch_id": "2174417",
+      "branch_name": "جدة - الشاطيء",
+      "sale_status": "1"
+     },
+     {
+      "visibility": "1",
+      "branch_id": "274781",
+      "branch_name": "الطائف - القيم",
+      "sale_status": "1"
+     },
+     {
+      "visibility": "1",
+      "branch_id": "1361471",
+      "branch_name": "الرياض - الملز",
+      "sale_status": "2"
+     },
+     {
+      "visibility": "1",
+      "branch_id": "1488874",
+      "branch_name": "جدة - الصالحية",
+      "sale_status": "1"
+     },
+     {
+      "visibility": "1",
+      "branch_id": "1409502",
+      "branch_name": "الخرج - ط الملك فهد",
+      "sale_status": "1"
+     },
+     {
+      "visibility": "1",
+      "branch_id": "767091",
+      "branch_name": "مكة المكرمة - الصفراء",
+      "sale_status": "1"
+     },
+     {
+      "visibility": "1",
+      "branch_id": "1520478",
+      "branch_name": "تبوك - سلطانه",
+      "sale_status": "1"
+     },
+     {
+      "visibility": "1",
+      "branch_id": "1741599",
+      "branch_name": "القصيم - الرس",
+      "sale_status": "1"
+     }
+    ],
+    "has_preorder_campaign": false,
+    "preorder": [],
+    "sub_products": [],
+    "custom_url": "",
+    "hash_id": 186816939,
+    "store_status": "active",
+    "bundle_type": 1,
+    "is_bundle": false,
+    "active_advance": false,
+    "with_tax": true,
+    "position": 3,
+    "is_free_shipping": false,
+    "unlimited_quantity": false,
+    "features": {
+     "availability_notify": {
+      "email": true,
+      "sms": true,
+      "mobile": true,
+      "whatsapp": false
+     },
+     "show_rating": false
+    }
+   },
+   {
+    "id": "960789162",
+    "scope_id": null,
+    "source": "23",
+    "synced_at": {
+     "price": "2026-11-08T16:57:13",
+     "sale_price": "2026-11-08T16:57:13",
+     "sale_end": "2026-11-08T16:57:13",
+     "status": "2026-11-08T16:57:13",
+     "image": "2026-11-08T16:57:13",
+     "original_image": "2026-11-04T07:56:10",
+     "promotion_title": "2026-11-04T07:57:16",
+     "subtitle": "2026-11-04T07:57:16",
+     "name": "2026-11-04T07:57:16",
+     "description": "2026-11-04T07:57:16",
+     "categories": "2026-11-04T07:57:16"
+    },
+    "sort": 0,
+    "name": "بانتين شامبو أدڤانسد ريبير لترميم وحيوية وتوازن الشعر بالكولاجين 350مل",
+    "description": "ابدأ روتين ترميم شعرك من الغسلة الأولى مع شامبو بانتين أدڤانسد ريبير بالكولاجين (Pantene Advanced Repair Collagen Shampoo)، الذي ينظف الشعر بلطف ويعيد له الحيوية والتوازن ليبدو أكثر امتلاءً وصحة. العبوة 350 مل. المواصفات | Specifications • اسم المنتج: بانتين شامبو أدڤانسد ريبير لترميم وحيوية وتوازن الشعر بالكولاجين 350مل • العلامة التجارية: بانتين | Pantene • النوع: شامبو ترميم – Advanced Repair Collagen • الحجم: 350 مل • مناسب لـ: الشعر المتعب والباهت المكونات الأساسية | Key Ingredients • الكولاجين (Collagen): يساعد في دعم حيوية الشعر ومظهره الممتلئ. • تركيبة بانتين أدڤانسد ريبير. المميزات | Product Features • ينظف الشعر بلطف مع العناية به. • يساعد على إعادة الحيوية والتوازن للشعر. • يمنح الشعر مظهراً ممتلئاً. • يُكمّل بلسم وماسك نفس السلسلة. طريقة الاستخدام | How to Use • بلّل الشعر جيداً. • ضع كمية مناسبة من الشامبو ودلّك فروة الرأس والشعر حتى تتكون رغوة. • اشطف جيداً بالماء. • أتبعه ببلسم من نفس السلسلة لأفضل النتائج. إرشادات السلامة والتخزين | Safety Instructions • للاستخدام الخارجي فقط. • تجنب ملامسة العينين، وفي حال حدوث ذلك تُشطف بالماء جيداً. • أوقف الاستخدام في حال ظهور تهيج. • يُحفظ بعيداً عن متناول الأطفال في مكان بارد وجاف بعيداً عن أشعة الشمس المباشرة. الأسئلة الشائعة | FAQ • س: هل الشامبو مناسب للاستخدام اليومي؟ ج: نعم، يمكن استخدامه بانتظام. • س: ما المكون المميز فيه؟ ج: الكولاجين ضمن تركيبة أدڤانسد ريبير.",
+    "url": "https://ibrand.com.sa/ar/بانتين-شامبو-أدڤانسد-ريبير-لترميم-وحيوية-وتوازن-الشعر-بالكولاجين-350مل/p960789162",
+    "promotion_title": "",
+    "subtitle": "",
+    "type": "product",
+    "status": "sale",
+    "weight": "0.01",
+    "calories": null,
+    "sku": "8006530311779",
+    "rating": null,
+    "quantity": null,
+    "sold_quantity": 0,
+    "max_quantity": null,
+    "is_taxable": true,
+    "category": {
+     "name": "الشامبوهات اليوميه",
+     "url": null
+    },
+    "sale_channels_external": [],
+    "original_image": "https://cdn.salla.sa/yKErG/yjHecTyWJ5y4NJ6DaaaAabu9I4L4off0kmJEh0ik.jpg",
+    "image": {
+     "url": "https://cdn.salla.sa/yKErG/4d7e6c28-1f9b-471c-b6ab-e6800a74e8c4-500x500-yjHecTyWJ5y4NJ6DaaaAabu9I4L4off0kmJEh0ik.jpg"
+    },
+    "brand": {
+     "id": "1100781286",
+     "url": null,
+     "name": "بانتين"
+    },
+    "tags": [],
+    "can_add_note": false,
+    "can_upload_file": false,
+    "is_on_sale": false,
+    "is_hidded_quantity": false,
+    "is_available": true,
+    "is_donation": false,
+    "is_out_of_stock": false,
+    "is_require_shipping": true,
+    "is_dynamic_pricing": false,
+    "regular_price": 23.95,
+    "price": 23.95,
+    "sale_price": null,
+    "starting_price": null,
+    "currency": "SAR",
+    "mpn": null,
+    "gtin": null,
+    "google_taxonomy_id": null,
+    "discount_ends": null,
+    "discount_starts": null,
+    "has_options": false,
+    "pinned": false,
+    "mahly_category_id": null,
+    "spam_status": 0,
+    "branches": [
+     {
+      "id": "219662292"
+     },
+     {
+      "id": "1765793758"
+     },
+     {
+      "id": "1418236302"
+     },
+     {
+      "id": "1352249558"
+     },
+     {
+      "id": "1913608431"
+     },
+     {
+      "id": "632888608"
+     },
+     {
+      "id": "2006217342"
+     },
+     {
+      "id": "2023925660"
+     },
+     {
+      "id": "1114023561"
+     },
+     {
+      "id": "1034453357"
+     },
+     {
+      "id": "1804835320"
+     },
+     {
+      "id": "1759719263"
+     },
+     {
+      "id": "236693507"
+     },
+     {
+      "id": "1990754820"
+     },
+     {
+      "id": "535382438"
+     },
+     {
+      "id": "2015232732"
+     },
+     {
+      "id": "48055581"
+     },
+     {
+      "id": "2024865065"
+     },
+     {
+      "id": "957088548"
+     },
+     {
+      "id": "424760569"
+     },
+     {
+      "id": "1380165369"
+     },
+     {
+      "id": "1717680860"
+     },
+     {
+      "id": "273983860"
+     },
+     {
+      "id": "6719480"
+     },
+     {
+      "id": "566933964"
+     },
+     {
+      "id": "627029894"
+     },
+     {
+      "id": "1088719265"
+     },
+     {
+      "id": "2014260688"
+     },
+     {
+      "id": "534318898"
+     },
+     {
+      "id": "263266363"
+     },
+     {
+      "id": "1824892346"
+     },
+     {
+      "id": "624759277"
+     },
+     {
+      "id": "731902933"
+     },
+     {
+      "id": "802343908"
+     },
+     {
+      "id": "2087711955"
+     },
+     {
+      "id": "775625692"
+     },
+     {
+      "id": "1559450266"
+     },
+     {
+      "id": "538994515"
+     },
+     {
+      "id": "1690140416"
+     },
+     {
+      "id": "1675479487"
+     },
+     {
+      "id": "505029842"
+     },
+     {
+      "id": "741930610"
+     },
+     {
+      "id": "336146593"
+     },
+     {
+      "id": "2119100537"
+     },
+     {
+      "id": "185318315"
+     },
+     {
+      "id": "1481654852"
+     },
+     {
+      "id": "859323824"
+     },
+     {
+      "id": "384884102"
+     },
+     {
+      "id": "1834080377"
+     },
+     {
+      "id": "1291064909"
+     },
+     {
+      "id": "708665669"
+     },
+     {
+      "id": "975966624"
+     },
+     {
+      "id": "1460440173"
+     },
+     {
+      "id": "918419893"
+     },
+     {
+      "id": "1680530385"
+     }
+    ],
+    "branches_v2": [
+     {
+      "visibility": "1",
+      "branch_id": "270876",
+      "branch_name": "مكة المكرمة - الشرايع ٦٤",
+      "sale_status": "1"
+     },
+     {
+      "visibility": "1",
+      "branch_id": "596216",
+      "branch_name": "جدة - الصفا",
+      "sale_status": "1"
+     },
+     {
+      "visibility": "1",
+      "branch_id": "334635",
+      "branch_name": "جازان - أبو عريش",
+      "sale_status": "1"
+     },
+     {
+      "visibility": "1",
+      "branch_id": "1489082",
+      "branch_name": "جدة - حي الأمير فواز",
+      "sale_status": "1"
+     },
+     {
+      "visibility": "1",
+      "branch_id": "1456040",
+      "branch_name": "جدة - النسيم",
+      "sale_status": "1"
+     },
+     {
+      "visibility": "1",
+      "branch_id": "1520477",
+      "branch_name": "تبوك - البوادي",
+      "sale_status": "1"
+     },
+     {
+      "visibility": "1",
+      "branch_id": "1477335",
+      "branch_name": "الطائف - مثملة",
+      "sale_status": "1"
+     },
+     {
+      "visibility": "1",
+      "branch_id": "594809",
+      "branch_name": "جدة - الحمدانية",
+      "sale_status": "1"
+     },
+     {
+      "visibility": "1",
+      "branch_id": "1491351",
+      "branch_name": "الطائف - شارع شهار العام",
+      "sale_status": "1"
+     },
+     {
+      "visibility": "1",
+      "branch_id": "521846",
+      "branch_name": "المدينه المنورة - العزيزية",
+      "sale_status": "1"
+     },
+     {
+      "visibility": "1",
+      "branch_id": "1475973",
+      "branch_name": "ينبع البحر - عمر بن الخطاب",
+      "sale_status": "1"
+     },
+     {
+      "visibility": "1",
+      "branch_id": "1488800",
+      "branch_name": "جدة - الواحة",
+      "sale_status": "1"
+     },
+     {
+      "visibility": "1",
+      "branch_id": "94666",
+      "branch_name": "الباحة - بني سار",
+      "sale_status": "1"
+     },
+     {
+      "visibility": "1",
+      "branch_id": "1488902",
+      "branch_name": "جدة - السنابل",
+      "sale_status": "1"
+     },
+     {
+      "visibility": "1",
+      "branch_id": "1936763",
+      "branch_name": "الطائف - الخمسين",
+      "sale_status": "1"
+     },
+     {
+      "visibility": "1",
+      "branch_id": "160889",
+      "branch_name": "جازان - المطار",
+      "sale_status": "1"
+     },
+     {
+      "visibility": "1",
+      "branch_id": "334969",
+      "branch_name": "ابها - حي الموظفين",
+      "sale_status": "1"
+     },
+     {
+      "visibility": "1",
+      "branch_id": "720163",
+      "branch_name": "خميس - الخزان",
+      "sale_status": "1"
+     },
+     {
+      "visibility": "1",
+      "branch_id": "676466",
+      "branch_name": "مكة المكرمة - العزيزية",
+      "sale_status": "1"
+     },
+     {
+      "visibility": "1",
+      "branch_id": "1490039",
+      "branch_name": "خميس - هايبر المدينة العسكرية",
+      "sale_status": "1"
+     },
+     {
+      "visibility": "1",
+      "branch_id": "1399882",
+      "branch_name": "مكة المكرمة - النوارية",
+      "sale_status": "1"
+     },
+     {
+      "visibility": "1",
+      "branch_id": "644373",
+      "branch_name": "مكة المكرمة - الخضراء",
+      "sale_status": "1"
+     },
+     {
+      "visibility": "1",
+      "branch_id": "262",
+      "branch_name": "مكة المكرمة - ش محمد بن جبير",
+      "sale_status": "1"
+     },
+     {
+      "visibility": "1",
+      "branch_id": "488673",
+      "branch_name": "المدينة المنورة - ساري",
+      "sale_status": "1"
+     },
+     {
+      "visibility": "1",
+      "branch_id": "1361471",
+      "branch_name": "الرياض - الملز",
+      "sale_status": "1"
+     },
+     {
+      "visibility": "1",
+      "branch_id": "418636",
+      "branch_name": "ابها - الحزام",
+      "sale_status": "1"
+     },
+     {
+      "visibility": "1",
+      "branch_id": "24433",
+      "branch_name": "المستودع الرئيسي",
+      "sale_status": "1"
+     },
+     {
+      "visibility": "1",
+      "branch_id": "1489938",
+      "branch_name": "المدينة المنورة - شوران",
+      "sale_status": "1"
+     },
+     {
+      "visibility": "1",
+      "branch_id": "488674",
+      "branch_name": "الطائف - الجيش",
+      "sale_status": "1"
+     },
+     {
+      "visibility": "1",
+      "branch_id": "1481475",
+      "branch_name": "خميس - الربيع",
+      "sale_status": "1"
+     },
+     {
+      "visibility": "1",
+      "branch_id": "1477339",
+      "branch_name": "حفر الباطن - الخالدية",
+      "sale_status": "1"
+     },
+     {
+      "visibility": "1",
+      "branch_id": "1498364",
+      "branch_name": "مدن اخرى - ارامكس",
+      "sale_status": "1"
+     },
+     {
+      "visibility": "1",
+      "branch_id": "760641",
+      "branch_name": "مكة المكرمة - الزايدي",
+      "sale_status": "1"
+     },
+     {
+      "visibility": "1",
+      "branch_id": "2100088",
+      "branch_name": "ينبع -  الهيئة الملكية",
+      "sale_status": "1"
+     },
+     {
+      "visibility": "1",
+      "branch_id": "554145",
+      "branch_name": "مكة المكرمة - الممشى القديم",
+      "sale_status": "1"
+     },
+     {
+      "visibility": "1",
+      "branch_id": "1490062",
+      "branch_name": "الباحة - بلجرشي",
+      "sale_status": "1"
+     },
+     {
+      "visibility": "1",
+      "branch_id": "933",
+      "branch_name": "الطائف - ش الستين الحوية",
+      "sale_status": "1"
+     },
+     {
+      "visibility": "1",
+      "branch_id": "1475934",
+      "branch_name": "الرياض - المصيف",
+      "sale_status": "1"
+     },
+     {
+      "visibility": "1",
+      "branch_id": "1741278",
+      "branch_name": "القصيم - عنيزة",
+      "sale_status": "1"
+     },
+     {
+      "visibility": "1",
+      "branch_id": "594817",
+      "branch_name": "الطائف - ش ابوبكر",
+      "sale_status": "1"
+     },
+     {
+      "visibility": "1",
+      "branch_id": "1488697",
+      "branch_name": "جدة - السامر",
+      "sale_status": "1"
+     },
+     {
+      "visibility": "1",
+      "branch_id": "1489936",
+      "branch_name": "المدينة المنورة - الهجرة",
+      "sale_status": "1"
+     },
+     {
+      "visibility": "1",
+      "branch_id": "261",
+      "branch_name": "الطائف - ش خالد بن الوليد",
+      "sale_status": "1"
+     },
+     {
+      "visibility": "1",
+      "branch_id": "1467182",
+      "branch_name": "جدة - عابر القارات",
+      "sale_status": "1"
+     },
+     {
+      "visibility": "1",
+      "branch_id": "517923",
+      "branch_name": "جدة - حراء",
+      "sale_status": "1"
+     },
+     {
+      "visibility": "1",
+      "branch_id": "158922",
+      "branch_name": "جازان - الكورنيش",
+      "sale_status": "1"
+     },
+     {
+      "visibility": "1",
+      "branch_id": "1475957",
+      "branch_name": "الرياض - النسيم",
+      "sale_status": "1"
+     },
+     {
+      "visibility": "1",
+      "branch_id": "1475945",
+      "branch_name": "الرياض - السويدي",
+      "sale_status": "1"
+     },
+     {
+      "visibility": "1",
+      "branch_id": "274781",
+      "branch_name": "الطائف - القيم",
+      "sale_status": "1"
+     },
+     {
+      "visibility": "1",
+      "branch_id": "2174417",
+      "branch_name": "جدة - الشاطيء",
+      "sale_status": "1"
+     },
+     {
+      "visibility": "1",
+      "branch_id": "1361471",
+      "branch_name": "الرياض - الملز",
+      "sale_status": "2"
+     },
+     {
+      "visibility": "1",
+      "branch_id": "1488874",
+      "branch_name": "جدة - الصالحية",
+      "sale_status": "1"
+     },
+     {
+      "visibility": "1",
+      "branch_id": "1409502",
+      "branch_name": "الخرج - ط الملك فهد",
+      "sale_status": "1"
+     },
+     {
+      "visibility": "1",
+      "branch_id": "767091",
+      "branch_name": "مكة المكرمة - الصفراء",
+      "sale_status": "1"
+     },
+     {
+      "visibility": "1",
+      "branch_id": "1520478",
+      "branch_name": "تبوك - سلطانه",
+      "sale_status": "1"
+     },
+     {
+      "visibility": "1",
+      "branch_id": "1741599",
+      "branch_name": "القصيم - الرس",
+      "sale_status": "1"
+     }
+    ],
+    "has_preorder_campaign": false,
+    "preorder": [],
+    "sub_products": [],
+    "custom_url": "",
+    "hash_id": 960789162,
+    "store_status": "active",
+    "bundle_type": 1,
+    "is_bundle": false,
+    "active_advance": false,
+    "with_tax": true,
+    "position": 4,
+    "is_free_shipping": false,
+    "unlimited_quantity": false,
+    "features": {
+     "availability_notify": {
+      "email": true,
+      "sms": true,
+      "mobile": true,
+      "whatsapp": false
+     },
+     "show_rating": false
+    }
+   },
+   {
+    "id": "1870617513",
+    "scope_id": null,
+    "source": "23",
+    "synced_at": {
+     "price": "2026-11-13T22:05:00",
+     "sale_price": "2026-11-13T22:05:00",
+     "sale_end": "2026-11-13T22:05:00",
+     "status": "2026-11-13T22:05:00",
+     "image": "2026-11-13T22:05:00",
+     "original_image": "2026-11-10T07:28:38",
+     "promotion_title": "2026-11-10T07:28:38",
+     "subtitle": "2026-11-10T07:28:38",
+     "name": "2026-11-10T07:28:38",
+     "description": "2026-11-10T07:28:38",
+     "categories": "2026-11-03T09:57:08"
+    },
+    "sort": 0,
+    "name": "هيد اند شولدرز شامبو ضد القشرة انسيابي و حريري 900 مل",
+    "description": "لمن يريد شعراً خالياً من القشرة وفي الوقت نفسه ناعماً وسهل التمشيط، يأتي شامبو هيد اند شولدرز انسيابي وحريري (Head & Shoulders Smooth & Silky Shampoo) ليمنح الشعر ملمساً حريرياً ومظهراً انسيابياً مع حماية مستمرة من القشرة. العبوة العائلية 900 مل تكفي لفترة طويلة. المواصفات | Specifications • اسم المنتج: هيد اند شولدرز شامبو ضد القشرة انسيابي و حريري 900 مل • العلامة التجارية: هيد اند شولدرز | Head & Shoulders • النوع: شامبو ضد القشرة – Smooth & Silky | انسيابي وحريري • الحجم: 900 مل • مناسب لـ: الشعر الجاف إلى العادي الذي يحتاج نعومة وانسيابية • الاستخدام: خارجي للشعر وفروة الرأس التركيبة | Formula • تركيبة هيد اند شولدرز المضادة للقشرة بخاصية النعومة والانسيابية. المميزات | Product Features • يساعد على مكافحة القشرة الظاهرة والتخلص من القشور مع الاستخدام المنتظم. • يمنح الشعر نعومة وانسيابية وملمساً حريرياً. • يسهّل تمشيط الشعر ويقلل التشابك. • عبوة اقتصادية كبيرة 900 مل. • مناسب للاستخدام المتكرر ضمن روتين العناية بالشعر. طريقة الاستخدام | How to Use • بلّل الشعر وفروة الرأس جيداً بالماء الدافئ. • ضع كمية مناسبة من الشامبو في راحة اليد ووزعها على فروة الرأس. • دلّك فروة الرأس بأطراف الأصابع بحركات دائرية لتكوين رغوة غنية. • اشطف الشعر جيداً بالماء. • للحصول على أفضل النتائج استخدمه بانتظام، ويمكن إتباعه ببلسم من نفس السلسلة. إرشادات السلامة والتخزين | Safety Instructions • للاستخدام الخارجي فقط على الشعر وفروة الرأس. • تجنب ملامسة العينين، وفي حال حدوث ذلك تُشطف جيداً بالماء. • أوقف الاستخدام إذا ظهر تهيج أو احمرار واستشر الطبيب أو الصيدلي. • يُحفظ بعيداً عن متناول الأطفال وفي مكان بارد وجاف بعيداً عن الحرارة وأشعة الشمس المباشرة. • أغلق العبوة جيداً بعد كل استخدام. الأسئلة الشائعة | FAQ • س: هل يجعل الشعر ناعماً؟ ج: نعم، تركيبة انسيابي وحريري مصممة لمنح الشعر ملمساً ناعماً. • س: هل يناسب كل أفراد العائلة؟ ج: مناسب للاستخدام العام للبالغين، والعبوة الكبيرة مناسبة للعائلة.",
+    "url": "https://ibrand.com.sa/ar/هيد-اند-شولدرز-شامبو-ضد-القشرة-انسيابي-و-حريري-900-مل/p1870617513",
+    "promotion_title": "",
+    "subtitle": "",
+    "type": "product",
+    "status": "sale",
+    "weight": "0.01",
+    "calories": null,
+    "sku": "8006530097994",
+    "rating": null,
+    "quantity": null,
+    "sold_quantity": 0,
+    "max_quantity": null,
+    "is_taxable": true,
+    "category": {
+     "name": "علاج القشرة",
+     "url": null
+    },
+    "sale_channels_external": [],
+    "original_image": "https://cdn.salla.sa/yKErG/NxZ7yE5UqQ642GTNtgJEjyZwA5xrCNnaJVxqIj9u.jpg",
+    "image": {
+     "url": "https://cdn.salla.sa/yKErG/8c4e8c53-ef48-4495-a3aa-9f13a1726f75-500x500-NxZ7yE5UqQ642GTNtgJEjyZwA5xrCNnaJVxqIj9u.jpg"
+    },
+    "brand": {
+     "id": "1208764827",
+     "url": null,
+     "name": "هيد & اند شولدرز"
+    },
+    "tags": [],
+    "can_add_note": false,
+    "can_upload_file": false,
+    "is_on_sale": true,
+    "is_hidded_quantity": false,
+    "is_available": true,
+    "is_donation": false,
+    "is_out_of_stock": false,
+    "is_require_shipping": true,
+    "is_dynamic_pricing": false,
+    "regular_price": 38.95,
+    "price": 29.21,
+    "sale_price": 29.21,
+    "starting_price": null,
+    "currency": "SAR",
+    "mpn": null,
+    "gtin": null,
+    "google_taxonomy_id": null,
+    "discount_ends": null,
+    "discount_starts": null,
+    "has_options": false,
+    "pinned": false,
+    "mahly_category_id": null,
+    "spam_status": 0,
+    "branches": [
+     {
+      "id": "219662292"
+     },
+     {
+      "id": "1765793758"
+     },
+     {
+      "id": "1418236302"
+     },
+     {
+      "id": "1352249558"
+     },
+     {
+      "id": "1913608431"
+     },
+     {
+      "id": "632888608"
+     },
+     {
+      "id": "20062

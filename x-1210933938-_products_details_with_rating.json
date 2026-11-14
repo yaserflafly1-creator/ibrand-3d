@@ -1,0 +1,61 @@
+{
+ "status": 200,
+ "body": {
+  "status": 200,
+  "success": true,
+  "data": {
+   "id": 1210933938,
+   "sku": "8006530436663",
+   "barcode": null,
+   "name": "بانتين بلسم أدڤانسد ريبير لترميم وإصلاح قوة ومرونة الشعر بالبيبتيد 350 مل",
+   "description": "للشعر الضعيف الذي يتكسر بسهولة، يقدم بلسم بانتين أدڤانسد ريبير بالبيبتيد (Pantene Advanced Repair Peptide Conditioner) عناية تركز على القوة والمرونة؛ إذ يساعد على إصلاح الشعر وجعله أكثر مقاومة للتكسر مع نعومة واضحة. العبوة 350 مل.<br />\n<br />\nالمواصفات | Specifications<br />\n• اسم المنتج: بانتين بلسم أدڤانسد ريبير لترميم وإصلاح قوة ومرونة الشعر بالبيبتيد 350 مل<br />\n• العلامة التجارية: بانتين | Pantene<br />\n• النوع: بلسم ترميم – Advanced Repair Peptides<br />\n• الحجم: 350 مل<br />\n• مناسب لـ: الشعر الضعيف والمعرض للتكسر<br />\n<br />\nالمكونات الأساسية | Key Ingredients<br />\n• البيبتيد (Peptides): يساعد على تعزيز قوة الشعر ومرونته ومقاومته للتكسر.<br />\n• تركيبة بانتين أدڤانسد ريبير.<br />\n<br />\nالمميزات | Product Features<br />\n• يساعد على إصلاح الشعر وتعزيز قوته ومرونته.<br />\n• يقلل التشابك ويسهّل التمشيط.<br />\n• يمنح نعومة ولمعاناً.<br />\n• يُكمّل شامبو وماسك البيبتيد.<br />\n<br />\nطريقة الاستخدام | How to Use<br />\n• بعد غسل الشعر بالشامبو، اعصر الماء الزائد.<br />\n• وزّع البلسم على أطوال الشعر وأطرافه بعيداً عن الجذور.<br />\n• اتركه لمدة دقيقة إلى دقيقتين.<br />\n• اشطف جيداً بالماء.<br />\n<br />\nإرشادات السلامة والتخزين | Safety Instructions<br />\n• للاستخدام الخارجي فقط.<br />\n• تجنب ملامسة العينين، وفي حال حدوث ذلك تُشطف بالماء جيداً.<br />\n• أوقف الاستخدام في حال ظهور تهيج.<br />\n• يُحفظ بعيداً عن متناول الأطفال في مكان بارد وجاف بعيداً عن أشعة الشمس المباشرة.<br />\n<br />\nالأسئلة الشائعة | FAQ<br />\n• س: ما الفرق بين بلسم البيبتيد والكولاجين؟<br />\nج: بلسم البيبتيد يركز على القوة والمرونة، وبلسم الكولاجين يركز على الحيوية والتوازن.<br />\n• س: هل يناسب الشعر المتكسر؟<br />\nج: نعم، تركيبته موجهة لتعزيز قوة الشعر ومرونته.",
+   "url": "https://ibrand.com.sa/ar/بانتين-بلسم-أدڤانسد-ريبير-لترميم-وإصلاح-قوة-ومرونة-الشعر-بالبيبتيد-350-مل/p1210933938",
+   "promotion_title": null,
+   "subtitle": null,
+   "type": "product",
+   "status": "sale",
+   "price": 23.95,
+   "base_currency_price": {
+    "currency": "SAR",
+    "amount": 23.95
+   },
+   "sale_price": 0,
+   "regular_price": 23.95,
+   "starting_price": null,
+   "quantity": 23,
+   "max_quantity": 23,
+   "discount_ends": null,
+   "is_taxable": true,
+   "has_read_more": true,
+   "can_add_note": false,
+   "can_show_remained_quantity": true,
+   "can_upload_file": false,
+   "has_custom_form": false,
+   "has_metadata": false,
+   "is_on_sale": false,
+   "is_hidden_quantity": false,
+   "is_available": true,
+   "is_out_of_stock": false,
+   "is_require_shipping": true,
+   "is_free_shipping": false,
+   "supports_pickup": false,
+   "supports_delivery": false,
+   "is_wallet_gift_card": false,
+   "giftable": true,
+   "weight": null,
+   "calories": null,
+   "image": {
+    "url": "https://cdn.salla.sa/yKErG/9af9ba1a-12d0-481f-9f64-473062c47e38-500x500-6ml0fGO47kkPEfmYhjpnqHVHsBqph2NXhToBxZ0U.jpg",
+    "alt": "بانتين بلسم أدفانسد ريبير بالبيبتيد 350 مل"
+   },
+   "currency": "SAR",
+   "has_size_guide": false,
+   "has_preorder_campaign": false,
+   "preorder": null,
+   "gtin": "",
+   "mpn": "",
+   "rating": null
+  },
+  "loyalty_prize": null
+ }
+}

@@ -1,0 +1,61 @@
+{
+ "status": 200,
+ "body": {
+  "status": 200,
+  "success": true,
+  "data": {
+   "id": 960789162,
+   "sku": "8006530311779",
+   "barcode": null,
+   "name": "بانتين شامبو أدڤانسد ريبير لترميم وحيوية وتوازن الشعر بالكولاجين 350مل",
+   "description": "ابدأ روتين ترميم شعرك من الغسلة الأولى مع شامبو بانتين أدڤانسد ريبير بالكولاجين (Pantene Advanced Repair Collagen Shampoo)، الذي ينظف الشعر بلطف ويعيد له الحيوية والتوازن ليبدو أكثر امتلاءً وصحة. العبوة 350 مل.<br />\n<br />\nالمواصفات | Specifications<br />\n• اسم المنتج: بانتين شامبو أدڤانسد ريبير لترميم وحيوية وتوازن الشعر بالكولاجين 350مل<br />\n• العلامة التجارية: بانتين | Pantene<br />\n• النوع: شامبو ترميم – Advanced Repair Collagen<br />\n• الحجم: 350 مل<br />\n• مناسب لـ: الشعر المتعب والباهت<br />\n<br />\nالمكونات الأساسية | Key Ingredients<br />\n• الكولاجين (Collagen): يساعد في دعم حيوية الشعر ومظهره الممتلئ.<br />\n• تركيبة بانتين أدڤانسد ريبير.<br />\n<br />\nالمميزات | Product Features<br />\n• ينظف الشعر بلطف مع العناية به.<br />\n• يساعد على إعادة الحيوية والتوازن للشعر.<br />\n• يمنح الشعر مظهراً ممتلئاً.<br />\n• يُكمّل بلسم وماسك نفس السلسلة.<br />\n<br />\nطريقة الاستخدام | How to Use<br />\n• بلّل الشعر جيداً.<br />\n• ضع كمية مناسبة من الشامبو ودلّك فروة الرأس والشعر حتى تتكون رغوة.<br />\n• اشطف جيداً بالماء.<br />\n• أتبعه ببلسم من نفس السلسلة لأفضل النتائج.<br />\n<br />\nإرشادات السلامة والتخزين | Safety Instructions<br />\n• للاستخدام الخارجي فقط.<br />\n• تجنب ملامسة العينين، وفي حال حدوث ذلك تُشطف بالماء جيداً.<br />\n• أوقف الاستخدام في حال ظهور تهيج.<br />\n• يُحفظ بعيداً عن متناول الأطفال في مكان بارد وجاف بعيداً عن أشعة الشمس المباشرة.<br />\n<br />\nالأسئلة الشائعة | FAQ<br />\n• س: هل الشامبو مناسب للاستخدام اليومي؟<br />\nج: نعم، يمكن استخدامه بانتظام.<br />\n• س: ما المكون المميز فيه؟<br />\nج: الكولاجين ضمن تركيبة أدڤانسد ريبير.",
+   "url": "https://ibrand.com.sa/ar/بانتين-شامبو-أدڤانسد-ريبير-لترميم-وحيوية-وتوازن-الشعر-بالكولاجين-350مل/p960789162",
+   "promotion_title": null,
+   "subtitle": null,
+   "type": "product",
+   "status": "sale",
+   "price": 23.95,
+   "base_currency_price": {
+    "currency": "SAR",
+    "amount": 23.95
+   },
+   "sale_price": 0,
+   "regular_price": 23.95,
+   "starting_price": null,
+   "quantity": 23,
+   "max_quantity": 23,
+   "discount_ends": null,
+   "is_taxable": true,
+   "has_read_more": true,
+   "can_add_note": false,
+   "can_show_remained_quantity": true,
+   "can_upload_file": false,
+   "has_custom_form": false,
+   "has_metadata": false,
+   "is_on_sale": false,
+   "is_hidden_quantity": false,
+   "is_available": true,
+   "is_out_of_stock": false,
+   "is_require_shipping": true,
+   "is_free_shipping": false,
+   "supports_pickup": false,
+   "supports_delivery": false,
+   "is_wallet_gift_card": false,
+   "giftable": true,
+   "weight": null,
+   "calories": null,
+   "image": {
+    "url": "https://cdn.salla.sa/yKErG/4d7e6c28-1f9b-471c-b6ab-e6800a74e8c4-500x500-yjHecTyWJ5y4NJ6DaaaAabu9I4L4off0kmJEh0ik.jpg",
+    "alt": "بانتين شامبو أدفانسد ريبير بالكولاجين 350 مل"
+   },
+   "currency": "SAR",
+   "has_size_guide": false,
+   "has_preorder_campaign": false,
+   "preorder": null,
+   "gtin": "",
+   "mpn": "",
+   "rating": null
+  },
+  "loyalty_prize": null
+ }
+}

@@ -1,0 +1,16 @@
+{
+ "status": 200,
+ "body": {
+  "status": 200,
+  "success": true,
+  "data": [],
+  "pagination": {
+   "count": 0,
+   "total": 0,
+   "perPage": 5,
+   "currentPage": 1,
+   "totalPages": 1,
+   "links": {}
+  }
+ }
+}

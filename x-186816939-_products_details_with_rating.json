@@ -1,0 +1,61 @@
+{
+ "status": 200,
+ "body": {
+  "status": 200,
+  "success": true,
+  "data": {
+   "id": 186816939,
+   "sku": "8006530276993",
+   "barcode": null,
+   "name": "بانتين ماسك أدڤانسد ريبير لترميم وإصلاح قوة ومرونة الشعر بالبيبتيد 300 مل",
+   "description": "ماسك بانتين أدڤانسد ريبير بالبيبتيد (Pantene Advanced Repair Peptide Hair Mask) علاج أسبوعي مكثف للشعر الضعيف والمتكسر، يساعد على إصلاح الشعر واستعادة قوته ومرونته ليبدو أكثر صحة ولمعاناً. العبوة 300 مل.<br />\n<br />\nالمواصفات | Specifications<br />\n• اسم المنتج: بانتين ماسك أدڤانسد ريبير لترميم وإصلاح قوة ومرونة الشعر بالبيبتيد 300 مل<br />\n• العلامة التجارية: بانتين | Pantene<br />\n• النوع: ماسك ترميم – Advanced Repair Peptides<br />\n• الحجم: 300 مل<br />\n• مناسب لـ: الشعر الضعيف والمتكسر<br />\n<br />\nالمكونات الأساسية | Key Ingredients<br />\n• البيبتيد (Peptides): يساعد على تعزيز قوة الشعر ومرونته ومقاومته للتكسر.<br />\n• تركيبة بانتين أدڤانسد ريبير المكثفة.<br />\n<br />\nالمميزات | Product Features<br />\n• عناية مكثفة لإصلاح الشعر وتعزيز قوته ومرونته.<br />\n• يمنح نعومة ولمعاناً.<br />\n• قوام غني للاستخدام الأسبوعي.<br />\n• يُكمّل شامبو وبلسم البيبتيد.<br />\n<br />\nطريقة الاستخدام | How to Use<br />\n• بعد الغسل بالشامبو، اعصر الماء الزائد من الشعر.<br />\n• وزّع كمية وافرة من الماسك على أطوال الشعر وأطرافه.<br />\n• اتركه من 3 إلى 5 دقائق.<br />\n• اشطف جيداً، ويُستخدم مرة إلى مرتين أسبوعياً.<br />\n<br />\nإرشادات السلامة والتخزين | Safety Instructions<br />\n• للاستخدام الخارجي فقط.<br />\n• تجنب ملامسة العينين، وفي حال حدوث ذلك تُشطف بالماء جيداً.<br />\n• أوقف الاستخدام في حال ظهور تهيج.<br />\n• يُحفظ بعيداً عن متناول الأطفال في مكان بارد وجاف بعيداً عن أشعة الشمس المباشرة.<br />\n<br />\nالأسئلة الشائعة | FAQ<br />\n• س: كم مرة يُستخدم؟<br />\nج: مرة إلى مرتين أسبوعياً.<br />\n• س: هل يفيد الشعر المتكسر؟<br />\nج: نعم، تركيبة البيبتيد موجهة لتعزيز القوة والمرونة.",
+   "url": "https://ibrand.com.sa/ar/بانتين-ماسك-أدڤانسد-ريبير-لترميم-وإصلاح-قوة-ومرونة-الشعر-بالبيبتيد-300-مل/p186816939",
+   "promotion_title": null,
+   "subtitle": null,
+   "type": "product",
+   "status": "sale",
+   "price": 29.95,
+   "base_currency_price": {
+    "currency": "SAR",
+    "amount": 29.95
+   },
+   "sale_price": 0,
+   "regular_price": 29.95,
+   "starting_price": null,
+   "quantity": 36,
+   "max_quantity": 36,
+   "discount_ends": null,
+   "is_taxable": true,
+   "has_read_more": true,
+   "can_add_note": false,
+   "can_show_remained_quantity": true,
+   "can_upload_file": false,
+   "has_custom_form": false,
+   "has_metadata": false,
+   "is_on_sale": false,
+   "is_hidden_quantity": false,
+   "is_available": true,
+   "is_out_of_stock": false,
+   "is_require_shipping": true,
+   "is_free_shipping": false,
+   "supports_pickup": false,
+   "supports_delivery": false,
+   "is_wallet_gift_card": false,
+   "giftable": true,
+   "weight": null,
+   "calories": null,
+   "image": {
+    "url": "https://cdn.salla.sa/yKErG/b35ccf8d-79a4-4e9d-a980-9ef626680e0b-500x500-sfaISpoRmhqjuTvm49MacrQZUHviZKN7nTKjRCi7.jpg",
+    "alt": "بانتين ماسك أدفانسد ريبير بالبيبتيد 300 مل"
+   },
+   "currency": "SAR",
+   "has_size_guide": false,
+   "has_preorder_campaign": false,
+   "preorder": null,
+   "gtin": "",
+   "mpn": "",
+   "rating": null
+  },
+  "loyalty_prize": null
+ }
+}
