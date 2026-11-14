@@ -580,13 +580,19 @@ function build(renderer){
     if (body.some(r => Math.abs(r.c - mc) > .06) || Math.abs(mc - .5) > .06) return p._sh = old; // leaning or lopsided: not one upright pack
     if (body.some(r => r.w < .45)) return p._sh = old;                                          // a waist that thin is two things, not one body
     for (let k = 3; k < 9; k++) if (Math.abs(R[k].w - R[k-1].w) > .3) return p._sh = old;        // a sudden step in width: a pack beside its box
+    // the outline alone cannot tell a bottle from a bag of nappies, so the name decides: only kinds of pack that really are round get a body
+    const nm = p.name || '';
+    if (/حفاض|حفايض|حفائض|مناديل|فوط|قطن|شاش|لصق|كمام|قفاز|كيس|باكيت|مجموعة|طقم|عبوتين|حبتين|قطع|\+/.test(nm)) return p._sh = old;
+    const tin = /حليب|سيريلاك|برطمان|بودرة|مسحوق/.test(nm) && a > .55 && R[2].w > .8 && R[6].w > .8;        // a straight-sided tin or jar: a true cylinder
+    if (!tin && !/شامبو|بلسم|غسول|لوشن|زيت|جل |جل$|سيروم|تونر|ماء |محلول|شراب|بخاخ|سبراي|مزيل|معطر|صابون سائل|سائل|واقي|مرطب|كريم|كولونيا|ملطف|منظف|مقشر|حمام/.test(nm)) return p._sh = old;
+    p._cyl = tin ? 1 : 0;
     return p._sh = 'round';
   }
   const NO_ROUND = !/[?&]round=1\b/.test(location.search),   // rounded packs stay a trial (add ?round=1) until they look right on every kind of pack
         RB = isSmall ? 4 : 8, RCF = isSmall ? 5 : 6;
   function roundPack(T, F, cx, y, cz, w, h, d, p, place, c, u0, u1, vb, vt){
-    const a = F.at, n = F.n, rzMax = Math.min(w * .42, d * .5), zc = cz - rzMax, step = 8 / RB, rows = [], RC = RCF, RTH = Math.PI;   // a whole body everywhere: half a body looks hollow from the side of an aisle
-    for (let j = 0; j <= RB; j++){ const [L, R] = pfRow(p, j * step), f = j / RB, rx = Math.max(.002, w * (R - L) / 2), xc = cx - w/2 + w * (L + R) / 2, rz = Math.min(rx * .85, rzMax), pts = [];
+    const a = F.at, n = F.n, rzMax = p._cyl ? Math.min(w * .5, .14) : Math.min(w * .42, d * .5), zc = cz - rzMax, step = 8 / RB, rows = [], RC = RCF, RTH = Math.PI;   // a whole body everywhere: half a body looks hollow from the side of an aisle
+    for (let j = 0; j <= RB; j++){ const [L, R] = pfRow(p, j * step), f = j / RB, rx = Math.max(.002, w * (R - L) / 2), xc = cx - w/2 + w * (L + R) / 2, rz = Math.min(rx * (p._cyl ? 1 : .85), rzMax), pts = [];
       for (let s2 = 0; s2 <= RC; s2++){ const th = -RTH + 2 * RTH * s2 / RC, sx = Math.sin(th), cz2 = Math.cos(th), X = xc + sx * rx, nl = Math.hypot(sx * rz, cz2 * rx) || 1;
         pts.push({v:a(X, y + h * (1 - f), zc + cz2 * rz), n:n(sx * rz / nl, 0, cz2 * rx / nl), uv:[u0 + (Math.max(xc - rx * .96, Math.min(xc + rx * .96, X)) - (cx - w/2)) / w * (u1 - u0), vt - Math.max(.01, Math.min(.99, f)) * (vt - vb)]}); }
       rows.push(pts); }
