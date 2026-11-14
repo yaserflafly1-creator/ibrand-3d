@@ -6,6 +6,11 @@
 <meta name="theme-color" content="#e873a8">
 <meta name="description" content="تجوّل في صيدلية اي براند ثلاثية الأبعاد وتسوّق كل منتجات المتجر من الرفوف">
 <link rel="icon" href="assets/logo.png">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="apple-touch-icon" href="assets/logo.png">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="اي براند 3D">
 <title>صيدلية اي براند 3D</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Almarai:wght@400;700;800&display=swap">
@@ -45,6 +50,15 @@ button{font-family:var(--font)}
 .hint{position:fixed;z-index:4;left:50%;transform:translateX(-50%);top:calc(env(safe-area-inset-top,0px) + 78px);
   background:rgba(59,29,54,.82);color:#fff;font-size:13px;border-radius:999px;padding:9px 16px;white-space:nowrap;pointer-events:none;transition:opacity .6s}
 .hint.gone{opacity:0}
+.tour{position:fixed;z-index:30;left:50%;transform:translateX(-50%);bottom:calc(env(safe-area-inset-bottom,0px) + 150px);width:min(420px,calc(100vw - 32px));background:#fff;border:1px solid var(--line);border-radius:18px;padding:16px 18px 14px;box-shadow:0 18px 48px rgba(60,20,50,.28);direction:rtl;font-family:var(--font)}
+.tour b{display:block;font-size:18px;font-weight:800;color:var(--plum);margin-bottom:4px}
+.tour p{margin:0 0 12px;font-size:15px;line-height:1.7;color:var(--muted)}
+.tourRow{display:flex;align-items:center;gap:10px}
+.tourDots{display:flex;gap:6px;margin-inline-end:auto}
+.tourDots i{width:8px;height:8px;border-radius:50%;background:var(--line)}
+.tourDots i.on{background:var(--pink)}
+.tourSkip{border:0;background:transparent;color:var(--muted);font:700 14px var(--font);padding:8px 6px;cursor:pointer}
+.tourNext{border:0;background:var(--pink);color:#fff;font:800 15px var(--font);padding:10px 20px;border-radius:12px;cursor:pointer}
 
 .stk{display:block;width:fit-content;margin-top:6px;font-size:13px;font-weight:800}.stk.yes{color:#1f8a4c}.stk.no{color:#e0202e}
 #pAdd:disabled{opacity:.55;cursor:not-allowed}
@@ -297,6 +311,10 @@ body.sheet .steps{display:none}
 <div class="altBtns"><button id="altUp" type="button" aria-label="ارتفع">▲</button><button id="altDn" type="button" aria-label="انخفض">▼</button></div>
 <button class="steps" id="steps" type="button" aria-label="عداد الخطوات والمكافآت"><span class="s-row"><span>👣</span><b id="stN">0</b><small>خطوة</small><i class="s-sep"></i><span>⏱</span><b id="stT">0:00</b><span id="stM"></span></span><span class="s-bar"><i id="stB"></i></span><small id="stL"></small></button>
 <button class="goCart" id="goCart" type="button" hidden>متابعة للدفع <b></b><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M19 12H5m6-6-6 6 6 6"/></svg></button>
+<div class="tour" id="tour" hidden role="dialog" aria-label="جولة ترحيبية">
+  <b id="tourT"></b><p id="tourP"></p>
+  <div class="tourRow"><span class="tourDots" id="tourDots"></span><button type="button" class="tourSkip" id="tourSkip">تخطي</button><button type="button" class="tourNext" id="tourNext">التالي</button></div>
+</div>
 <div class="loading" id="loading"><div>جاري ترتيب الرفوف…<small id="loadingSub">نجهّز لك الفرع ونرتب المنتجات على الرفوف</small><i class="ld-bar"></i></div></div>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
@@ -2631,6 +2649,20 @@ function build(renderer){
     renderer.render(scene, camera);
   });
   $('#loading').classList.add('done');
+  // first visit: four short cards on how to walk and buy
+  (function(){ let seen = false; try { seen = localStorage.getItem('ib3d-tour') === '1'; } catch(e){}
+    if (seen) return;
+    const coarse = matchMedia('(pointer: coarse)').matches, steps = [
+      ['أهلاً بك في صيدلية اي براند', 'تمشّى بين الرفوف كأنك في الفرع، وكل ما تراه تقدر تشتريه.'],
+      ['كيف تمشي', coarse ? 'اضغط على أي مكان في الأرض لتمشي إليه، واسحب بإصبعك لتلتفت.' : 'الأسهم أو WASD للمشي، واسحب بالفأرة لتلتفت. وتقدر تضغط على الأرض لتنتقل.'],
+      ['كيف تشتري', 'اضغط علامة + تحت أي سعر ليدخل المنتج سلتك، أو اضغط على المنتج نفسه لتفاصيله.'],
+      ['الأقسام والسلة', 'أزرار الأقسام في الأسفل تنقلك مباشرة، والسلة في الأعلى لإتمام الطلب.']];
+    const box = $('#tour'), dots = $('#tourDots'); let k = 0;
+    const done = () => { box.hidden = true; try { localStorage.setItem('ib3d-tour', '1'); } catch(e){} };
+    const show = () => { $('#tourT').textContent = steps[k][0]; $('#tourP').textContent = steps[k][1]; dots.innerHTML = ''; steps.forEach((_, j) => { const d = document.createElement('i'); if (j === k) d.className = 'on'; dots.appendChild(d); });
+      $('#tourNext').textContent = k === steps.length - 1 ? 'ابدأ التسوق' : 'التالي'; $('#tourSkip').hidden = k === steps.length - 1; };
+    $('#tourNext').onclick = () => { if (++k >= steps.length) done(); else show(); }; $('#tourSkip').onclick = done;
+    show(); box.hidden = false; try { hideHint(); } catch(e){} })();
   loadThumbs();
   prefetchAtlas();
   window.__ib3d = {plans, totalBays, nA, nb, Wx, products: allProducts.length, pages: pageMeshes.length, camera, aimAt, goToProduct, SEC, zC, zA0, staff};

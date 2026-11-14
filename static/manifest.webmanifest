@@ -1,0 +1,1 @@
+{"name": "صيدلية اي براند 3D", "short_name": "اي براند 3D", "start_url": "./", "scope": "./", "display": "standalone", "orientation": "any", "background_color": "#fbf7fa", "theme_color": "#e873a8", "lang": "ar", "dir": "rtl", "icons": [{"src": "assets/logo.png", "sizes": "512x512", "type": "image/png", "purpose": "any"}]}
