@@ -50,6 +50,10 @@ button{font-family:var(--font)}
 .hint{position:fixed;z-index:4;left:50%;transform:translateX(-50%);top:calc(env(safe-area-inset-top,0px) + 78px);
   background:rgba(59,29,54,.82);color:#fff;font-size:13px;border-radius:999px;padding:9px 16px;white-space:nowrap;pointer-events:none;transition:opacity .6s}
 .hint.gone{opacity:0}
+#pInfo{margin:10px 0 2px;border-top:1px solid var(--line);padding-top:10px}
+#pInfoT{margin:0;font-size:14px;line-height:1.8;color:var(--muted);white-space:pre-line;max-height:5.4em;overflow:hidden}
+#pInfo.open #pInfoT{max-height:none}
+#pInfoB{border:0;background:transparent;color:var(--pink-deep,#c2337f);font:700 14px var(--font);padding:6px 0;cursor:pointer}
 .tour{position:fixed;z-index:30;left:50%;transform:translateX(-50%);bottom:calc(env(safe-area-inset-bottom,0px) + 150px);width:min(420px,calc(100vw - 32px));background:#fff;border:1px solid var(--line);border-radius:18px;padding:16px 18px 14px;box-shadow:0 18px 48px rgba(60,20,50,.28);direction:rtl;font-family:var(--font)}
 .tour b{display:block;font-size:18px;font-weight:800;color:var(--plum);margin-bottom:4px}
 .tour p{margin:0 0 12px;font-size:15px;line-height:1.7;color:var(--muted)}
@@ -220,6 +224,7 @@ body.sheet .altBtns{display:none}
   <h2 id="pName"></h2>
   <div class="price" id="pPrice" hidden></div>
   <p id="pDesc"></p>
+  <div id="pInfo" hidden><p id="pInfoT"></p><button type="button" id="pInfoB">اقرأ المزيد</button></div>
   <ol id="pList" hidden></ol>
   <div class="buy" id="pBuy" hidden>
     <div class="qty"><button type="button" id="qMinus" aria-label="إنقاص">−</button><span id="qVal">1</span><button type="button" id="qPlus" aria-label="زيادة">+</button></div>
@@ -1077,7 +1082,7 @@ function build(renderer){
   function priceTag(F, cx, y, z, p, tw = .11){
     if (typeof p.price !== 'number') return;
     const sale = p.onSale && p.regular > p.price, a = F.at, n = F.n(0,0,1);
-    { const th0 = (sale ? .07 : .045) + .027, by = y - .014 - th0 - .004, bx = cx - tw/2 + .013, r = .0135, zz = z + .0018;
+    { const th0 = (sale ? .07 : .045) + .027, by = y - .014 - th0 - .008, bx = cx - tw/2 + .017, r = .018, zz = z + .0018;
       quad(PLUSB, [a(bx-r,by-r,zz), a(bx+r,by-r,zz), a(bx+r,by+r,zz), a(bx-r,by+r,zz)], n, C_WHITE, {p, add:true}, [0,0, 1,0, 1,1, 0,1]); }
     const NH = .027, sc = Math.min(1, (tw - .006) / .08), th = (sale ? .07 : .045) + NH, top = y - .014, ty = top - th;
     quad(PTAG, [a(cx-tw/2,ty,z), a(cx+tw/2,ty,z), a(cx+tw/2,top,z), a(cx-tw/2,top,z)], n, sale ? C_SALE : C_TAG);
@@ -1726,6 +1731,18 @@ function build(renderer){
   [-fw*.32, fw*.32].forEach(x => screen(x, 3.55, zB + .08, 0, 2.4));
   for (let z = zA0 - 2; z > zA1 + 1; z -= 9){ screen(-Wx + .06, 3.6, z, Math.PI/2, 1.9); screen(Wx - .06, 3.6, z, -Math.PI/2, 1.9); }
   screen(0, 3.45, zF - .15, Math.PI, 2.0);
+  // ---------- seasonal dressing (one place to switch the season; null = none) ----------
+  const SEASON = {tag:'11.11', line:'عروض 11.11', a:'#3b1d36', b:'#e8368f'};
+  if (SEASON){
+    slides.unshift(x => { grad(x, SEASON.a, SEASON.b); x.fillStyle='#ffffff'; x.textAlign='center'; x.direction='ltr'; x.font='900 230px Arial'; x.fillText(SEASON.tag, 512, 300); x.direction='rtl'; x.font='800 72px "Almarai", Tahoma'; x.fillText(SEASON.line, 512, 420); x.font='700 34px "Almarai", Tahoma'; x.fillText('تلقاها في ركن العروض', 512, 500); });
+    drawSlide();
+    const bt = canvasTex(512, 640, (x, w, h) => { const g = x.createLinearGradient(0, 0, 0, h); g.addColorStop(0, SEASON.a); g.addColorStop(1, SEASON.b); x.fillStyle = g; x.beginPath(); x.moveTo(0, 0); x.lineTo(w, 0); x.lineTo(w, h - 110); x.lineTo(w/2, h); x.lineTo(0, h - 110); x.closePath(); x.fill();
+      x.fillStyle = '#ffffff'; x.textAlign = 'center'; x.font = '900 170px Arial'; x.fillText(SEASON.tag, w/2, 270); x.direction = 'rtl'; x.font = '800 92px "Almarai", Tahoma'; x.fillText('عروض', w/2, 410); });
+    const bm = new THREE.MeshBasicMaterial({map:bt, transparent:true, alphaTest:.5, side:THREE.DoubleSide, toneMapped:false}), rod = std('#d9d9de', {roughness:.4, metalness:.6});
+    const banner = (x, z) => { const m = new THREE.Mesh(new THREE.PlaneGeometry(.95, 1.19), bm); m.position.set(x, H - 1.0, z); scene.add(m);
+      const r = new THREE.Mesh(new THREE.CylinderGeometry(.012, .012, .36, 6), rod); r.position.set(x, H - .18, z); scene.add(r); };
+    [zF - 10.5, zF - 16].forEach((z, k) => { for (let i = -2; i <= 2; i++) banner((i + (k ? .5 : 0)) * Math.min(3.2, Wx * .36), z); });
+  }
   // warm wood band along the side walls above the shelving
   {
     const woodTex = canvasTex(512, 128, (x,w,h)=>{ for (let i=0;i<8;i++){ const y=i*16; const g=x.createLinearGradient(0,y,0,y+16); g.addColorStop(0,'#b7875a'); g.addColorStop(.5,'#c89a6b'); g.addColorStop(1,'#9c7048'); x.fillStyle=g; x.fillRect(0,y,w,14); x.fillStyle='#6b4a2e'; x.fillRect(0,y+14,w,2); } });
@@ -1906,7 +1923,7 @@ function build(renderer){
   function select(sec, fromChip){
     hideHint(); current = null;
     $('#pEyebrow').textContent = sec.eyebrow || 'قسم';
-    $('#pName').textContent = sec.name; $('#pDesc').textContent = sec.desc; $('#pDesc').hidden = false;
+    $('#pName').textContent = sec.name; $('#pDesc').textContent = sec.desc; $('#pDesc').hidden = false; $('#pInfo').hidden = true;
     $('#pImg').hidden = true; $('#pPrice').hidden = true; $('#pSub').hidden = true; $('#pBuy').hidden = true;
     const list = $('#pList'); list.innerHTML = '';
     if (sec.key === 'best' && SD('best')){
@@ -1918,6 +1935,15 @@ function build(renderer){
     panel.hidden = false; panel.scrollTop = 0; document.body.classList.add('sheet'); markChip(sec.key);
     if (fromChip && chipEls[sec.key]) chipEls[sec.key].scrollIntoView({behavior: reduceMotion ? 'auto' : 'smooth', inline:'center', block:'nearest'});
     if (sec.focus) flyTo(sec.focus.pos, sec.focus.target);
+  }
+  $('#pInfoB').onclick = () => { const o = $('#pInfo').classList.toggle('open'); $('#pInfoB').textContent = o ? 'إخفاء' : 'اقرأ المزيد'; };
+  const infoMemo = new Map();
+  function productInfo(id){
+    if (!infoMemo.has(id)) infoMemo.set(id, fetch(SF + '/products/' + id + '/details', {headers:SFH}).then(r => r.ok ? r.json() : null).then(j => {
+      const h = j && j.data && j.data.description; if (!h) return '';
+      const d = new DOMParser().parseFromString(String(h).replace(/<br\s*\/?>|<\/p>|<\/li>|<\/div>/gi, '\n'), 'text/html');
+      return (d.body.textContent || '').replace(/[ \t]+\n/g, '\n').replace(/\n{3,}/g, '\n\n').trim().slice(0, 4000); }).catch(() => ''));
+    return infoMemo.get(id);
   }
   function showProduct(p, key){
     hideHint(); current = p; curKey = key; qty = 1; $('#qVal').textContent = qty;
@@ -1932,6 +1958,9 @@ function build(renderer){
       if (p.of){ const b = document.createElement('span'); b.className = 'ofchip'; b.textContent = 'عرض ' + p.of + (p.oe ? ' • حتى ' + p.oe : ''); pr.append(b); }
       pr.hidden = false; } else pr.hidden = true;
     $('#pDesc').hidden = true; $('#pList').hidden = true; $('#pBuy').hidden = false;
+    // the store's own description of the product, fetched when the panel opens
+    { const info = $('#pInfo'); info.hidden = true; info.classList.remove('open');
+      productInfo(p.id).then(t => { if (current !== p || !t) return; $('#pInfoT').textContent = t; $('#pInfoB').hidden = t.length < 170 && t.split('\n').length < 4; $('#pInfoB').textContent = 'اقرأ المزيد'; info.hidden = false; }); }
     $('#pCta').href = p.url; $('#pCta').textContent = 'عرض المنتج في المتجر ←';
     const sub = $('#pSub'); sub.href = sec.url || STORE; sub.textContent = 'تسوّق ' + (sec.name || 'المتجر'); sub.hidden = !sec.main;
     panel.hidden = false; panel.scrollTop = 0; document.body.classList.add('sheet'); markChip(key);
@@ -2071,25 +2100,33 @@ function build(renderer){
   }
   // a tap on a far shelf walks you to it (round the gondolas, never through them) and turns you to face it
   let farHint = 0;
-  function walkToShelf(h){
+  function walkToShelf(h, quiet){
     const n = h.normal.clone().setY(0); if (n.lengthSq() < .01) n.set(0, 0, 1); n.normalize();
     const pos = h.point.clone().addScaledVector(n, 1.2); clampV(pos);
     for (let i = 0; i < 6 && blockedGround(pos.x, pos.z); i++) pos.addScaledVector(n, -.12);
     const cx = camera.position.x, cz = camera.position.z; let path = null;
+    if (Math.hypot(pos.x - cx, pos.z - cz) < .35){ endGoal(); return flyTo(camera.position.clone(), h.point); }   // already there: just turn square to it
     if (droneMode && alt > 2.6) path = [{x:pos.x, z:pos.z}];
     else { try { path = findPath(cx, cz, pos.x, pos.z); } catch(e){ path = null; } }
-    if (!path || !path.length){ toast('اقترب من الرف ثم اضغط على المنتج'); return; }
+    if (!path || !path.length){ if (!quiet) toast('اقترب من الرف ثم اضغط على المنتج'); return; }
     const end = path[path.length - 1];
     goal = {path, i:0, stuck:0, x:end.x, z:end.z, face:h.point.clone()}; flight = null; hideHint();
     goalRing.position.set(end.x, .03, end.z); goalRing.visible = true;
-    if (farHint++ < 2) toast('نمشي للرف… اضغط على المنتج لما توصل');
+    if (!quiet && farHint++ < 2) toast('نمشي للرف… اضغط على المنتج لما توصل');
   }
   let down = null; const el = renderer.domElement;
   el.addEventListener('pointerdown', e => { if (e.__joy) { down = null; return; } down = {x:e.clientX, y:e.clientY}; hideHint(); flight = null; el.style.cursor = 'grabbing'; });
   el.addEventListener('pointerup', e => {
     el.style.cursor = 'grab'; if (!down) return; const moved = Math.hypot(e.clientX-down.x, e.clientY-down.y); down = null; if (moved >= 7) return;
-    const h = pick(e); if (!h) return floorTap(e);
-    if (h.blocked) return;
+    let h = pick(e);
+    // a finger is wider than the "+": a touch that lands just beside one still counts as pressing it
+    if (e.pointerType === 'touch' && plusMesh && !(h && h.add)){
+      for (const R of [11, 20]){ let got = null;
+        for (let k = 0; k < 6 && !got; k++){ const q = pick({clientX:e.clientX + Math.cos(k * 1.047) * R, clientY:e.clientY + Math.sin(k * 1.047) * R}); if (q && q.add && q.near) got = q; }
+        if (got){ h = got; break; } }
+    }
+    if (!h) return floorTap(e);
+    if (h.blocked) return floorTap(e);
     if (h.door === 'out') return openExit();
     if (h.door === 'in') return toast('أهلاً بك في صيدلية اي براند');
     if (h.svc) return openService(h.female);
@@ -2225,12 +2262,43 @@ function build(renderer){
     while (i < pts.length){ let j = pts.length - 1; while (j > i && !clearLine(a.x, a.z, pts[j].x, pts[j].z)) j--; out.push(pts[j]); a = pts[j]; i = j + 1; }
     return out;
   }
+  // the first shelf unit a ray enters (below its top): where on its face, and which way that face looks
+  function shelfHit(o, d){
+    let best = null;
+    for (const ob of OBSTACLES){
+      if (!ob.fh) continue;
+      const b = ob.box, lim = [[o.x, d.x, b.x0 + .35, b.x1 - .35], [o.z, d.z, b.z0 + .35, b.z1 - .35]];
+      let t0 = 0, t1 = 30, ax = -1, ok = true;
+      for (let k = 0; k < 2; k++){ const [o1, d1, lo, hi] = lim[k];
+        if (Math.abs(d1) < 1e-6){ if (o1 < lo || o1 > hi){ ok = false; break; } continue; }
+        let a = (lo - o1) / d1, c = (hi - o1) / d1; if (a > c){ const q = a; a = c; c = q; }
+        if (a > t0){ t0 = a; ax = k; } t1 = Math.min(t1, c); if (t0 > t1){ ok = false; break; } }
+      if (!ok || ax < 0) continue;
+      const y = o.y + d.y * t0; if (y < 0 || y > ob.fh) continue;
+      if (!best || t0 < best.t) best = {t:t0, point:new THREE.Vector3(o.x + d.x*t0, Math.max(.9, Math.min(1.45, y)), o.z + d.z*t0), normal: ax === 0 ? new THREE.Vector3(-Math.sign(d.x), 0, 0) : new THREE.Vector3(0, 0, -Math.sign(d.z))};
+    }
+    return best;
+  }
+  // a spot of floor right at the foot of a shelf unit: the face it belongs to
+  function shelfFoot(p){
+    for (const ob of OBSTACLES){
+      if (!ob.fh) continue;
+      const b = ob.box, x0 = b.x0 + .35, x1 = b.x1 - .35, z0 = b.z0 + .35, z1 = b.z1 - .35;
+      const ex = Math.max(x0 - p.x, 0, p.x - x1), ez = Math.max(z0 - p.z, 0, p.z - z1);
+      if (ex > 0 && ez > 0 || ex + ez > .55 || ex + ez === 0) continue;
+      return {point:new THREE.Vector3(Math.max(x0, Math.min(x1, p.x)), 1.25, Math.max(z0, Math.min(z1, p.z))), normal: ex > 0 ? new THREE.Vector3(Math.sign(p.x - x0), 0, 0) : new THREE.Vector3(0, 0, Math.sign(p.z - z0))};
+    }
+    return null;
+  }
   function floorTap(ev){
     const r = renderer.domElement.getBoundingClientRect();
     mouse.set(((ev.clientX-r.left)/r.width)*2-1, -((ev.clientY-r.top)/r.height)*2+1);
     ray.setFromCamera(mouse, camera); const o = ray.ray.origin, d = ray.ray.direction;
+    const walking = !(droneMode && alt > 2.6);
+    if (walking){ const sh = shelfHit(o, d); if (sh && sh.t < 14 && (d.y > -.04 || sh.t < -o.y / d.y)) return walkToShelf(sh, true); }
     if (d.y > -.04) return;                                     // not pointing at the floor
     const t = -o.y / d.y, p = new THREE.Vector3(o.x + d.x*t, 0, o.z + d.z*t); clampV(p);
+    if (walking){ const ft = shelfFoot(p); if (ft && Math.hypot(p.x - o.x, p.z - o.z) < 14 && !hiddenByFixture(o, ft.point)) return walkToShelf(ft, true); }
     const cx = camera.position.x, cz = camera.position.z, dist = Math.hypot(p.x - cx, p.z - cz);
     if (dist < .5 || dist > 45) return;
     if (!(droneMode && alt > 2.6) && hiddenByFixture(o, p)) return;   // that spot of floor is behind a gondola: the tap was on the shelf, not on the floor
@@ -2425,7 +2493,7 @@ function build(renderer){
     if (seen) return;
     const coarse = matchMedia('(pointer: coarse)').matches, steps = [
       ['أهلاً بك في صيدلية اي براند', 'تمشّى بين الرفوف كأنك في الفرع، وكل ما تراه تقدر تشتريه.'],
-      ['كيف تمشي', coarse ? 'اضغط على أي مكان في الأرض لتمشي إليه، واسحب بإصبعك لتلتفت.' : 'الأسهم أو WASD للمشي، واسحب بالفأرة لتلتفت. وتقدر تضغط على الأرض لتنتقل.'],
+      ['كيف تمشي', coarse ? 'اضغط على الأرض لتمشي، أو على أي رف لتقف أمامه مباشرة. واسحب بإصبعك لتلتفت.' : 'الأسهم أو WASD للمشي، واسحب بالفأرة لتلتفت. وتقدر تضغط على الأرض لتنتقل.'],
       ['كيف تشتري', 'اضغط علامة + تحت أي سعر ليدخل المنتج سلتك، أو اضغط على المنتج نفسه لتفاصيله.'],
       ['الأقسام والسلة', 'أزرار الأقسام في الأسفل تنقلك مباشرة، والسلة في الأعلى لإتمام الطلب.']];
     const box = $('#tour'), dots = $('#tourDots'); let k = 0;
