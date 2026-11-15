@@ -1181,15 +1181,15 @@ function build(renderer){
   let HDR_C = C_PINK;
   const clickables = [];  // [{box, sec}] for collisions and section focus
   // section-title atlas for the shared headers
-  const LABELS = [...new Set([...SECTIONS.map(s => s.name), ...(DATA ? Object.values(DATA.sections).flatMap(sd => sd.products.map(p => p.sub).filter(Boolean)) : [])])];
-  const TROWS = Math.ceil(LABELS.length / 2), TRH = 80;
-  const titleCanvas = document.createElement('canvas'); titleCanvas.width = 2048; titleCanvas.height = Math.min(4096, TROWS * TRH);
-  const drawTitles = () => { const x = titleCanvas.getContext('2d'); x.fillStyle = '#ffffff'; x.fillRect(0, 0, 2048, titleCanvas.height);
-    LABELS.forEach((t, i) => { const c = i % 2, r = Math.floor(i / 2); x.fillStyle = PINK_DEEP; x.textAlign='center'; x.textBaseline='middle'; x.direction='rtl'; fitText(x, t, 960, 800, 54); x.fillText(t, c*1024 + 512, r*TRH + TRH/2 + 3); }); };
+  const LABELS = [...new Set([...SECTIONS.map(s => s.name), ...Object.values((window.__IMF && window.__IMF.c) || {}), ...(DATA ? Object.values(DATA.sections).flatMap(sd => sd.products.map(p => p.sub).filter(Boolean)) : [])])];
+  const TRH = 80, TC = Math.min(4, Math.max(2, Math.ceil(LABELS.length / 51))), TROWS = Math.ceil(LABELS.length / TC);   // 51 rows fit a 4096 texture: add columns for more titles
+  const titleCanvas = document.createElement('canvas'); titleCanvas.width = TC * 1024; titleCanvas.height = Math.min(4096, TROWS * TRH);
+  const drawTitles = () => { const x = titleCanvas.getContext('2d'); x.fillStyle = '#ffffff'; x.fillRect(0, 0, titleCanvas.width, titleCanvas.height);
+    LABELS.forEach((t, i) => { const c = i % TC, r = Math.floor(i / TC); x.fillStyle = PINK_DEEP; x.textAlign='center'; x.textBaseline='middle'; x.direction='rtl'; fitText(x, t, 960, 800, 54); x.fillText(t, c*1024 + 512, r*TRH + TRH/2 + 3); }); };
   drawTitles();
   const titleTex = sRGB(new THREE.CanvasTexture(titleCanvas));
-  sentinel = titleCanvas; REDRAW.push(() => { titleCanvas.width = 2048; drawTitles(); titleTex.needsUpdate = true; });
-  const titleUV = label => { const i = Math.max(0, LABELS.indexOf(label)), c = i % 2, r = Math.floor(i / 2), R = titleCanvas.height / TRH, v1 = 1 - r/R, v0 = 1 - (r+1)/R, u0 = c/2, u1 = (c+1)/2; return [u0,v0, u1,v0, u1,v1, u0,v1]; };
+  sentinel = titleCanvas; REDRAW.push(() => { titleCanvas.width = TC * 1024; drawTitles(); titleTex.needsUpdate = true; });
+  const titleUV = label => { const i = Math.max(0, LABELS.indexOf(label)), c = i % TC, r = Math.floor(i / TC), R = titleCanvas.height / TRH, v1 = 1 - r/R, v0 = 1 - (r+1)/R, u0 = c/TC, u1 = (c+1)/TC; return [u0,v0, u1,v0, u1,v1, u0,v1]; };
   const BA = DATA && DATA.brandAtlas;
   function header(F, x0, x1, y, z, hdr, key){
     const w = x1 - x0 - .04, cx = (x0 + x1)/2, hh = .30, a = F.at, n = F.n;
