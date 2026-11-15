@@ -526,13 +526,13 @@ async function main(){
         zones[o.z][o.un].push(o);
       }); });
     const prep = (list, cap) => {
-      const uid = o => (!o.b || o.ds === 2) ? null : (o.ds === 0 ? 'b|' + o.b + '|' + o.fx : 'b|' + o.b + '|' + o.s[0] + ':' + o.s[1] + '|' + o.fx);
+      const uid = o => (!o.b || o.ds === 2) ? null : 'b|' + o.b + '|' + o.s[0] + ':' + o.s[1] + '|' + o.fx;
       const need = {}, home = {};
       list.forEach(o => { const u = uid(o); if (!u) return; need[u] = (need[u] || 0) + (o.w + .012) * Math.min(4, Math.max(o.fc || 1, o.w < .075 ? 2 : 1));
         if (o.ds === 0){ const h = home[u] || (home[u] = {}), kk = o.s[0] + ':' + o.s[1]; h[kk] = (h[kk] || 0) + 1; } });
       const homeOf = {}; Object.keys(home).forEach(u => { const kk = Object.entries(home[u]).sort((a, c) => c[1] - a[1])[0][0].split(':'); homeOf[u] = [+kk[0], +kk[1]]; });
       list.forEach(o => { const u = uid(o), big = !!u && need[u] >= cap, hm = big && homeOf[u];
-        o.key = [hm ? hm[0] : o.s[0], hm ? hm[1] : o.s[1], o.fx, big ? 0 : 1, big ? o.b : '', big ? 0 : o.s[2], o.b]; });
+        o.key = [o.s[0], o.s[1], o.fx, big ? 0 : 1, big ? o.b : '', o.s[2], o.b]; });
       return list.slice().sort((a, c) => { for (let i = 0; i < 7; i++){ const x = a.key[i], y = c.key[i]; if (x !== y) return x < y ? -1 : 1; } return a.k === c.k ? a.o - c.o : (a.k < c.k ? -1 : 1); });
     };
     { let n = 0, m1 = 0, mf = 0; zones.forEach(zz => [0, 1].forEach(u => zz[u].forEach(o => { n++; m1 += o.w + .016; mf += (o.w + .008) * Math.min(4, Math.max(o.fc || 1, o.w < .075 ? 2 : 1)) + .012; })));

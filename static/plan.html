@@ -884,7 +884,7 @@ function build(renderer){
   // beauty at the front of both wings, personal care then kids down the left, wellness then pharmacy down the right,
   // the pharmacist counter at the far end of the walkway, wall units all around.
   const EYE = 1.6, H = 6.2;   // high ceiling, as asked for the branch
-  const IMF = (window.__IMF && window.__IMF.p) || {};
+  const IMF = (window.__IMF && window.__IMF.p) || {}, CATN = (window.__IMF && window.__IMF.c) || {};
   const mainKeys = SECTIONS.filter(s=>s.main).map(s=>s.key).filter(k=>SD(k));
   const ZINFO = [{key:'z_kids', hex:'#2a6fdb'}, {key:'z_rx', hex:'#14a3b5'}, {key:'z_well', hex:'#27a84a'}, {key:'z_care', hex:'#f28c1e'}, {key:'z_beauty', hex:'#c53fb4'}];
   const SECZ = {baby:0, meds:1, vit:2, devices:2, pets:2, daily:3, other:3, skin:4, hair:4, makeup:4};
@@ -917,14 +917,14 @@ function build(renderer){
   // brand by brand. Hook items are kept together so they get peg bays.
   function prep(list, G){
     const cap = shelvesOf(G).length * (BW - .03) * .5;
-    const uid = p => { const b = brandOf(p); if (!b || p._ds === 2) return null; return p._ds === 0 ? 'b|' + b + '|' + p._fx : 'b|' + b + '|' + p._s[0] + ':' + p._s[1] + '|' + p._fx; };
+    const uid = p => { const b = brandOf(p); if (!b || p._ds === 2) return null; return 'b|' + b + '|' + p._s[0] + ':' + p._s[1] + '|' + p._fx; };
     const need = {}, home = {};
     list.forEach(p => { const u = uid(p); if (!u) return; const w = szOf(p)(p, .3)[0]; need[u] = (need[u] || 0) + (w + .012) * refFacings(p, w);
       if (p._ds === 0){ const h = home[u] || (home[u] = {}), k = p._s[0] + ':' + p._s[1]; h[k] = (h[k] || 0) + 1; } });
     const homeOf = {}; Object.keys(home).forEach(u => { const k = Object.entries(home[u]).sort((a, c) => c[1] - a[1])[0][0].split(':'); homeOf[u] = [+k[0], +k[1]]; });
     list.forEach(p => { const u = uid(p), big = !!u && need[u] >= cap, hm = big && homeOf[u];
       p._u = big ? u : 'c|' + p._s[0] + ':' + p._s[1] + '|' + p._fx; p._big = big;
-      p._key = [hm ? hm[0] : p._s[0], hm ? hm[1] : p._s[1], p._fx, big ? 0 : 1, big ? brandOf(p) : '', big ? 0 : p._s[2], brandOf(p)]; });
+      p._key = [p._s[0], p._s[1], p._fx, big ? 0 : 1, big ? brandOf(p) : '', p._s[2], brandOf(p)]; });
     return list.slice().sort((a, b) => { for (let i = 0; i < 7; i++){ const x = a._key[i], y = b._key[i]; if (x !== y) return x < y ? -1 : 1; } return a._k === b._k ? a._o - b._o : (a._k < b._k ? -1 : 1); });
   }
   // Fill bays shelf by shelf with the facings from the file; every unit (brand stand / category) starts on its own bay,
@@ -933,7 +933,7 @@ function build(renderer){
     const list = opts.sorted ? src : prep(src, G), N = list.length, bays = []; if (!N) return bays;
     const shelves = shelvesOf(G), maxBays = opts.maxBays || Infinity;
     let bay = null, k = 0, x = 0;
-    const hdrOf = p => p._big ? {id:p._u, brandId:p.brandId || p.brand, name:p.brand, big:true} : {id:p._u, label:p.sub || SEC[p._k].name, big:false};
+    const hdrOf = p => p._big ? {id:p._u, brandId:p.brandId || p.brand, name:p.brand, big:true} : {id:p._u, label:CATN[p._s[1]] || p.sub || (SEC[ZINFO[p._z].key] || SEC[p._k]).name, big:false};
     const newBay = () => { if (bays.length >= maxBays) return false; bay = {items:[], hdr:null, kind:0}; bays.push(bay); k = 0; x = .015; return true; };
     function tryPlace(p){
       const sh = shelves[k], [w, h, d] = szOf(p)(p, sh.maxH, KS);
@@ -2347,8 +2347,17 @@ function build(renderer){
   let farHint = 0;
   function walkToShelf(h, quiet){
     const n = h.normal.clone().setY(0); if (n.lengthSq() < .01) n.set(0, 0, 1); n.normalize();
-    const pos = h.point.clone().addScaledVector(n, 1.2); clampV(pos);
-    for (let i = 0; i < 6 && blockedGround(pos.x, pos.z); i++) pos.addScaledVector(n, -.12);
+    let dist = 1.2, tries = 6;
+    if (h.ob){   // a tap on the shelf unit itself: stand at the middle of that section, far enough back to see all of it
+      const b = h.ob.box, runX = Math.abs(n.z) > .5, lo = (runX ? b.x0 : b.z0) + .35, hi = (runX ? b.x1 : b.z1) - .35, Lf = hi - lo;
+      const tanV = Math.tan(camera.fov * Math.PI / 360), tanH = tanV * camera.aspect, fit = w => Math.max(w / 2 / tanH, (h.ob.fh * .5 + .15) / tanV) + .12;
+      const u = runX ? h.point.x : h.point.z; let c = (lo + hi) / 2, w = Lf;
+      if (fit(Lf) > 2.5){ const nb = Math.max(1, Math.round(Lf / BW)), bw = Lf / nb; c = lo + (Math.min(nb - 1, Math.max(0, Math.floor((u - lo) / bw))) + .5) * bw; w = bw; }
+      h.point = h.point.clone(); if (runX) h.point.x = c; else h.point.z = c; h.point.y = Math.min(1.3, h.ob.fh * .5 + .1);
+      dist = Math.max(1.1, Math.min(2.5, fit(w))); tries = 14;
+    }
+    const pos = h.point.clone().addScaledVector(n, dist); clampV(pos);
+    for (let i = 0; i < tries && blockedGround(pos.x, pos.z); i++) pos.addScaledVector(n, -.12);
     const cx = camera.position.x, cz = camera.position.z; let path = null;
     if (Math.hypot(pos.x - cx, pos.z - cz) < .35){ endGoal(); return flyTo(camera.position.clone(), h.point); }   // already there: just turn square to it
     if (droneMode && alt > 2.6) path = [{x:pos.x, z:pos.z}];
@@ -2520,7 +2529,7 @@ function build(renderer){
         if (a > t0){ t0 = a; ax = k; } t1 = Math.min(t1, c); if (t0 > t1){ ok = false; break; } }
       if (!ok || ax < 0) continue;
       const y = o.y + d.y * t0; if (y < 0 || y > ob.fh) continue;
-      if (!best || t0 < best.t) best = {t:t0, point:new THREE.Vector3(o.x + d.x*t0, Math.max(.9, Math.min(1.45, y)), o.z + d.z*t0), normal: ax === 0 ? new THREE.Vector3(-Math.sign(d.x), 0, 0) : new THREE.Vector3(0, 0, -Math.sign(d.z))};
+      if (!best || t0 < best.t) best = {t:t0, ob, point:new THREE.Vector3(o.x + d.x*t0, Math.max(.9, Math.min(1.45, y)), o.z + d.z*t0), normal: ax === 0 ? new THREE.Vector3(-Math.sign(d.x), 0, 0) : new THREE.Vector3(0, 0, -Math.sign(d.z))};
     }
     return best;
   }
@@ -2531,7 +2540,7 @@ function build(renderer){
       const b = ob.box, x0 = b.x0 + .35, x1 = b.x1 - .35, z0 = b.z0 + .35, z1 = b.z1 - .35;
       const ex = Math.max(x0 - p.x, 0, p.x - x1), ez = Math.max(z0 - p.z, 0, p.z - z1);
       if (ex > 0 && ez > 0 || ex + ez > .55 || ex + ez === 0) continue;
-      return {point:new THREE.Vector3(Math.max(x0, Math.min(x1, p.x)), 1.25, Math.max(z0, Math.min(z1, p.z))), normal: ex > 0 ? new THREE.Vector3(Math.sign(p.x - x0), 0, 0) : new THREE.Vector3(0, 0, Math.sign(p.z - z0))};
+      return {ob, point:new THREE.Vector3(Math.max(x0, Math.min(x1, p.x)), 1.25, Math.max(z0, Math.min(z1, p.z))), normal: ex > 0 ? new THREE.Vector3(Math.sign(p.x - x0), 0, 0) : new THREE.Vector3(0, 0, Math.sign(p.z - z0))};
     }
     return null;
   }
@@ -2725,12 +2734,12 @@ function build(renderer){
       const px = X(camera.position.x), pz = Z(camera.position.z), a = Math.atan2(-Math.cos(view.yaw), -Math.sin(view.yaw));
       x.fillStyle = 'rgba(201,81,139,.22)'; x.beginPath(); x.moveTo(px, pz); x.arc(px, pz, 44, a - .5, a + .5); x.closePath(); x.fill();
       x.fillStyle = '#c9518b'; x.strokeStyle = '#fff'; x.lineWidth = 3; x.beginPath(); x.arc(px, pz, 8, 0, 7); x.fill(); x.stroke(); }
-    const set = v => { on = v; mm.hidden = !v; mb.setAttribute('aria-pressed', v ? 'true' : 'false'); store.set('ib3d-mini', v); if (v) draw(); };
-    mb.addEventListener('click', () => { mb.blur(); set(!on); }); set(store.get('ib3d-mini', !isSmall));
+    const set = v => { on = v; mm.hidden = !v; mb.setAttribute('aria-pressed', v ? 'true' : 'false'); if (v) draw(); };
+    mb.addEventListener('click', () => { mb.blur(); set(!on); }); set(false);   // closed until asked for, so it never covers the shelves
     setInterval(() => { if (on && !document.hidden) draw(); }, 160);
     mm.addEventListener('pointerdown', e => { e.preventDefault(); e.stopPropagation(); const r = mm.getBoundingClientRect();
       const wx = (e.clientX - r.left) / r.width * 2 * Wx - Wx, wz = zB + (e.clientY - r.top) / r.height * (zF - zB);
-      if (walkTo(wx, wz)){ if (isSmall) setTimeout(() => set(false), 500); } });
+      if (walkTo(wx, wz)) setTimeout(() => set(false), 700); });
   }
 
   // ---------- loop ----------

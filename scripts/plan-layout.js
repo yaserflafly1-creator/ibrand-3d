@@ -4,7 +4,7 @@
   // beauty at the front of both wings, personal care then kids down the left, wellness then pharmacy down the right,
   // the pharmacist counter at the far end of the walkway, wall units all around.
   const EYE = 1.6, H = 6.2;   // high ceiling, as asked for the branch
-  const IMF = (window.__IMF && window.__IMF.p) || {};
+  const IMF = (window.__IMF && window.__IMF.p) || {}, CATN = (window.__IMF && window.__IMF.c) || {};
   const mainKeys = SECTIONS.filter(s=>s.main).map(s=>s.key).filter(k=>SD(k));
   const ZINFO = [{key:'z_kids', hex:'#2a6fdb'}, {key:'z_rx', hex:'#14a3b5'}, {key:'z_well', hex:'#27a84a'}, {key:'z_care', hex:'#f28c1e'}, {key:'z_beauty', hex:'#c53fb4'}];
   const SECZ = {baby:0, meds:1, vit:2, devices:2, pets:2, daily:3, other:3, skin:4, hair:4, makeup:4};
@@ -37,14 +37,14 @@
   // brand by brand. Hook items are kept together so they get peg bays.
   function prep(list, G){
     const cap = shelvesOf(G).length * (BW - .03) * .5;
-    const uid = p => { const b = brandOf(p); if (!b || p._ds === 2) return null; return p._ds === 0 ? 'b|' + b + '|' + p._fx : 'b|' + b + '|' + p._s[0] + ':' + p._s[1] + '|' + p._fx; };
+    const uid = p => { const b = brandOf(p); if (!b || p._ds === 2) return null; return 'b|' + b + '|' + p._s[0] + ':' + p._s[1] + '|' + p._fx; };
     const need = {}, home = {};
     list.forEach(p => { const u = uid(p); if (!u) return; const w = szOf(p)(p, .3)[0]; need[u] = (need[u] || 0) + (w + .012) * refFacings(p, w);
       if (p._ds === 0){ const h = home[u] || (home[u] = {}), k = p._s[0] + ':' + p._s[1]; h[k] = (h[k] || 0) + 1; } });
     const homeOf = {}; Object.keys(home).forEach(u => { const k = Object.entries(home[u]).sort((a, c) => c[1] - a[1])[0][0].split(':'); homeOf[u] = [+k[0], +k[1]]; });
     list.forEach(p => { const u = uid(p), big = !!u && need[u] >= cap, hm = big && homeOf[u];
       p._u = big ? u : 'c|' + p._s[0] + ':' + p._s[1] + '|' + p._fx; p._big = big;
-      p._key = [hm ? hm[0] : p._s[0], hm ? hm[1] : p._s[1], p._fx, big ? 0 : 1, big ? brandOf(p) : '', big ? 0 : p._s[2], brandOf(p)]; });
+      p._key = [p._s[0], p._s[1], p._fx, big ? 0 : 1, big ? brandOf(p) : '', p._s[2], brandOf(p)]; });
     return list.slice().sort((a, b) => { for (let i = 0; i < 7; i++){ const x = a._key[i], y = b._key[i]; if (x !== y) return x < y ? -1 : 1; } return a._k === b._k ? a._o - b._o : (a._k < b._k ? -1 : 1); });
   }
   // Fill bays shelf by shelf with the facings from the file; every unit (brand stand / category) starts on its own bay,
@@ -53,7 +53,7 @@
     const list = opts.sorted ? src : prep(src, G), N = list.length, bays = []; if (!N) return bays;
     const shelves = shelvesOf(G), maxBays = opts.maxBays || Infinity;
     let bay = null, k = 0, x = 0;
-    const hdrOf = p => p._big ? {id:p._u, brandId:p.brandId || p.brand, name:p.brand, big:true} : {id:p._u, label:p.sub || SEC[p._k].name, big:false};
+    const hdrOf = p => p._big ? {id:p._u, brandId:p.brandId || p.brand, name:p.brand, big:true} : {id:p._u, label:CATN[p._s[1]] || p.sub || (SEC[ZINFO[p._z].key] || SEC[p._k]).name, big:false};
     const newBay = () => { if (bays.length >= maxBays) return false; bay = {items:[], hdr:null, kind:0}; bays.push(bay); k = 0; x = .015; return true; };
     function tryPlace(p){
       const sh = shelves[k], [w, h, d] = szOf(p)(p, sh.maxH, KS);
