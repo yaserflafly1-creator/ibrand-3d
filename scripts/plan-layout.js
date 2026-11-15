@@ -7,6 +7,15 @@
   const EYE = 1.6, H = 6.2;   // high ceiling, as asked for the branch
   const IMF = (window.__IMF && window.__IMF.p) || {}, CATN = (window.__IMF && window.__IMF.c) || {};
   const PGD = window.__PG && window.__PG.f ? window.__PG : {W:44, D:46.1, names:[], f:[]};
+  // wider aisles than the drawing (1.6 m → 2.2 m): every block of gondolas moves outwards from the central walkway by the
+  // extra width of the aisles between it and the walkway; the walls and what stands on them move with the room
+  if (!PGD._wide){ PGD._wide = 1; const AE = .6, CS = 6*AE;
+    PGD.f.forEach(fx => fx.r.forEach(r => { const v = r[3] > r[2];
+      if (!v) r[0] += CS;                                                      // along the front or back wall, the cashier unit: stays with the entrance
+      else if (fx.w) r[0] += r[0] > PGD.W/2 ? 2*CS : 0;                        // side walls
+      else if (r[0] < PGD.W/2) r[0] += CS - (6 - Math.floor((r[0] - 1.9 + .05) / 2.6)) * AE;
+      else r[0] += CS + Math.floor((r[0] - 25.5 + .05) / 2.6) * AE; }));
+    PGD.W += 2*CS; }
   const mainKeys = SECTIONS.filter(s=>s.main).map(s=>s.key).filter(k=>SD(k));
   // departments of the planogram (its letters), each with its colour
   const ZINFO = [{key:'z_makeup', L:'B', hex:'#e0447f', old:4}, {key:'z_derma', L:'CA', hex:'#9c27b0', old:4}, {key:'z_hair', L:'D', hex:'#3f51b5', old:4}, {key:'z_care', L:'E', hex:'#0097a7', old:3},
@@ -58,13 +67,14 @@
   // the planogram's order and with its facings; what does not fit runs on to the shelf below; a shelf with room to spare
   // takes extra products of the department, then more facings of its own. Fewer facings, then slightly smaller packs,
   // are tried until nothing of the fixture is left over.
+  const normB = s => String(s || '').toLowerCase().replace(/[^a-z0-9\u0600-\u06ff]/g, '');
   function pgBays(fx, n, G, z, phase, lim){
     const shelves = shelvesOf(G), rows = shelves.map(() => []);
     fx.it.forEach(i => { const p = pid.get(i[1]); if (p && i[0] >= 1 && !(fx._skip && fx._skip.has(p))) rows[Math.min(shelves.length, i[0]) - 1].push({p, fc:i[2], c:i[3]}); });
     const own = rows.flat();
     const run = (cap, ks, fin) => {
       const bays = []; for (let b = 0; b < n; b++) bays.push({items:[], hdr:null, kind:fx.k || 0, cats:{}});
-      let carry = [], taken = 0;
+      let carry = []; const tk = new Set(), fb = fx.b ? normB(fx.b) : '';
       for (let k = 0; k < shelves.length; k++){
         const sh = shelves[k], list = carry.concat(rows[k]); carry = [];
         let x = .015, full = false;
@@ -82,15 +92,25 @@
         }
         if (full) continue;
         // room to spare: products of the department the planogram does not list (each once), then more of this shelf
-        const rep = list.length ? list : own; let g = 0, j = 0;
+        // (an extra product only joins a shelf of its own category or its own brand's stand; one with no such shelf anywhere in
+        //  the department may take spare room on a shared shelf)
+        const rep = list.length ? list : own; let g = 0, j = 0, more = fin;
+        const cats = new Set(); list.forEach(o => { if (o.c >= 0) cats.add(PGD.names[o.c]); });
+        let strict = true;
+        const next = () => {
+          if (strict){ for (const p of z.left){ if (tk.has(p)) continue; const cn = CATN[p._s[1]]; if ((cn && cats.has(cn)) || (fb && normB(p.brand) === fb)) return p; } strict = false; }
+          if (z.loose) for (const p of z.left){ if (tk.has(p)) continue;
+            if (z.loose === 4 || (z.loose === 3 && !fx.b) || (!z.home.has(p) && (z.loose === 2 || !fx.b))) return p; }
+          return null; };
         while (g++ < 260){
           let o = null, extra = false;
-          if (fin && taken < z.left.length){ o = {p:z.left[taken], c:-1}; extra = true; } else if (rep.length) o = rep[j++ % rep.length]; else break;
+          if (more){ const p = next(); if (p){ o = {p, c:-1}; extra = true; } else more = false; }
+          if (!o){ if (rep.length) o = rep[j++ % rep.length]; else break; }
           if (!put(o, extra)) break;
-          if (extra) taken++; x += .009 + Math.random()*.008;
+          if (extra) tk.add(o.p); x += .009 + Math.random()*.008;
         }
       }
-      return {bays, dropped:carry.length, taken, carry};
+      return {bays, dropped:carry.length, tk, carry};
     };
     if (!phase){   // first pass: how tightly this fixture has to be packed; what it still cannot hold moves to the department's spare range
       let res = null, mode = null;
@@ -100,7 +120,7 @@
     }
     const res = run(fx._mode[0], fx._mode[1], true);
     if (res.dropped) res.carry.forEach(o => z.left.push(o.p));
-    z.left.splice(0, res.taken);
+    if (res.tk.size) z.left = z.left.filter(p => !res.tk.has(p));
     const lead = own[0] && own[0].p, bid = lead ? (lead.brandId || lead.brand) : undefined;
     res.bays.forEach((b, bi) => {
       if (fx.b) b.hdr = {id:'pg:' + fx.c, brandId:bid, name:fx.b, big:true};
@@ -120,11 +140,17 @@
     // place, again with fewer facings, then with slightly smaller packs, until everything it sells is on a shelf
     Z.forEach(z => {
       const fxs = order.filter(fx => zidOf(fx.z) === z.id), base = z.left.slice(), nOf = fx => modsOf(fx).reduce((a, c) => a + c, 0), GOf = fx => fx.w ? GWALL : GONDOLA;
-      for (const lim of [[4, 1], [2, 1], [1, 1], [1, .9], [1, .82], [1, .74], [1, .66], [1, .58], [1, .5]]){
-        z.left = base.slice(); fxs.forEach(fx => { fx._skip = null; pgBays(fx, nOf(fx), GOf(fx), z, 0, lim); }); z.left.sort(cmp);
-        fxs.forEach(fx => { fx._bays = pgBays(fx, nOf(fx), GOf(fx), z, 1); });
-        z.lim = lim; if (!z.left.length) break;
-      }
+      // extras that have a shelf of their own category, or their brand's stand, somewhere in the department wait for it
+      const zc = new Set(), zb = new Set(); fxs.forEach(fx => { if (fx.b) zb.add(normB(fx.b)); fx.it.forEach(i => { if (i[3] >= 0) zc.add(PGD.names[i[3]]); }); });
+      const homed = p => { const cn = CATN[p._s[1]]; return (cn && zc.has(cn)) || zb.has(normB(p.brand)); };
+      const attempt = (lim, loose) => { z.loose = loose; z.left = base.slice(); fxs.forEach(fx => { fx._skip = null; pgBays(fx, nOf(fx), GOf(fx), z, 0, lim); }); z.left.sort(cmp);
+        z.home = new Set(z.left.filter(homed)); fxs.forEach(fx => { fx._bays = pgBays(fx, nOf(fx), GOf(fx), z, 1); }); z.lim = lim.concat(loose); return !z.left.length; };
+      // 0: only its own category's shelf or its brand's stand · 1: one with no such shelf may use a shared shelf · 2: or any stand
+      // 3: shared shelves take whatever of the department is still waiting · 4: so does every stand. Facings are cut before packs are made smaller.
+      const F3 = [[4, 1], [2, 1], [1, 1]]; let ok = false;
+      for (const lim of F3){ for (let lv = 0; lv < 3 && !ok; lv++) ok = attempt(lim, lv); if (ok) break; }
+      for (let lv = 3; lv < 5 && !ok; lv++) for (const lim of F3){ if ((ok = attempt(lim, lv))) break; }
+      if (!ok) for (const lim of [[1, .9], [1, .82], [1, .74], [1, .66], [1, .58], [1, .5]]){ if ((ok = attempt(lim, 4))) break; }
     });
     window.__pgStats.byZone = Z.map(z => z.key + ' ' + z.lim.join('/') + ' left ' + z.left.length);
     order.forEach(fx => {
