@@ -1278,7 +1278,8 @@ function build(renderer){
         // room to spare: products of the department the planogram does not list (each once), then more of this shelf
         // (an extra product only joins a shelf of its own category or its own brand's stand; one with no such shelf anywhere in
         //  the department may take spare room on a shared shelf)
-        const rep = list.length ? list : own; let g = 0, j = 0, more = fin;
+        // a fixture with none of its own range in the online store (the prescription wall, a brand not sold online) shows the department's range
+        const rep = list.length ? list : own.length ? own : (z.pool || []); let g = 0, j = own.length || !z.pool ? 0 : (fx._po + k*17) % Math.max(1, z.pool.length), more = fin, miss = 0;
         const cats = new Set(); list.forEach(o => { if (o.c >= 0) cats.add(PGD.names[o.c]); });
         let strict = true;
         const next = () => {
@@ -1290,7 +1291,7 @@ function build(renderer){
           let o = null, extra = false;
           if (more){ const p = next(); if (p){ o = {p, c:-1}; extra = true; } else more = false; }
           if (!o){ if (rep.length) o = rep[j++ % rep.length]; else break; }
-          if (!put(o, extra)) break;
+          if (!put(o, extra)){ if (extra || ++miss > 3) break; continue; }   // too wide for what is left: try the next few before giving the shelf up
           if (extra) tk.add(o.p); x += .009 + Math.random()*.008;
         }
       }
@@ -1307,7 +1308,7 @@ function build(renderer){
     if (res.tk.size) z.left = z.left.filter(p => !res.tk.has(p));
     const lead = own[0] && own[0].p, bid = lead ? (lead.brandId || lead.brand) : undefined;
     res.bays.forEach((b, bi) => {
-      if (fx.b) b.hdr = {id:'pg:' + fx.c, brandId:bid, name:fx.b, big:true};
+      if (fx.b && own.length) b.hdr = {id:'pg:' + fx.c, brandId:bid, name:fx.b, big:true};
       else { let top = -1, tw = 0; Object.keys(b.cats).forEach(c => { if (b.cats[c] > tw){ tw = b.cats[c]; top = +c; } });
         b.hdr = {id:'pg:' + fx.c + ':' + bi, label:(top >= 0 ? PGD.names[top] : PGD.names[fx.l]) || SEC[z.key].name, big:false}; }
     });
@@ -1327,6 +1328,7 @@ function build(renderer){
       // extras that have a shelf of their own category, or their brand's stand, somewhere in the department wait for it
       const zc = new Set(), zb = new Set(); fxs.forEach(fx => { if (fx.b) zb.add(normB(fx.b)); fx.it.forEach(i => { if (i[3] >= 0) zc.add(PGD.names[i[3]]); }); });
       const homed = p => { const cn = CATN[p._s[1]]; return (cn && zc.has(cn)) || zb.has(normB(p.brand)); };
+      z.pool = []; fxs.forEach((fx, fi) => { fx._po = fi*53; fx.it.forEach(i => { const p = pid.get(i[1]); if (p) z.pool.push({p, c:i[3]}); }); });
       const attempt = (lim, loose) => { z.loose = loose; z.left = base.slice(); fxs.forEach(fx => { fx._skip = null; pgBays(fx, nOf(fx), GOf(fx), z, 0, lim); }); z.left.sort(cmp);
         z.home = new Set(z.left.filter(homed)); fxs.forEach(fx => { fx._bays = pgBays(fx, nOf(fx), GOf(fx), z, 1); }); z.lim = lim.concat(loose); return !z.left.length; };
       // 0: only its own category's shelf or its brand's stand · 1: one with no such shelf may use a shared shelf · 2: or any stand
