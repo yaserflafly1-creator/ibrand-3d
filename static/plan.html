@@ -361,11 +361,14 @@ const SECTIONS = [
   {key:'import', name:'منتجات مستوردة', url:cat('منتجات-مستوردة',270592768), promo:true, size:1, eyebrow:'ركن العروض', desc:'منتجات عناية وتجميل مستوردة من علامات عالمية.'},
   {key:'best', name:'الأكثر طلباً', url:'https://ibrand.com.sa', promo:true, size:1.3, eyebrow:'منصة المنتجات', desc:'المنتجات الأكثر طلباً من عملاء اي براند.'},
   {key:'bulk', name:'حفايض وحليب • كميات', url:cat('العناية-بالأم-والطفل',745675715), size:1.45, eyebrow:'عروض الكميات', desc:'حفايض وحليب أطفال ومناديل بكميات، اختر اللي يناسبك وأضفه للسلة.'},
-  {key:'z_kids', zone:true, name:'قسم الأطفال', en:'Kids Care', url:cat('العناية-بالأم-والطفل',745675715), size:1, eyebrow:'منطقة', desc:'مستلزمات الأم والطفل: الحفاضات، حليب وغذاء الأطفال، العناية والإكسسوارات.'},
-  {key:'z_rx', zone:true, name:'الدواء والصيدلية', en:'Pharmacy', url:cat('الأدوية',1199189212), size:1, eyebrow:'منطقة', desc:'الأدوية بدون وصفة خلف كاونتر الصيدلي وبجانبه. الأدوية التي تحتاج وصفة تطلبها من الصيدلي.'},
-  {key:'z_well', zone:true, name:'العناية بالصحة', en:'Wellness', url:cat('المكملات-الغذائية-والفيتامينات',884496587), size:1, eyebrow:'منطقة', desc:'الفيتامينات والمكملات، الأجهزة الطبية ومستلزمات الصحة المنزلية.'},
-  {key:'z_care', zone:true, name:'العناية الشخصية', en:'Personal Care', url:cat('العناية-اليومية',527058090), size:1, eyebrow:'منطقة', desc:'العناية بالفم والأسنان، مزيلات العرق، الحلاقة والعناية اليومية.'},
-  {key:'z_beauty', zone:true, name:'الجمال والعناية', en:'Beauty Care', url:cat('العناية-بالبشرة',26418371), size:1, eyebrow:'منطقة', desc:'العناية بالبشرة والشعر، المكياج والعطور وستاندات الماركات.'},
+  {key:'z_makeup', zone:true, name:'الميك أب', en:'Makeup', url:cat('المكياج-والاكسسوارات',539644644), size:1, eyebrow:'قسم', desc:'المكياج وإكسسواراته: ستاندات العلامات ورفوف الوجه والعيون والشفاه والأظافر.', cta:'تسوق القسم'},
+  {key:'z_derma', zone:true, name:'الديرما والبريميوم', en:'Derma & Premium', url:cat('العناية-بالبشرة',26418371), size:1, eyebrow:'قسم', desc:'علامات العناية الطبية بالبشرة والعلامات الفاخرة.', cta:'تسوق القسم'},
+  {key:'z_hair', zone:true, name:'العناية بالشعر والبشرة', en:'Hair & Skin Care', url:cat('العناية-بالشعر',2050932461), size:1, eyebrow:'قسم', desc:'الشامبو والبلسم وعلاجات وصبغات الشعر، والعناية اليومية بالبشرة.', cta:'تسوق القسم'},
+  {key:'z_care', zone:true, name:'العناية الشخصية', en:'Personal Care', url:cat('العناية-اليومية',527058090), size:1, eyebrow:'قسم', desc:'الاستحمام والجسم، العناية بالفم والأسنان، مزيلات العرق، العناية النسائية وعناية الرجل.', cta:'تسوق القسم'},
+  {key:'z_dev', zone:true, name:'الأجهزة والمستلزمات الطبية', en:'Medical Devices', url:cat('الأجهزة-والمعدات-الطبية',1237042837), size:1, eyebrow:'قسم', desc:'أجهزة القياس، الدعامات، الإسعافات الأولية والمستلزمات الطبية.', cta:'تسوق القسم'},
+  {key:'z_vit', zone:true, name:'المكملات الغذائية', en:'Supplements', url:cat('المكملات-الغذائية-والفيتامينات',884496587), size:1, eyebrow:'قسم', desc:'الفيتامينات والمكملات الغذائية.', cta:'تسوق القسم'},
+  {key:'z_kids', zone:true, name:'الأم والطفل', en:'Mom & Baby', url:cat('العناية-بالأم-والطفل',745675715), size:1, eyebrow:'قسم', desc:'الحفائض، حليب وغذاء الأطفال، الرضّاعات ومستلزمات الأم والطفل.', cta:'تسوق القسم'},
+  {key:'z_rx', zone:true, name:'الدواء والصيدلية', en:'Pharmacy', url:cat('الأدوية',1199189212), size:1, eyebrow:'قسم', desc:'الأدوية بدون وصفة أمام كاونتر الصيدلي، وأدوية الوصفة خلفه.', cta:'تسوق القسم'},
   {key:'quick', name:'مشتريات سريعة', url:STORE, promo:true, size:.85, eyebrow:'عند الكاونتر', desc:'مناديل، معطرات، معقمات ومشتريات سريعة بجانب الكاونتر.'},
 ];
 const SEC = Object.fromEntries(SECTIONS.map(s=>[s.key, s]));
@@ -412,6 +415,7 @@ function normalize(d){
   // pin every atlas image to this data build, so a cached image can never mix with newer data (or the reverse)
   AV = DATA && DATA.build ? '?v=' + DATA.build : '';
   try { const r = await fetch('plan/imf.json'); if (r.ok) window.__IMF = await r.json(); } catch(e){}
+  try { const r = await fetch('plan/pg.json'); if (r.ok) window.__PG = await r.json(); } catch(e){}
   try { const r = await fetch('data/plan.json?t=' + Math.floor(Date.now() / 600000)); if (r.ok) window.__PAT = await r.json(); } catch(e){}
   try { build(renderer); } catch(e){ console.error(e); showFallback(); }
 })();
@@ -541,9 +545,9 @@ function build(renderer){
       return [w, h, d];
     };
   }
-  const GONDOLA = {h:1.8, d:.6, levels:[.14, .56, .98, 1.40]};   // eye-level gondolas (1.8 m) so you can see across the store
+  const GONDOLA = {h:1.8, d:.5, levels:[.12, .45, .78, 1.11, 1.44]};   // eye-level gondolas (1.8 m) so you can see across the store
   const shelvesOf = G => G.levels.map((y,i)=>({y:y+.0125, maxH:(i < G.levels.length-1 ? G.levels[i+1] - y - .06 : G.h - y - .05) - .015})).reverse(); // top shelf first
-  const BW = 1.2;
+  const BW = 1.0;
 
   // Fill virtual bays shelf by shelf (top to bottom). Brands with 10+ items get their own bays under their logo.
   // opts.cycle → keep repeating the list until `maxBays` bays are full (promo fixtures); otherwise each product once.
@@ -879,16 +883,20 @@ function build(renderer){
     });
   }
 
-  // ---------- store plan: zones from the branch floor plan + the merchandising file (IMF) ----------
-  // Zones (like the branch drawing): entrance at the front centre, a central walkway with the cross-sell stands,
-  // beauty at the front of both wings, personal care then kids down the left, wellness then pharmacy down the right,
-  // the pharmacist counter at the far end of the walkway, wall units all around.
+  // ---------- store plan: the branch planogram (static/plan/pg.json) ----------
+  // Every gondola, stand and wall unit stands where the planogram draws it (44 x 46 m: entrance at the front centre, the
+  // cashier beside it, a wide central walkway to the pharmacist counter at the back) and carries, shelf by shelf, the
+  // products the planogram lists for it. Products the store sells that the planogram does not list fill spare shelf room
+  // in their own department, so nothing is left out.
   const EYE = 1.6, H = 6.2;   // high ceiling, as asked for the branch
   const IMF = (window.__IMF && window.__IMF.p) || {}, CATN = (window.__IMF && window.__IMF.c) || {};
+  const PGD = window.__PG && window.__PG.f ? window.__PG : {W:44, D:46.1, names:[], f:[]};
   const mainKeys = SECTIONS.filter(s=>s.main).map(s=>s.key).filter(k=>SD(k));
-  const ZINFO = [{key:'z_kids', hex:'#2a6fdb'}, {key:'z_rx', hex:'#14a3b5'}, {key:'z_well', hex:'#27a84a'}, {key:'z_care', hex:'#f28c1e'}, {key:'z_beauty', hex:'#c53fb4'}];
+  // departments of the planogram (its letters), each with its colour
+  const ZINFO = [{key:'z_makeup', L:'B', hex:'#e0447f', old:4}, {key:'z_derma', L:'CA', hex:'#9c27b0', old:4}, {key:'z_hair', L:'D', hex:'#3f51b5', old:4}, {key:'z_care', L:'E', hex:'#0097a7', old:3},
+    {key:'z_dev', L:'F', hex:'#689f38', old:2}, {key:'z_vit', L:'G', hex:'#e0a11a', old:2}, {key:'z_kids', L:'H', hex:'#ef6c00', old:0}, {key:'z_rx', L:'IJ', hex:'#c62828', old:1}];
   const SECZ = {baby:0, meds:1, vit:2, devices:2, pets:2, daily:3, other:3, skin:4, hair:4, makeup:4};
-  const zoneProducts = ZINFO.map(() => []);
+  const zoneProducts = [[], [], [], [], []];
   { // merchandising attributes per product: zone, category path, facings, display (stand / shared shelf), fixture (shelf / hook), unit (floor / wall)
     const subIdx = new Map(); let matched = 0, total = 0;
     // the plan's own photo atlas (ordered like these shelves): each zone is a set of pages, products point into it
@@ -908,191 +916,21 @@ function build(renderer){
   const GWALL = {h:2.2, d:.5, levels:[.12, .45, .78, 1.11, 1.44, 1.77]};   // wall units around the perimeter
   const sizers = {}, szOf = p => sizers[p._k] || (sizers[p._k] = sizer(p._k));
   const brandOf = p => p.brandId || p.brand || '';
-  // FCAP / KS: how hard the shelves are packed (max facings per product, pack scale) — set by the fit-to-area search below
-  let FCAP = 4, KS = 1, TIGHT = false;
-  const refFacings = (p, w) => Math.min(4, Math.max(p.fc || 1, w < .075 ? 2 : 1));   // for the own-stand rule: same as the build
-  const facingsOf = (p, w) => Math.min(FCAP, Math.max(p.fc || 1, w < .075 ? 2 : 1));
-  // Order a list the way the file says: category, then brand. A brand flagged "stand" with enough stock to fill most of a bay
-  // owns its bays under its logo ("stand per category": one per category); smaller brands share their category's bays,
-  // brand by brand. Hook items are kept together so they get peg bays.
-  function prep(list, G){
-    const cap = shelvesOf(G).length * (BW - .03) * .5;
-    const uid = p => { const b = brandOf(p); if (!b || p._ds === 2) return null; return 'b|' + b + '|' + p._s[0] + ':' + p._s[1] + '|' + p._fx; };
-    const need = {}, home = {};
-    list.forEach(p => { const u = uid(p); if (!u) return; const w = szOf(p)(p, .3)[0]; need[u] = (need[u] || 0) + (w + .012) * refFacings(p, w);
-      if (p._ds === 0){ const h = home[u] || (home[u] = {}), k = p._s[0] + ':' + p._s[1]; h[k] = (h[k] || 0) + 1; } });
-    const homeOf = {}; Object.keys(home).forEach(u => { const k = Object.entries(home[u]).sort((a, c) => c[1] - a[1])[0][0].split(':'); homeOf[u] = [+k[0], +k[1]]; });
-    list.forEach(p => { const u = uid(p), big = !!u && need[u] >= cap, hm = big && homeOf[u];
-      p._u = big ? u : 'c|' + p._s[0] + ':' + p._s[1] + '|' + p._fx; p._big = big;
-      p._key = [p._s[0], p._s[1], p._fx, big ? 0 : 1, big ? brandOf(p) : '', p._s[2], brandOf(p)]; });
-    return list.slice().sort((a, b) => { for (let i = 0; i < 7; i++){ const x = a._key[i], y = b._key[i]; if (x !== y) return x < y ? -1 : 1; } return a._k === b._k ? a._o - b._o : (a._k < b._k ? -1 : 1); });
-  }
-  // Fill bays shelf by shelf with the facings from the file; every unit (brand stand / category) starts on its own bay,
-  // and a bay that ends part-way is topped up with more facings of the same unit so shelves never look empty.
-  function mplan(src, G, opts={}){
-    const list = opts.sorted ? src : prep(src, G), N = list.length, bays = []; if (!N) return bays;
-    const shelves = shelvesOf(G), maxBays = opts.maxBays || Infinity;
-    let bay = null, k = 0, x = 0;
-    const hdrOf = p => p._big ? {id:p._u, brandId:p.brandId || p.brand, name:p.brand, big:true} : {id:p._u, label:CATN[p._s[1]] || p.sub || (SEC[ZINFO[p._z].key] || SEC[p._k]).name, big:false};
-    const newBay = () => { if (bays.length >= maxBays) return false; bay = {items:[], hdr:null, kind:0}; bays.push(bay); k = 0; x = .015; return true; };
-    function tryPlace(p){
-      const sh = shelves[k], [w, h, d] = szOf(p)(p, sh.maxH, KS);
-      if (x + w > BW - .01){ k++; x = .015; if (k >= shelves.length) return newBay() ? 'bay' : 'end'; return 'shelf'; }
-      if (!bay.items.length){ bay.hdr = hdrOf(p); bay.kind = p._fx || 0; }
-      const f = facingsOf(p, w);
-      for (let i = 0; i < f && x + w <= BW - .01; i++){
-        bay.items.push({p, x:x + w/2, s:k, y:sh.y, w, h, d, yaw:(Math.random()-.5)*.07, back:Math.random() < .14 ? .015 + Math.random()*.03 : Math.random()*.006, first:i === 0});
-        x += w + .004 + Math.random()*.004;
-      }
-      x += .009 + Math.random()*.008; return 'ok';
-    }
-    const topUp = (from, to) => { const n = to - from; if (n <= 0) return 'ok'; let j = 0, g = 0, r = 'ok'; while (g++ < 400 && (r = tryPlace(list[(from + (j % n)) % N])) !== 'bay' && r !== 'end'){ if (r === 'ok') j++; } return r; };
-    if (!newBay()) return bays;
-    let i = 0, guard = 0, unit = null, start = 0; const limit = opts.cycle ? Infinity : N;
-    while (i < limit && guard++ < 600000){
-      const p = list[i % N];
-      if (p._u !== unit){
-        if (unit !== null && bay.items.length){
-          const prev = list[(i - 1 + N) % N];
-          // tight packing: units simply follow each other along the shelves (no part-empty bays to top up)
-          if (!TIGHT && (prev._big || p._big || k / shelves.length >= .3 || (p._fx || 0) !== bay.kind)){
-            const r = topUp(start, i); if (r === 'end') break;
-            if (bay.items.length && !newBay()) break;
-          }
-        }
-        unit = p._u; start = i;
-      }
-      const r = tryPlace(p);
-      if (r === 'end') break;
-      if (r === 'ok') i++;
-    }
-    if (!opts.cycle && bay && bay.items.length && i >= N) topUp(start, N);
-    if (bays.length && !bays[bays.length-1].items.length) bays.pop();
-    if (TIGHT) bays.forEach(b => {   // a bay shared by several units: board and fixture follow whichever fills most of it
-      const cnt = {}, rep = {}; let top = null; b.items.forEach(it => { const u = it.p._u; cnt[u] = (cnt[u] || 0) + it.w; rep[u] = rep[u] || it.p; if (top === null || cnt[u] > cnt[top]) top = u; });
-      if (top !== null){ b.hdr = hdrOf(rep[top]); b.kind = rep[top]._fx || 0; } });
-    return bays;
-  }
   const ZCOL = ZINFO.map(z => { const c = new THREE.Color(z.hex); const cl = c.clone().convertSRGBToLinear(); return {hex:z.hex, c:[cl.r, cl.g, cl.b], hi:'#' + c.clone().lerp(new THREE.Color('#ffffff'), .3).getHexString(), lo:'#' + c.clone().lerp(new THREE.Color('#000000'), .25).getHexString()}; });
-  // real branch fixtures: 1.2 m bays, 60 cm deep, 4 shelves, 2 m aisles (BW / GONDOLA are set for this page)
-  const SP = 3.4, CA = 2.0, AISLE_W = 2.0, SIDE_A = 2.0, BACK_A = 2.0, ROW_T = 2*GONDOLA.d + .04, PITCH = ROW_T + AISLE_W, WALL_D = GWALL.d;
-  const NBACK = Math.floor((2*SP - .4) / BW), AMAX = 1500;   // floor area target (m²)
-  const zF = 0, zR0 = zF - 8.0, ZP = zF - 5.9;
-  const LEFT = [4, 3, 0], RIGHT = [4, 2, 1];   // front → back
-  const SORTED = ZINFO.map((zi, id) => { const all = zoneProducts[id], fl0 = all.filter(p => !p._un), wl = all.filter(p => p._un); return {all, fl0, wl, fs:prep(fl0, GONDOLA), ws:prep(wl, GWALL)}; });
-  // Mixed layout, like the branch drawing: free-standing brand stands (2-bay islands) on the first lines of both
-  // wings, a grid of long gondola rows behind them, and a block of short gondolas turned the other way in the kids
-  // corner. Every stretch of shelving is a "run" (where it stands + how many bays); zones take runs front to back.
-  const PB = 4, ISL = 2, SLINES = 1;
-  function wingRuns(w, C, nbx, g, band){
-    const runs = [], Win = C*nbx*BW + (C-1)*CA, colX0 = c => SP + c*(nbx*BW + CA), m = Math.floor((nbx + 1) / 3), S = m >= 2 ? SLINES : 0;
-    const lz = i => zR0 - ROW_T/2 - i*PITCH, off = GONDOLA.d/2 + .02;
-    for (let i = 0; i < S + g; i++){
-      const zc = lz(i), base = {line:i, zc, f:zc + ROW_T/2, b:zc - ROW_T/2};
-      for (let c = 0; c < C; c++){
-        if (i < S){ const gap = m > 1 ? (nbx*BW - m*ISL*BW) / (m - 1) : 0;
-          for (let k = 0; k < m; k++){ const xc = w*(colX0(c) + ISL*BW/2 + k*(ISL*BW + gap));
-            runs.push(Object.assign({x:xc, z:zc + off, yaw:0, n:ISL, type:'stand'}, base)); runs.push(Object.assign({x:xc, z:zc - off, yaw:Math.PI, n:ISL, type:'stand'}, base)); } }
-        else { const xc = w*(colX0(c) + nbx*BW/2);
-          runs.push(Object.assign({x:xc, z:zc + off, yaw:0, n:nbx, type:'row'}, base)); runs.push(Object.assign({x:xc, z:zc - off, yaw:Math.PI, n:nbx, type:'row'}, base)); }
-      }
-    }
-    let zEnd = lz(S + g - 1) - ROW_T/2;
-    if (band){ const q = Math.floor((Win + AISLE_W) / (ROW_T + AISLE_W)), z0 = zEnd - AISLE_W, zc = z0 - PB*BW/2;
-      for (let j = 0; j < q; j++){ const X = w*(SP + ROW_T/2 + (q > 1 ? j*(Win - ROW_T)/(q - 1) : (Win - ROW_T)/2)), base = {line:S + g, zc, f:z0, b:z0 - PB*BW, type:'band', n:PB};
-        runs.push(Object.assign({x:X + off, z:zc, yaw:Math.PI/2}, base)); runs.push(Object.assign({x:X - off, z:zc, yaw:-Math.PI/2}, base)); }
-      zEnd = z0 - PB*BW; }
-    return {runs, zEnd, S, lines:S + g, depth:zR0 - zEnd};
-  }
-  const allot = (runs, order, counts) => {
-    const parts = order.map((zid, i) => ({zid, bays:counts[i], runs:[], cap:0})).filter(p => p.bays > 0); let ri = 0;
-    parts.forEach(p => { while (ri < runs.length && p.cap < p.bays){ p.runs.push(runs[ri]); p.cap += runs[ri].n; ri++; } });
-    if (parts.length) while (ri < runs.length){ const p = parts[parts.length - 1]; p.runs.push(runs[ri]); p.cap += runs[ri].n; ri++; }
-    parts.forEach(p => p.runs.forEach(r => { r.zid = p.zid; }));
-    return parts;
-  };
-  function solve(Z, rxTaken){
-    const fb = Z.map(z => z.floor.length); if (!rxTaken) fb[1] = Math.max(0, fb[1] - NBACK);
-    const left = fb[3] + fb[0], right = fb[2] + fb[1], T = left + right + fb[4];
-    const bl = Math.max(0, Math.min(fb[4], Math.round(T/2 - left))), br = fb[4] - bl;
-    const cL = [bl, fb[3], fb[0]], cR = [br, fb[2], fb[1]];
-    const fits = parts => parts.every(p => p.cap >= p.bays);
-    // smallest floor area that holds the bays, keeping the store roughly square
-    let best = null;
-    for (let C = 1; C <= 3; C++) for (let nbx = 5; nbx <= 14; nbx++){
-      const Win = C*nbx*BW + (C-1)*CA, band = Math.floor((Win + AISLE_W) / (ROW_T + AISLE_W)) >= 2;
-      let gL = 1, gR = 1, WL, WR, PL, PR;
-      for (; gL < 60; gL++){ WL = wingRuns(-1, C, nbx, gL, band); PL = allot(WL.runs, LEFT, cL); if (fits(PL)) break; }
-      for (; gR < 60; gR++){ WR = wingRuns(1, C, nbx, gR, false); PR = allot(WR.runs, RIGHT, cR); if (fits(PR)) break; }
-      // the shallower wing takes as many more rows as the deeper one leaves room for (kept full with that zone's range)
-      const deep = Math.max(WL.depth, WR.depth);
-      while (wingRuns(-1, C, nbx, gL + 1, band).depth <= deep + .01){ gL++; } 
-      while (wingRuns(1, C, nbx, gR + 1, false).depth <= deep + .01){ gR++; }
-      const wx = SP + Win + SIDE_A + GWALL.d + .02, D = -zR0 + deep + BACK_A + GWALL.d + .02;
-      const asp = 2*wx/D, area = 2*wx*D, sc = area * (asp < .8 ? 1 + (.8 - asp)*3 : asp > 1.45 ? 1 + (asp - 1.45)*3 : 1);
-      if (!best || sc < best.sc) best = {sc, C, nbx, gL, gR, band, Wx:wx, area, D, deep};
-    }
-    const {C, nbx} = best, WL = wingRuns(-1, C, nbx, best.gL, best.band), WR = wingRuns(1, C, nbx, best.gR, false);
-    const Lp = allot(WL.runs, LEFT, cL), Rp = allot(WR.runs, RIGHT, cR);
-    const zEnd = zR0 - best.deep, zb = zEnd - BACK_A - GWALL.d - .02;
-    const zW0 = zR0 + 1.0, nSide = Math.max(0, Math.floor((zW0 - (zb + .65)) / BW));
-    const zoneAt = (runs, z) => { let b = null, bd = 1e9; runs.forEach(r => { const d = Math.abs(r.zc - z); if (d < bd){ bd = d; b = r; } }); return b ? b.zid : 4; };
-    const side = runs => { const a = []; for (let i = 0; i < nSide; i++) a.push(zoneAt(runs, zW0 - (i + .5)*BW)); return a; };
-    const sideL = side(WL.runs), sideR = side(WR.runs);
-    const nBackSide = Math.max(0, Math.floor((best.Wx - GWALL.d - .1 - (SP + .3)) / BW));
-    const backL = Lp.length ? Lp[Lp.length-1].zid : 0, backR = Rp.length ? Rp[Rp.length-1].zid : 1;
-    const slots = [0,0,0,0,0]; sideL.forEach(z => slots[z]++); sideR.forEach(z => slots[z]++); slots[backL] += nBackSide; slots[backR] += nBackSide;
-    return {C, nbx, lines:Math.max(WL.lines, WR.lines), linesL:WL.lines, linesR:WR.lines, runsL:WL.runs, runsR:WR.runs, area:best.area, D:best.D, Wx:best.Wx, L:Lp, R:Rp, bl, br, zEnd, zB:zb, zW0, nSide, sideL, sideR, nBackSide, backL, backR, slots};
-  }
-  // one complete layout for a packing mode
-  function layoutFor(mode){
-    FCAP = mode.cap; KS = mode.k; TIGHT = !!mode.tight;
-    const Z = ZINFO.map((zi, id) => { const S = SORTED[id];
-      return {id, key:zi.key, zc:ZCOL[id], all:S.all, floorList:S.fl0, wallList:S.wl, floor:mplan(S.fs, GONDOLA, {sorted:true}), wall:mplan(S.ws, GWALL, {sorted:true}), fo:0, wo:0}; });
-    let PLAN = solve(Z, false);
-    // Balance walls and floor until it settles:
-    //  - wall-unit products that do not fit on the walls of their zone move to its floor gondolas (nothing is left out)
-    //  - wall bays a zone has to spare take the tail of its floor range (wall units hold more: six shelves)
-    const overflow = () => { let ch = false;
-      Z.forEach(z => { const sl = PLAN.slots[z.id]; if (z.wall.length <= sl) return;
-        const kept = new Set(); z.wall.slice(0, sl).forEach(b => b.items.forEach(it => kept.add(it.p)));
-        const add = new Set(); z.wall.slice(sl).forEach(b => b.items.forEach(it => { if (!kept.has(it.p)) add.add(it.p); }));
-        z.wall.length = sl; z.wallList = z.wallList.filter(p => kept.has(p)); z.wsCur = null; ch = true; if (!add.size) return;
-        z.floorList = z.floorList.concat([...add]); z.floor = mplan(z.floorList, GONDOLA); z.fsCur = null; });
-      return ch; };
-    const spare = () => { let ch = false;
-      Z.forEach(z => { const sl = PLAN.slots[z.id]; if (z.wall.length >= sl || !z.floorList.length) return;
-        const fs = z.fsCur || (z.fsCur = prep(z.floorList, GONDOLA)), ws0 = z.wsCur || (z.wsCur = prep(z.wallList, GWALL));
-        let lo = 1, hi = fs.length, bestN = 0, bestW = null;
-        while (lo <= hi){ const mid = (lo + hi) >> 1, cand = mplan(ws0.concat(fs.slice(fs.length - mid)), GWALL, {sorted:true}); if (cand.length <= sl){ bestN = mid; bestW = cand; lo = mid + 1; } else hi = mid - 1; }
-        if (!bestN) return;
-        z.wsCur = ws0.concat(fs.slice(fs.length - bestN)); z.wallList = z.wsCur; z.fsCur = fs.slice(0, fs.length - bestN); z.floorList = z.fsCur;
-        z.wall = bestW; z.floor = mplan(z.fsCur, GONDOLA, {sorted:true}); ch = true; });
-      return ch; };
-    for (let t = 0; t < 12; t++){
-      if (overflow()){ PLAN = solve(Z, false); continue; }
-      if (t < 3 && spare()){ PLAN = solve(Z, false); continue; }
-      break;
-    }
-    const rxBack = Z[1].floor.splice(0, NBACK); PLAN = solve(Z, true);
-    return {Z, PLAN, rxBack, mode};
-  }
-  // fit everything into the target floor area: first with the facings from the file, then fewer facings, then slightly
-  // smaller packs — the first packing that fits wins; if none does, the tightest one is used and the store grows
-  const MODES = [{cap:4, k:1}, {cap:2, k:1}, {cap:2, k:1, tight:1}, {cap:1, k:1, tight:1}, {cap:1, k:.95, tight:1}, {cap:1, k:.9, tight:1}, {cap:1, k:.86, tight:1}, {cap:1, k:.82, tight:1}, {cap:1, k:.78, tight:1}, {cap:1, k:.74, tight:1}, {cap:1, k:.7, tight:1}];
-  let FIT = null;
-  for (const m of MODES){ FIT = layoutFor(m); if (FIT.PLAN.area <= AMAX) break; }
-  const Z = FIT.Z, PLAN = FIT.PLAN, rxBack = FIT.rxBack, NBX = PLAN.nbx;
-  window.__planFit = {cap:FIT.mode.cap, k:FIT.mode.k, tight:!!FIT.mode.tight, area:Math.round(PLAN.area), w:+(2*PLAN.Wx).toFixed(1), d:+PLAN.D.toFixed(1)};
-  const NC = PLAN.C, NL = PLAN.lines, Wx = PLAN.Wx, zB = PLAN.zB, zC = zB + 2.7, zA0 = zR0, zA1 = PLAN.zEnd;
-  const nA = NL, nb = NBX, L = zA0 - zA1, innerW = 2*Wx, plans = {}, totalBays = Z.reduce((a, z) => a + z.floor.length + z.wall.length, 0) + rxBack.length;
+  const Z = ZINFO.map((zi, id) => ({id, key:zi.key, zc:ZCOL[id], old:zi.old}));
+  const zidOf = L => { const i = ZINFO.findIndex(z => z.L.includes(L)); return i < 0 ? 3 : i; };
+  // the room, from the drawing (metres; x across, z from the glass front back to the wall behind the counter)
+  const SP = 3.4, AISLE_W = 1.6, ROW_T = 2*GONDOLA.d, WALL_D = GWALL.d;
+  const Wx = PGD.W/2 + .02, zF = 0, zB = -PGD.D - .02, zC = zB + 2.7, zR0 = zF - 6.2, ZP = zF - 8.6;
+  const zA0 = zR0, zA1 = zC + 5.4, nA = 14, nb = 6, L = zA0 - zA1, innerW = 2*Wx, plans = {}, PLAN = {}, NL = 4, NC = 14, NBX = 6;
+  const totalBays = PGD.f.reduce((a, f) => a + f.r.reduce((c, r) => c + Math.round(Math.max(r[2], r[3])), 0), 0);
   const ROOM = {x:Wx, zBack:zB, zFront:zF, h:H};
   const fw = 2*Wx, fl = zF - zB, zMid = (zF + zB)/2;
 
   // camera
   const fovFor = a => a < 1 ? 74 : 58;
   const camera = new THREE.PerspectiveCamera(fovFor(stage.clientWidth/stage.clientHeight), stage.clientWidth/stage.clientHeight, 0.05, Math.max(120, fl + 70));
-  const DOOR_IN = 3.4, DOOR_OUT = -3.4;
+  const DOOR_IN = 1.9, DOOR_OUT = -1.9;
   const HOME = {pos:new THREE.Vector3(DOOR_IN, EYE, zF - 2.4), target:new THREE.Vector3(0, 1.45, zF - 10)};
   camera.position.copy(HOME.pos);
   const view = {yaw:0, pitch:0};
@@ -1181,7 +1019,7 @@ function build(renderer){
   let HDR_C = C_PINK;
   const clickables = [];  // [{box, sec}] for collisions and section focus
   // section-title atlas for the shared headers
-  const LABELS = [...new Set([...SECTIONS.map(s => s.name), ...Object.values((window.__IMF && window.__IMF.c) || {}), ...(DATA ? Object.values(DATA.sections).flatMap(sd => sd.products.map(p => p.sub).filter(Boolean)) : [])])];
+  const LABELS = [...new Set([...SECTIONS.map(s => s.name), ...Object.values((window.__IMF && window.__IMF.c) || {}), ...((window.__PG && window.__PG.names) || []), ...(DATA ? Object.values(DATA.sections).flatMap(sd => sd.products.map(p => p.sub).filter(Boolean)) : [])])];
   const TRH = 80, TC = Math.min(4, Math.max(2, Math.ceil(LABELS.length / 51))), TROWS = Math.ceil(LABELS.length / TC);   // 51 rows fit a 4096 texture: add columns for more titles
   const titleCanvas = document.createElement('canvas'); titleCanvas.width = TC * 1024; titleCanvas.height = Math.min(4096, TROWS * TRH);
   const drawTitles = () => { const x = titleCanvas.getContext('2d'); x.fillStyle = '#ffffff'; x.fillRect(0, 0, titleCanvas.width, titleCanvas.height);
@@ -1390,65 +1228,116 @@ function build(renderer){
     OBSTACLES.push({fh:G.h, box:{x0:Math.min(c1[0],c2[0]) - .35, x1:Math.max(c1[0],c2[0]) + .35, z0:Math.min(c1[2],c2[2]) - .35, z1:Math.max(c1[2],c2[2]) + .35}});
   }
 
-  // ---------- lay the zones out like the branch plan ----------
+  // ---------- stand every fixture where the planogram puts it ----------
   const SEG = [];
-  const lineZ = l => zR0 - ROW_T/2 - l*PITCH;
-  const rot = (a, n) => a.length ? a.slice(n % a.length).concat(a.slice(0, n % a.length)) : a;
-  // extra facings for slots a zone does not need: keeps every gondola full with that zone's own products
-  function fill(z, n, G, wall){
-    if (n <= 0) return [];
-    const src = wall && z.wallList.length ? z.wallList : (z.floorList.length ? z.floorList : z.all); if (!src.length) return [];
-    const ck = (wall && z.wallList.length ? 'w' : 'f') + G.h; if (!z['s' + ck]) z['s' + ck] = prep(src, G);
-    z.fo += 61; return mplan(rot(z['s' + ck], z.fo), G, {cycle:true, maxBays:n, sorted:true});
-  }
-  [[-1, PLAN.L], [1, PLAN.R]].forEach(([w, parts]) => parts.forEach((part, pi) => {
-    const z = Z[part.zid];
-    let bays = part.zid === 4 ? (w < 0 ? z.floor.slice(0, PLAN.bl) : z.floor.slice(PLAN.bl)) : z.floor.slice();
-    const need = part.cap - bays.length; if (need > 0) bays = bays.concat(fill(z, need, GONDOLA, false));
-    let o = 0;
-    part.runs.forEach(r => { const run = bays.slice(o, o + r.n); o += r.n; if (run.length) gondolaFace(frame(r.x, r.z, r.yaw), run, z.key, {zc:z.zc}); });
-    const aisles = [...new Set(part.runs.map(r => +(r.f + AISLE_W/2).toFixed(2)))];
-    SEG.push({zid:part.zid, w, z0:Math.max(...part.runs.map(r => r.f)) + AISLE_W/2, z1:pi === parts.length - 1 ? zB : Math.min(...part.runs.map(r => r.b)) - AISLE_W/2, aisles});
-  }));
-  // wall units: both side walls and the back wall, each stretch dressed by the zone in front of it
-  const wallQ = Z.map(z => z.wall.slice());
-  const takeWall = (zid, n) => { let out = wallQ[zid].splice(0, n); if (out.length < n) out = out.concat(fill(Z[zid], n - out.length, GWALL, true)); return out; };
-  const sideWall = (w, zones) => { let i0 = 0;
-    for (let i = 1; i <= zones.length; i++){
-      if (i < zones.length && zones[i] === zones[i0]) continue;
-      const n = i - i0, zid = zones[i0]; let bays = takeWall(zid, n); if (w > 0) bays = bays.slice().reverse();
-      if (bays.length) gondolaFace(frame(w*(Wx - GWALL.d/2 - .02), PLAN.zW0 - (i0 + n/2)*BW, w < 0 ? Math.PI/2 : -Math.PI/2), bays, Z[zid].key, {G:GWALL, zc:Z[zid].zc});
-      i0 = i;
-    } };
-  sideWall(-1, PLAN.sideL); sideWall(1, PLAN.sideR);
-  { const n = PLAN.nBackSide, xb = SP + .3 + n*BW/2;
-    [[-1, PLAN.backL], [1, PLAN.backR]].forEach(([w, zid]) => { const bays = takeWall(zid, n); if (bays.length) gondolaFace(frame(w*xb, zB + GWALL.d/2 + .02, 0), bays, Z[zid].key, {G:GWALL, zc:Z[zid].zc}); }); }
-  window.__planLeft = wallQ.reduce((a, q) => a + q.length, 0);
-  // behind the pharmacist counter: medicines
-  { let bays = rxBack.slice(); if (bays.length < NBACK) bays = bays.concat(fill(Z[1], NBACK - bays.length, GONDOLA, false));
-    if (bays.length) gondolaFace(frame(0, zB + GONDOLA.d/2 + .02, 0), bays, 'z_rx', {zc:Z[1].zc}); }
-  // end caps facing the central walkway: each zone's best-selling brands
-  {
-    const topBrands = z => { const agg = {}; z.all.forEach(p => { const b = brandOf(p); if (!b || !p.brand) return; const a = agg[b] || (agg[b] = {id:b, name:p.brand, sold:0, list:[]}); a.sold += p.sold || 0; a.list.push(p); });
-      return Object.values(agg).filter(a => a.list.length >= 4).sort((a, b) => (b.sold - a.sold) || (b.list.length - a.list.length)).slice(0, 14); };
-    for (const w of [-1, 1]) for (let l = 0; l < (w < 0 ? PLAN.linesL : PLAN.linesR); l++){
-      const r0 = (w < 0 ? PLAN.runsL : PLAN.runsR).find(r => r.line === l && r.type !== 'band'); if (!r0) continue;
-      const z = Z[r0.zid]; if (!z.caps){ z.caps = topBrands(z); z.capI = 0; } if (!z.caps.length) continue;
-      const br = z.caps[z.capI++ % z.caps.length], bay = mplan(br.list.slice().sort((a, b) => (b.sold || 0) - (a.sold || 0)), GONDOLA, {cycle:true, maxBays:1}); if (!bay[0]) continue;
-      bay[0].hdr = {id:'e:' + br.id, brandId:br.list[0].brandId || br.list[0].brand, name:br.name, big:true}; bay[0].kind = 0;
-      gondolaFace(frame(w*(SP - GONDOLA.d/2 - .03), lineZ(l), w > 0 ? -Math.PI/2 : Math.PI/2), bay, z.key, {zc:z.zc, endPanels:false});
+  const pid = new Map(); mainKeys.forEach(k => SD(k).products.forEach(p => { const id = String(p.id); if (!pid.has(id)) pid.set(id, p); }));
+  { const listed = new Set(); PGD.f.forEach(f => f.it.forEach(i => listed.add(i[1])));
+    // sold in the store but not in the planogram: kept by department (category order), to fill spare shelf room
+    const KZ = {makeup:0, skin:1, hair:2, daily:3, other:3, devices:4, pets:4, vit:5, baby:6, meds:7};
+    Z.forEach(z => { z.left = []; z.runs = []; });
+    pid.forEach((p, id) => { if (!listed.has(id)) Z[KZ[p._k] === undefined ? 3 : KZ[p._k]].left.push(p); });
+    Z.forEach(z => z.left.sort((a, b) => (a._s[0] - b._s[0]) || (a._s[1] - b._s[1]) || (a._s[2] - b._s[2]) || (brandOf(a) < brandOf(b) ? -1 : brandOf(a) > brandOf(b) ? 1 : 0)));
+    window.__pgStats = {fixtures:PGD.f.length, listed:listed.size, extra:Z.reduce((a, z) => a + z.left.length, 0), dropped:0}; }
+  // One fixture: n modules of 1 m, shelves top to bottom as in the planogram. Each shelf starts with its own products in
+  // the planogram's order and with its facings; what does not fit runs on to the shelf below; a shelf with room to spare
+  // takes extra products of the department, then more facings of its own. Fewer facings, then slightly smaller packs,
+  // are tried until nothing of the fixture is left over.
+  function pgBays(fx, n, G, z, phase, lim){
+    const shelves = shelvesOf(G), rows = shelves.map(() => []);
+    fx.it.forEach(i => { const p = pid.get(i[1]); if (p && i[0] >= 1 && !(fx._skip && fx._skip.has(p))) rows[Math.min(shelves.length, i[0]) - 1].push({p, fc:i[2], c:i[3]}); });
+    const own = rows.flat();
+    const run = (cap, ks, fin) => {
+      const bays = []; for (let b = 0; b < n; b++) bays.push({items:[], hdr:null, kind:fx.k || 0, cats:{}});
+      let carry = [], taken = 0;
+      for (let k = 0; k < shelves.length; k++){
+        const sh = shelves[k], list = carry.concat(rows[k]); carry = [];
+        let x = .015, full = false;
+        const put = (o, first) => { const [w, h, d] = szOf(o.p)(o.p, sh.maxH, ks); let bi = Math.floor(x / BW);
+          if (x + w > (bi + 1)*BW - .01){ bi++; x = bi*BW + .015; }
+          if (bi >= n || x + w > n*BW - .01) return false;
+          const b = bays[bi]; b.items.push({p:o.p, x:x - bi*BW + w/2, s:k, y:sh.y, w, h, d, yaw:(Math.random()-.5)*.07, back:Math.random() < .14 ? .015 + Math.random()*.03 : Math.random()*.006, first});
+          if (o.c >= 0) b.cats[o.c] = (b.cats[o.c] || 0) + w;
+          x += w + .004 + Math.random()*.004; return true; };
+        for (let i = 0; i < list.length; i++){
+          const o = list[i], w0 = szOf(o.p)(o.p, sh.maxH, ks)[0], f = Math.min(cap, Math.max(o.fc || 1, w0 < .075 ? 2 : 1));
+          let placed = 0; for (let j = 0; j < f; j++){ if (!put(o, j === 0)){ full = true; break; } placed++; }
+          if (full){ carry = list.slice(placed ? i + 1 : i); break; }
+          x += .009 + Math.random()*.008;
+        }
+        if (full) continue;
+        // room to spare: products of the department the planogram does not list (each once), then more of this shelf
+        const rep = list.length ? list : own; let g = 0, j = 0;
+        while (g++ < 260){
+          let o = null, extra = false;
+          if (fin && taken < z.left.length){ o = {p:z.left[taken], c:-1}; extra = true; } else if (rep.length) o = rep[j++ % rep.length]; else break;
+          if (!put(o, extra)) break;
+          if (extra) taken++; x += .009 + Math.random()*.008;
+        }
+      }
+      return {bays, dropped:carry.length, taken, carry};
+    };
+    if (!phase){   // first pass: how tightly this fixture has to be packed; what it still cannot hold moves to the department's spare range
+      let res = null, mode = null;
+      for (mode of [[4, 1], [2, 1], [1, 1], [1, .9], [1, .82], [1, .74], [1, .66], [1, .58], [1, .5]].filter(m => m[0] <= lim[0] && m[1] <= lim[1])){ res = run(mode[0], mode[1], false); if (!res.dropped) break; }
+      fx._mode = mode; if (res.dropped){ fx._skip = new Set(res.carry.map(o => o.p)); fx._skip.forEach(p => z.left.push(p)); }
+      return null;
     }
+    const res = run(fx._mode[0], fx._mode[1], true);
+    if (res.dropped) res.carry.forEach(o => z.left.push(o.p));
+    z.left.splice(0, res.taken);
+    const lead = own[0] && own[0].p, bid = lead ? (lead.brandId || lead.brand) : undefined;
+    res.bays.forEach((b, bi) => {
+      if (fx.b) b.hdr = {id:'pg:' + fx.c, brandId:bid, name:fx.b, big:true};
+      else { let top = -1, tw = 0; Object.keys(b.cats).forEach(c => { if (b.cats[c] > tw){ tw = b.cats[c]; top = +c; } });
+        b.hdr = {id:'pg:' + fx.c + ':' + bi, label:(top >= 0 ? PGD.names[top] : PGD.names[fx.l]) || SEC[z.key].name, big:false}; }
+    });
+    return res.bays;
+  }
+  {
+    const rects = []; PGD.f.forEach(fx => fx.r.forEach(r => rects.push(r)));
+    const touch = (r, end) => { const v = r[3] >= r[2]; return rects.some(q => q !== r && (v ? Math.abs(q[0] - r[0]) < .05 && Math.abs(q[2] - r[2]) < .05 && Math.abs(end ? q[1] - (r[1] + r[3]) : q[1] + q[3] - r[1]) < .05
+      : Math.abs(q[1] - r[1]) < .05 && Math.abs(q[3] - r[3]) < .05 && Math.abs(end ? q[0] - (r[0] + r[2]) : q[0] + q[2] - r[0]) < .05)); };
+    // the back wall first: it has nothing of its own in the online store, so it takes the department's extra range
+    const order = PGD.f.slice().sort((a, b) => (b.f === 'WB') - (a.f === 'WB')), modsOf = fx => fx.r.map(r => Math.max(1, Math.round(Math.max(r[2], r[3]))));
+    const cmp = (a, b) => (a._s[0] - b._s[0]) || (a._s[1] - b._s[1]) || (a._s[2] - b._s[2]) || (brandOf(a) < brandOf(b) ? -1 : brandOf(a) > brandOf(b) ? 1 : 0);
+    // department by department: with the planogram's facings first; if that leaves products of the department without a
+    // place, again with fewer facings, then with slightly smaller packs, until everything it sells is on a shelf
+    Z.forEach(z => {
+      const fxs = order.filter(fx => zidOf(fx.z) === z.id), base = z.left.slice(), nOf = fx => modsOf(fx).reduce((a, c) => a + c, 0), GOf = fx => fx.w ? GWALL : GONDOLA;
+      for (const lim of [[4, 1], [2, 1], [1, 1], [1, .9], [1, .82], [1, .74], [1, .66], [1, .58], [1, .5]]){
+        z.left = base.slice(); fxs.forEach(fx => { fx._skip = null; pgBays(fx, nOf(fx), GOf(fx), z, 0, lim); }); z.left.sort(cmp);
+        fxs.forEach(fx => { fx._bays = pgBays(fx, nOf(fx), GOf(fx), z, 1); });
+        z.lim = lim; if (!z.left.length) break;
+      }
+    });
+    window.__pgStats.byZone = Z.map(z => z.key + ' ' + z.lim.join('/') + ' left ' + z.left.length);
+    order.forEach(fx => {
+      const zid = zidOf(fx.z), z = Z[zid], G = fx.w ? GWALL : GONDOLA;
+      const mods = modsOf(fx), bays = fx._bays; let o = 0;
+      fx.r.forEach((r, ri) => {
+        const v = r[3] > r[2], cx = r[0] + r[2]/2 - PGD.W/2, cz = r[1] + r[3]/2 - PGD.D;
+        const yaw = fx.w ? (v ? (cx < 0 ? Math.PI/2 : -Math.PI/2) : (cz > -PGD.D/2 ? Math.PI : 0)) : (!v ? 0 : fx.f === 'B' ? Math.PI/2 : -Math.PI/2);
+        const run = bays.slice(o, o + mods[ri]); o += mods[ri];
+        gondolaFace(frame(cx, cz, yaw), run, z.key, {G, zc:z.zc, endPanels: !touch(r, 0) && !touch(r, 1)});
+        if (!fx.w && v) z.runs.push({x0:cx - .25, x1:cx + .25, zf:cz + r[3]/2, zb:cz - r[3]/2, row:Math.round((-cz - 9.2) / 8.4)});
+      });
+    });
+    window.__pgStats.unplaced = Z.reduce((a, z) => a + z.left.length, 0);
+    // each department's stretches of floor, row by row (for its signs and where its button takes you)
+    Z.forEach(z => { const by = {}; z.runs.forEach(r => (by[r.row] || (by[r.row] = [])).push(r));
+      Object.keys(by).forEach(row => { const a = by[row].sort((p, q) => p.x0 - q.x0); let cur = null;
+        a.forEach(r => { if (cur && r.x0 - cur.x1 < 3.2){ cur.x1 = Math.max(cur.x1, r.x1); cur.zf = Math.max(cur.zf, r.zf); cur.zb = Math.min(cur.zb, r.zb); } else { cur = {zid:z.id, x0:r.x0, x1:r.x1, zf:r.zf, zb:r.zb}; SEG.push(cur); } }); }); });
   }
 
-  // ---------- pharmacist counter (far end of the central walkway) ----------
-  const deskW = 2*SP - .6;
+  // ---------- pharmacist counter (far end of the central walkway; the prescription shelves stand behind it) ----------
+  const deskW = 17.4;
   {
     const F = frame(0, zC - .45, 0), T = STRUCT, C_TEAL = rgb('#14a3b5');
     boxInto(T, F, 0, .5, 0, deskW, 1.0, .9, '#ffffff');
     boxInto(T, F, 0, .45, .452, deskW + .02, .5, .01, C_TEAL);
     boxInto(T, F, 0, 1.025, 0, deskW + .2, .05, 1.05, '#efe9ec');
-    OBSTACLES.push({box:{x0:-SP - .2, x1:SP + .2, z0:zB - 1, z1:zC + .35}});
-    [-deskW/2 + .5, deskW/2 - .5].forEach(x => { boxInto(T, frame(x, zC - .6, 0), 0, 1.17, 0, .06, .25, .06, C_UPRIGHT); boxInto(T, frame(x, zC - .62, 0), 0, 1.38, 0, .42, .28, .03, '#1b1b1f'); });
+    OBSTACLES.push({box:{x0:-deskW/2 - .5, x1:deskW/2 + .5, z0:zB - 1, z1:zC + .35}});
+    [-deskW/2 + .5, -2.4, 2.4, deskW/2 - .5].forEach(x => { boxInto(T, frame(x, zC - .6, 0), 0, 1.17, 0, .06, .25, .06, C_UPRIGHT); boxInto(T, frame(x, zC - .62, 0), 0, 1.38, 0, .42, .28, .03, '#1b1b1f'); });
     const disc = new THREE.Mesh(new THREE.BoxGeometry(1.25, 1.25, .08), std('#ffffff',{roughness:.3})); disc.position.set(-1.2, 3.55, zB + .06); scene.add(disc);
     const logo = logoPlane(1.04, 1.04); logo.position.set(-1.2, 3.55, zB + .11); scene.add(logo);
     const crossMat = new THREE.MeshBasicMaterial({color:TEAL, toneMapped:false});
@@ -1457,6 +1346,14 @@ function build(renderer){
     const sign = lightbox('استشر الصيدلي', 3, {bg:TEAL, fg:'#ffffff', bar:'#ffffff'}); hang(sign, 0, 3.2, zC - .2, 1.2);
     sign.userData.svc = true; svcTargets.push(sign);
     spotAt(-deskW/4, zC - 1.2, 1, .8); spotAt(deskW/4, zC - 1.2, 1, .8);
+  }
+  // ---------- the cashier, beside the entrance as in the drawing ----------
+  {
+    const F = frame(6.9, zF - 3.4, 0);
+    boxInto(STRUCT, F, 0, .5, 0, 2.2, 1.0, 1.0, '#ffffff'); boxInto(STRUCT, F, 0, .45, .502, 2.22, .5, .01, C_PINK); boxInto(STRUCT, F, 0, 1.025, 0, 2.36, .05, 1.12, '#efe9ec');
+    boxInto(STRUCT, frame(6.4, zF - 3.5, 0), 0, 1.2, 0, .42, .28, .03, '#1b1b1f'); boxInto(STRUCT, frame(6.4, zF - 3.5, 0), 0, 1.09, 0, .06, .1, .06, C_UPRIGHT);
+    OBSTACLES.push({box:{x0:5.5, x1:8.3, z0:zF - 4.2, z1:zF - 2.6}});
+    const s = lightbox('الكاشير', 1.7, {bg:PLUM, fg:'#ffffff'}); hang(s, 6.9, 3.0, zF - 3.4, .8);
   }
 
   // ---------- Saudi pharmacists (click → customer service) ----------
@@ -1551,13 +1448,12 @@ function build(renderer){
     spotAt(x, z, .6, .7, .5);
   }
   {
-    const keys = ['offers', 'excl', 'trend', 'import'].filter(k => SD(k)), z0 = zR0 - 3.4, z1 = zC + 6.8;
-    const step = keys.length > 1 ? Math.max(6.2, Math.min(11, (z0 - z1) / (keys.length - 1))) : 0;
-    keys.forEach((k, i) => { const z = z0 - i*step; if (i === 0 || z >= z1) promoIsland(k, 0, z); });
+    // down the middle of the central walkway (7 m wide in the drawing)
+    ['offers', 'excl', 'trend', 'import'].filter(k => SD(k)).forEach((k, i) => promoIsland(k, 0, zF - 12.7 - i*5.6));
   }
   // milk bundle table and the best-seller tower
   if (SD('milk')){
-    const x = 0, z = zF - 2.6, Fm = frame(x, z, 0), Fb = frame(x, z, Math.PI);
+    const x = 0, z = zF - 3.6, Fm = frame(x, z, 0), Fb = frame(x, z, Math.PI);
     boxInto(STRUCT, Fm, 0, .36, 0, 2.6, .72, 1.3, C_PINK); boxInto(STRUCT, Fm, 0, .74, 0, 2.7, .04, 1.4, '#ffffff');
     boxInto(STRUCT, Fm, 0, .9, 0, 1.8, .3, .62, '#ffffff'); boxInto(STRUCT, Fm, 0, 1.2, 0, 1.0, .3, .4, '#ffffff');
     const size = sizer('milk'), P = SD('milk').products; let i = 0;
@@ -1588,71 +1484,26 @@ function build(renderer){
     SEC.best.focus = {pos:new THREE.Vector3(x + 2.5, EYE, z + 3.5), target:new THREE.Vector3(x, 1.0, z)};
   }
 
-  // ---------- top-selling brand stands along the glass front ----------
-  // the open floor by the windows: one 2-bay stand per brand, ranked by units sold storewide
-  {
-    const G2 = {h:1.7, d:.45, levels:[.15, .55, .95, 1.35]};
-    const soldOf = p => p.sold || 0;
-    const agg = {};
-    mainKeys.forEach(k => { SD(k).products.forEach(p => {
-      if (!p.brandId || !p.brand) return;
-      const a = agg[p.brandId] || (agg[p.brandId] = {id:p.brandId, name:p.brand, sold:0, n:0, per:{}});
-      a.sold += soldOf(p); a.n++; a.per[k] = (a.per[k] || 0) + 1;
-    }); });
-    const ranked = Object.values(agg).sort((a, b) => (b.sold - a.sold) || (b.n - a.n)).slice(0, 12);
-    // slots along the glass, clear of the doors, the nested trolleys and the basket stack
-    const SW = 2*BW + .1, GAP = .95, zS = zF - 1.2;
-    const slots = [];
-    [[DOOR_IN + 5.0, Wx - 1.6], [-(Wx - 1.6), DOOR_OUT - 2.2]].forEach(([a, b]) => {
-      if (b - a < SW) return;
-      const m = Math.floor((b - a + GAP) / (SW + GAP)), pad = (b - a - m*SW - (m - 1)*GAP) / 2;
-      for (let i = 0; i < m; i++) slots.push(a + pad + SW/2 + i*(SW + GAP));
-    });
-    slots.sort((a, b) => Math.abs(a) - Math.abs(b));           // best sellers nearest the entrance
-    const placed = ranked.slice(0, slots.length);
-    placed.forEach((br, i) => {
-      const secKey = Object.entries(br.per).sort((x, y) => y[1] - x[1])[0][0];
-      const list = SD(secKey).products.filter(p => p.brandId === br.id).sort((a, b) => soldOf(b) - soldOf(a));
-      if (!list.length) return;
-      const bays = planogram(secKey, list, G2, {cycle:true, maxBays:2, noBrands:true});
-      const hdr = {id:'b:' + br.id, brandId:br.id, name:br.name, big:true};
-      bays.forEach(b2 => b2.hdr = hdr);
-      gondolaFace(frame(slots[i], zS, Math.PI), bays, secKey, {G:G2});
-    });
-    if (placed.length) [-1, 1].forEach(s => {
-      const xs = slots.slice(0, placed.length).filter(x => s*x > 0); if (!xs.length) return;
-      const cx = xs.reduce((a, b) => a + b, 0) / xs.length;
-      hang(lightbox('ماركاتنا الأكثر مبيعاً ★', 2.8, {bg:PLUM, fg:'#ffffff'}), cx, 3.05, zS - .9, 1.2, 0);
-    });
-  }
-
-  // ---------- zone identity: tinted floors, a portal sign where each zone starts ----------
-  const namedAisles = new Set();
+  // ---------- department identity: a sign over every stretch of a department, its name on the floor in front ----------
   SEG.forEach(sg => {
-    const z = Z[sg.zid], sec = SEC[z.key];
-    const z0 = sg.z0, z1 = sg.z1;
-    const tint = new THREE.Mesh(new THREE.PlaneGeometry(Wx - SP + .5, z0 - z1), new THREE.MeshBasicMaterial({color:z.zc.hex, transparent:true, opacity:.12, depthWrite:false, toneMapped:false}));
-    tint.rotation.x = -Math.PI/2; tint.position.set(sg.w*(SP - .5 + Wx)/2, .006, (z0 + z1)/2); scene.add(tint);
-    const t = canvasTex(1024, 300, (x, W, Hh) => {
+    const z = Z[sg.zid], sec = SEC[z.key], xc = (sg.x0 + sg.x1)/2, wd = Math.min(3.0, Math.max(1.9, sg.x1 - sg.x0 + 1.4));
+    if (!z.signTex) z.signTex = canvasTex(1024, 300, (x, W, Hh) => {
       const g = x.createLinearGradient(0, 0, W, 0); g.addColorStop(0, z.zc.lo); g.addColorStop(.5, z.zc.hex); g.addColorStop(1, z.zc.lo); x.fillStyle = g; x.fillRect(0, 0, W, Hh);
       x.fillStyle = 'rgba(255,255,255,.4)'; x.fillRect(0, Hh-12, W, 12);
       x.fillStyle = '#ffffff'; x.textAlign = 'center'; x.textBaseline = 'middle'; x.direction = 'rtl'; fitText(x, sec.name, W - 110, 800, 124); x.fillText(sec.name, W/2, 116);
       x.direction = 'ltr'; x.font = '700 56px Arial, sans-serif'; x.globalAlpha = .92; x.fillText(sec.en || '', W/2, 232); x.globalAlpha = 1;
     });
-    const face = new THREE.MeshBasicMaterial({map:t, toneMapped:false}), side = std(z.zc.hex);
-    const box = new THREE.Mesh(new THREE.BoxGeometry(3.0, 3.0*300/1024, .1), [side,side,side,side,face,face]);
-    hang(box, sg.w*2.35, 3.35, z0 - .25, .9);
+    if (!z.signMat){ const face = new THREE.MeshBasicMaterial({map:z.signTex, toneMapped:false}), side = std(z.zc.hex); z.signMat = [side,side,side,side,face,face]; }
+    const box = new THREE.Mesh(new THREE.BoxGeometry(wd, wd*300/1024, .1), z.signMat);
+    hang(box, xc, 3.35, sg.zf + .75, .9);
     box.userData.nav = z.key; navTargets.push(box);
-    if (!sec.focus) sec.focus = {pos:new THREE.Vector3(sg.w*1.7, EYE, z0 + 2.4), target:new THREE.Vector3(sg.w*(SP + 5), 1.3, z0 - 3)};
-    // the section's name written on the floor of each of its aisles
+    // its button takes you to the stretch nearest the entrance
+    if (!sec.focus || sg.zf > sec.focusZ){ sec.focusZ = sg.zf; sec.focus = {pos:new THREE.Vector3(xc, EYE, sg.zf + 2.1), target:new THREE.Vector3(xc, 1.25, sg.zf - 2.5)}; }
     if (!z.floorTex) z.floorTex = canvasTex(1024, 256, (x, W, Hh) => { x.clearRect(0, 0, W, Hh); x.fillStyle = z.zc.lo; x.textAlign = 'center'; x.textBaseline = 'middle'; x.direction = 'rtl'; fitText(x, sec.name, W - 60, 800, 150); x.fillText(sec.name, W/2, 104);
       x.direction = 'ltr'; x.font = '700 50px Arial, sans-serif'; x.globalAlpha = .8; x.fillText((sec.en || '').toUpperCase(), W/2, 210); x.globalAlpha = 1; });
-    const wingW = Wx - GWALL.d - SIDE_A - SP, tw = Math.min(5.6, wingW - 3.4), fmat = new THREE.MeshBasicMaterial({map:z.floorTex, transparent:true, depthWrite:false, toneMapped:false, opacity:.85});
-    sg.aisles.forEach(za => { const ak = sg.w + ':' + za; if (namedAisles.has(ak)) return; namedAisles.add(ak);   // an aisle shared by two zones is named once
-      const fm = new THREE.Mesh(new THREE.PlaneGeometry(tw, tw/4), fmat); fm.rotation.x = -Math.PI/2; fm.position.set(sg.w*(SP + wingW/2), .009, za); fm.renderOrder = 1; scene.add(fm);
-      // and once more at the mouth of the aisle, turned to be read from the central walkway
-      const fe = new THREE.Mesh(new THREE.PlaneGeometry(AISLE_W - .3, (AISLE_W - .3)/4), fmat); fe.rotation.order = 'YXZ'; fe.rotation.y = -sg.w*Math.PI/2; fe.rotation.x = -Math.PI/2;
-      fe.position.set(sg.w*(SP + .75), .009, za); fe.renderOrder = 1; scene.add(fe); });
+    if (!z.floorMat) z.floorMat = new THREE.MeshBasicMaterial({map:z.floorTex, transparent:true, depthWrite:false, toneMapped:false, opacity:.85});
+    const tw = Math.min(4.4, Math.max(2.2, sg.x1 - sg.x0 + .8)), fm = new THREE.Mesh(new THREE.PlaneGeometry(tw, tw/4), z.floorMat);
+    fm.rotation.x = -Math.PI/2; fm.position.set(xc, .009, sg.zf + 1.25); fm.renderOrder = 1; scene.add(fm);
   });
   SEC.z_rx.focus = {pos:new THREE.Vector3(0, EYE, zC + 3.2), target:new THREE.Vector3(0, 1.5, zB)};
 
@@ -1708,8 +1559,9 @@ function build(renderer){
       1: [() => splashB('لصحتك', ['#7fd0d6', '#2fa9b5', '#aee3e6'], 113), () => plainB('استشر الصيدلي', 'Ask the Pharmacist', '#1d1d1f', '#14a3b5'), () => underB('نهتم بصحتك', 'We Care', ['#aee3e6', '#86d3d9', '#cdeef0'], '#14a3b5', 127)]
     };
     const lineMat = {}, lineN = {};
-    const boardFor = (x, z) => { const w = x < 0 ? -1 : 1; let sg = SEG.find(g => g.w === w && z <= g.z0 + 2 && z >= g.z1 - 2) || SEG.filter(g => g.w === w).sort((a, b) => Math.abs((a.z0 + a.z1)/2 - z) - Math.abs((b.z0 + b.z1)/2 - z))[0];
-      const zid = sg && LINES[sg.zid] ? sg.zid : 4, i = (lineN[zid] = (lineN[zid] || 0) + 1) - 1, k = zid + ':' + (i % LINES[zid].length);
+    // the department standing nearest to the board decides its lines
+    const boardFor = (x, z) => { const sg = SEG.slice().sort((a, b) => Math.hypot((a.x0 + a.x1)/2 - x, (a.zf + a.zb)/2 - z) - Math.hypot((b.x0 + b.x1)/2 - x, (b.zf + b.zb)/2 - z))[0];
+      const zid = sg ? Z[sg.zid].old : 4, i = (lineN[zid] = (lineN[zid] || 0) + 1) - 1, k = zid + ':' + (i % LINES[zid].length);
       return lineMat[k] || (lineMat[k] = new THREE.MeshBasicMaterial({map:LINES[zid][i % LINES[zid].length](), toneMapped:false})); };
     const PWd = 4.6, PHt = PWd*448/1024, rim = std('#ffffff', {roughness:.4});
     const board = (x, y, z, yaw) => { const g = new THREE.Group(); g.position.set(x, y, z); g.rotation.y = yaw;
@@ -1855,17 +1707,16 @@ function build(renderer){
   }
   {
     // trolleys nested along the glass beside the entrance, and a stack of baskets
-    for (let k = 0; k < 6; k++) trolley(frame(DOOR_IN + 2.0 + k*.32, zF - .75, Math.PI/2));
-    OBSTACLES.push({box:{x0:DOOR_IN + 1.4, x1:DOOR_IN + 4.3, z0:zF - 1.3, z1:zF}});
-    const bk = frame(DOOR_IN - 1.9, zF - 1.6, 0);
+    for (let k = 0; k < 6; k++) trolley(frame(3.56, zF - .6 - k*.32, 0));
+    OBSTACLES.push({box:{x0:3.15, x1:3.98, z0:zF - 2.7, z1:zF}});
+    const bk = frame(-3.56, zF - .75, 0);
     for (let k = 0; k < 7; k++){ boxInto(STRUCT, bk, 0, .08 + k*.06, 0, .5, .05, .36, '#d64f8e'); }
     boxInto(STRUCT, bk, 0, .03, 0, .56, .06, .42, C_UPRIGHT);
-    OBSTACLES.push({x: DOOR_IN - 1.9, z: zF - 1.6, r:.35});
+    OBSTACLES.push({x: -3.56, z: zF - .75, r:.35});
     // wire bins along the side walls of the entrance zone, and at both ends of the counter aisle
     const keysCycle = ['offers', 'quick', 'trend', 'excl', 'import', 'milk'].filter(k => SD(k));
     let n = 0, idx = {};
     const bin = (x, z, yaw) => { const k = keysCycle[n++ % keysCycle.length]; if (!k) return; idx[k] = wireBin(x, z, yaw, k, idx[k] || 0); };
-    [-1, 1].forEach(s => { for (let z = zF - 2.2; z > zA0 + 1.0; z -= 1.75) bin(s*(Wx - .7), z, -s*Math.PI/2); });
   }
 
   // ---------- the cart you push ahead of you (game feel, like real shopping) ----------

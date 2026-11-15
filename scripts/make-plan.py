@@ -29,17 +29,21 @@ def region(start, end, new):
 
 # zones as sections (names, colours come from the layout code)
 rep("  {key:'quick', name:'مشتريات سريعة',",
-    "  {key:'z_kids', zone:true, name:'قسم الأطفال', en:'Kids Care', url:cat('العناية-بالأم-والطفل',745675715), size:1, eyebrow:'منطقة', desc:'مستلزمات الأم والطفل: الحفاضات، حليب وغذاء الأطفال، العناية والإكسسوارات.'},\n"
-    "  {key:'z_rx', zone:true, name:'الدواء والصيدلية', en:'Pharmacy', url:cat('الأدوية',1199189212), size:1, eyebrow:'منطقة', desc:'الأدوية بدون وصفة خلف كاونتر الصيدلي وبجانبه. الأدوية التي تحتاج وصفة تطلبها من الصيدلي.'},\n"
-    "  {key:'z_well', zone:true, name:'العناية بالصحة', en:'Wellness', url:cat('المكملات-الغذائية-والفيتامينات',884496587), size:1, eyebrow:'منطقة', desc:'الفيتامينات والمكملات، الأجهزة الطبية ومستلزمات الصحة المنزلية.'},\n"
-    "  {key:'z_care', zone:true, name:'العناية الشخصية', en:'Personal Care', url:cat('العناية-اليومية',527058090), size:1, eyebrow:'منطقة', desc:'العناية بالفم والأسنان، مزيلات العرق، الحلاقة والعناية اليومية.'},\n"
-    "  {key:'z_beauty', zone:true, name:'الجمال والعناية', en:'Beauty Care', url:cat('العناية-بالبشرة',26418371), size:1, eyebrow:'منطقة', desc:'العناية بالبشرة والشعر، المكياج والعطور وستاندات الماركات.'},\n"
+    "  {key:'z_makeup', zone:true, name:'الميك أب', en:'Makeup', url:cat('المكياج-والاكسسوارات',539644644), size:1, eyebrow:'قسم', desc:'المكياج وإكسسواراته: ستاندات العلامات ورفوف الوجه والعيون والشفاه والأظافر.', cta:'تسوق القسم'},\n"
+    "  {key:'z_derma', zone:true, name:'الديرما والبريميوم', en:'Derma & Premium', url:cat('العناية-بالبشرة',26418371), size:1, eyebrow:'قسم', desc:'علامات العناية الطبية بالبشرة والعلامات الفاخرة.', cta:'تسوق القسم'},\n"
+    "  {key:'z_hair', zone:true, name:'العناية بالشعر والبشرة', en:'Hair & Skin Care', url:cat('العناية-بالشعر',2050932461), size:1, eyebrow:'قسم', desc:'الشامبو والبلسم وعلاجات وصبغات الشعر، والعناية اليومية بالبشرة.', cta:'تسوق القسم'},\n"
+    "  {key:'z_care', zone:true, name:'العناية الشخصية', en:'Personal Care', url:cat('العناية-اليومية',527058090), size:1, eyebrow:'قسم', desc:'الاستحمام والجسم، العناية بالفم والأسنان، مزيلات العرق، العناية النسائية وعناية الرجل.', cta:'تسوق القسم'},\n"
+    "  {key:'z_dev', zone:true, name:'الأجهزة والمستلزمات الطبية', en:'Medical Devices', url:cat('الأجهزة-والمعدات-الطبية',1237042837), size:1, eyebrow:'قسم', desc:'أجهزة القياس، الدعامات، الإسعافات الأولية والمستلزمات الطبية.', cta:'تسوق القسم'},\n"
+    "  {key:'z_vit', zone:true, name:'المكملات الغذائية', en:'Supplements', url:cat('المكملات-الغذائية-والفيتامينات',884496587), size:1, eyebrow:'قسم', desc:'الفيتامينات والمكملات الغذائية.', cta:'تسوق القسم'},\n"
+    "  {key:'z_kids', zone:true, name:'الأم والطفل', en:'Mom & Baby', url:cat('العناية-بالأم-والطفل',745675715), size:1, eyebrow:'قسم', desc:'الحفائض، حليب وغذاء الأطفال، الرضّاعات ومستلزمات الأم والطفل.', cta:'تسوق القسم'},\n"
+    "  {key:'z_rx', zone:true, name:'الدواء والصيدلية', en:'Pharmacy', url:cat('الأدوية',1199189212), size:1, eyebrow:'قسم', desc:'الأدوية بدون وصفة أمام كاونتر الصيدلي، وأدوية الوصفة خلفه.', cta:'تسوق القسم'},\n"
     "  {key:'quick', name:'مشتريات سريعة',")
 
 # merchandising file, loaded with the product data
 rep("  AV = DATA && DATA.build ? '?v=' + DATA.build : '';",
     "  AV = DATA && DATA.build ? '?v=' + DATA.build : '';\n"
     "  try { const r = await fetch('plan/imf.json'); if (r.ok) window.__IMF = await r.json(); } catch(e){}\n"
+    "  try { const r = await fetch('plan/pg.json'); if (r.ok) window.__PG = await r.json(); } catch(e){}\n"
     "  try { const r = await fetch('data/plan.json?t=' + Math.floor(Date.now() / 600000)); if (r.ok) window.__PAT = await r.json(); } catch(e){}")
 
 # plan pages have their own photo atlas (ordered like these shelves): products address it instead of their store-category atlas
@@ -87,8 +91,6 @@ rep("m = new THREE.Mesh(endGeoFor(G), endMat(nm));", "m = new THREE.Mesh(endGeoF
 rep("        putProduct(key, F, bx + it.x, it.y, d/2 - .1 - (it.back || 0),", "        putProduct(it.p._k || key, F, bx + it.x, it.y, d/2 - .1 - (it.back || 0),")
 
 # real branch fixtures: 1.2 m bays, 60 cm deep, 4 shelves, 30 cm header boards
-rep("  const BW = 1.0;", "  const BW = 1.2;")
-rep("  const GONDOLA = {h:1.8, d:.5, levels:[.12, .45, .78, 1.11, 1.44]};", "  const GONDOLA = {h:1.8, d:.6, levels:[.14, .56, .98, 1.40]};")
 rep("    const w = x1 - x0 - .04, cx = (x0 + x1)/2, hh = .42, a = F.at, n = F.n;", "    const w = x1 - x0 - .04, cx = (x0 + x1)/2, hh = .30, a = F.at, n = F.n;")
 # Blender look: the sign above each bay is a frame in the department colour round a white label
 rep("    quad(HDR, [a(cx-w/2,y,z), a(cx+w/2,y,z), a(cx+w/2,y+hh,z), a(cx-w/2,y+hh,z)], n(0,0,1), C_WHITE);",
@@ -111,12 +113,19 @@ rep("fitText(x, name, W-30, 800, 54); x.fillText(name, W/2, Hh/2+2); });", "fitT
 # layout, counter
 region('  // ---------- lay the sections out: back wall (medicines), then aisle after aisle ----------', '  // ---------- Saudi pharmacists (click → customer service) ----------', blocks['R2'])
 # quick racks, cross-sell stands (the original brand end caps go with them)
-region('  // ---------- quick-grab racks at the counter (tissues, air fresheners, sanitisers…) ----------', '  // ---------- top-selling brand stands along the glass front ----------', blocks['R3'])
+region('  // ---------- quick-grab racks at the counter (tissues, air fresheners, sanitisers…) ----------', '  // ---------- aisle signs: number + sections, and a sign where each section starts ----------', blocks['R3'])
 # zone signs instead of aisle signs
 region('  // ---------- aisle signs: number + sections, and a sign where each section starts ----------', '  // ---------- entrance & exit doors, security gates ----------', blocks['R4'])
 
 # wire bins: only in the entrance zone (the side walls further in carry wall units)
 rep("    [-1, 1].forEach(s => { bin(s*(Wx - .7), zA1 - 1.0, -s*Math.PI/2); bin(s*(Wx - .7), zC + 1.1, -s*Math.PI/2); });\n", "")
+rep("    [-1, 1].forEach(s => { for (let z = zF - 2.2; z > zA0 + 1.0; z -= 1.75) bin(s*(Wx - .7), z, -s*Math.PI/2); });\n", "")
+# the drawing's entrance is 6 m wide at the centre, with wall units right up to it: doors closer together, trolleys between them
+rep("  const DOOR_IN = 3.4, DOOR_OUT = -3.4;", "  const DOOR_IN = 1.9, DOOR_OUT = -1.9;")
+rep("    for (let k = 0; k < 6; k++) trolley(frame(DOOR_IN + 2.0 + k*.32, zF - .75, Math.PI/2));\n    OBSTACLES.push({box:{x0:DOOR_IN + 1.4, x1:DOOR_IN + 4.3, z0:zF - 1.3, z1:zF}});",
+    "    for (let k = 0; k < 6; k++) trolley(frame(3.56, zF - .6 - k*.32, 0));\n    OBSTACLES.push({box:{x0:3.15, x1:3.98, z0:zF - 2.7, z1:zF}});")
+rep("    const bk = frame(DOOR_IN - 1.9, zF - 1.6, 0);", "    const bk = frame(-3.56, zF - .75, 0);")
+rep("    OBSTACLES.push({x: DOOR_IN - 1.9, z: zF - 1.6, r:.35});", "    OBSTACLES.push({x: -3.56, z: zF - .75, r:.35});")
 
 # the drone may climb with the higher ceiling
 rep("const DRONE_ALT = 3.0;", "const DRONE_ALT = 4.3;")

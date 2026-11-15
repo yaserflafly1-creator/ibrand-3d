@@ -1006,7 +1006,7 @@ function build(renderer){
   const C_STEEL = rgb('#aab1b6'), C_SHELF = rgb('#e9ecee'), C_UPRIGHT = rgb('#6d757b'), C_KICK = rgb('#7e868c'), C_PINK = rgb('#e873a8');
   const clickables = [];  // [{box, sec}] for collisions and section focus
   // section-title atlas for the shared headers
-  const LABELS = [...new Set([...SECTIONS.map(s => s.name), ...Object.values((window.__IMF && window.__IMF.c) || {}), ...(DATA ? Object.values(DATA.sections).flatMap(sd => sd.products.map(p => p.sub).filter(Boolean)) : [])])];
+  const LABELS = [...new Set([...SECTIONS.map(s => s.name), ...Object.values((window.__IMF && window.__IMF.c) || {}), ...((window.__PG && window.__PG.names) || []), ...(DATA ? Object.values(DATA.sections).flatMap(sd => sd.products.map(p => p.sub).filter(Boolean)) : [])])];
   const TRH = 80, TC = Math.min(4, Math.max(2, Math.ceil(LABELS.length / 51))), TROWS = Math.ceil(LABELS.length / TC);   // 51 rows fit a 4096 texture: add columns for more titles
   const titleCanvas = document.createElement('canvas'); titleCanvas.width = TC * 1024; titleCanvas.height = Math.min(4096, TROWS * TRH);
   const drawTitles = () => { const x = titleCanvas.getContext('2d'); x.fillStyle = '#ffffff'; x.fillRect(0, 0, titleCanvas.width, titleCanvas.height);
