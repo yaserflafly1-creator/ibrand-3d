@@ -8,8 +8,8 @@
 //   TOKEN_SECRET    secret: any long random text (signs the sign-in tokens)
 // Optional, for "publish this picture to Salla" in the editor. This Worker never keeps or renews Salla tokens:
 // it asks the token vault for the current one each time.
-//   VAULT_URL       the vault's token address
 //   VAULT_KEY       secret: the key the vault asks for
+//   VAULT_URL       (only if it moves) the vault's token address
 //   VAULT           service binding to the vault Worker (needed when both Workers are on the same account)
 const CORS = {'access-control-allow-origin':'*', 'access-control-allow-headers':'authorization,content-type', 'access-control-allow-methods':'GET,PUT,POST,DELETE,OPTIONS', 'access-control-max-age':'86400'};
 const json = (d, status = 200, h = {}) => new Response(JSON.stringify(d), {status, headers:{'content-type':'application/json; charset=utf-8', ...CORS, ...h}});
@@ -32,10 +32,13 @@ async function log(env, who, what){ const l = await getJ(env, 'log', []); if (l[
 
 const SALLA = env => String(env.SALLA_API || 'https://api.salla.dev/admin/v2').replace(/\/+$/, '');
 async function sallaToken(env){
-  if (!env.VAULT_URL || !env.VAULT_KEY) return {error:'الربط مع سلة غير مهيأ في الخادم بعد', status:503};
-  const q = new Request(env.VAULT_URL, {headers:{authorization:'Bearer ' + env.VAULT_KEY, 'x-ops-key':env.VAULT_KEY, accept:'application/json'}});
+  if (!env.VAULT_KEY) return {error:'الربط مع سلة غير مهيأ في الخادم بعد', status:503};
+  const q = new Request(env.VAULT_URL || 'https://ibrand-vault.ibrandsales.workers.dev/token?app=brand-offers', {headers:{authorization:'Bearer ' + env.VAULT_KEY, accept:'application/json'}});
   let r; try { r = await (env.VAULT ? env.VAULT.fetch(q) : fetch(q)); } catch(e){ return {error:'تعذّر الوصول لخزنة المفاتيح', status:502}; }
   if (r.status === 409) return {error:'ربط سلة يحتاج إعادة تثبيت التطبيق في المتجر', status:409};
+  if (r.status === 401) return {error:'مفتاح الخزنة في الخادم غير صحيح', status:502};
+  if (r.status === 404) return {error:'الخزنة لا تعرف التطبيق أو لم يصلها مفتاح من سلة بعد', status:502};
+  if (r.status === 429 || r.status === 503) return {error:'خزنة المفاتيح مشغولة الآن، حاول بعد دقيقة', status:503};
   if (!r.ok) return {error:'خزنة المفاتيح رفضت الطلب (' + r.status + ')', status:502};
   const t = (await r.text()).trim(); let tok = t; try { const j = JSON.parse(t); tok = j.access_token || j.token || (j.data && (j.data.access_token || j.data.token)) || ''; } catch(e){}
   return /^[\w.\-~+\/=]{20,4000}$/.test(tok) ? {token:tok} : {error:'خزنة المفاتيح لم ترجع مفتاحاً صالحاً', status:502};
