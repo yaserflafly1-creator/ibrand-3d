@@ -184,11 +184,14 @@ td,th{padding:6px 8px;border-bottom:1px solid var(--line);text-align:right}
 'use strict';
 const $ = s => document.querySelector(s), el = (t, a, kids) => { const e = document.createElement(t); if (a) for (const k in a){ if (k === 'text') e.textContent = a[k]; else if (k in e && k !== 'list') e[k] = a[k]; else e.setAttribute(k, a[k]); } (kids || []).forEach(c => e.appendChild(c)); return e; };
 const ls = { get(k){ try { return localStorage.getItem(k); } catch(e){ return null; } }, set(k, v){ try { v === null ? localStorage.removeItem(k) : localStorage.setItem(k, v); } catch(e){} } };
+// a look-only copy (no backend): opened with ?demo=1, or with the data handed in as window.__DEMO; nothing is saved
+const DEMO = window.__DEMO || (/[?&]demo=1\b/.test(location.search) ? {} : null);
 let API = '', TOKEN = '', ROLE = '', CFG = {}, PG = null, PRODS = new Map(), SEL = null, pgDirty = false, cfgDirty = false, msgT = 0;
 const ZONES = {A:['عند الكاشير', '#9c27b0'], B:['الميك أب', '#e0447f'], C:['الديرما والبريميوم', '#9c27b0'], D:['العناية بالشعر والبشرة', '#3f51b5'], E:['العناية الشخصية', '#0097a7'], F:['الأجهزة والمستلزمات الطبية', '#689f38'], G:['المكملات الغذائية', '#e0a11a'], H:['الأم والطفل', '#ef6c00'], I:['أدوية بدون وصفة', '#c62828'], J:['أدوية الوصفة (خلف الكاونتر)', '#8e1b1b']};
 const PROMO = {offers:'العروض', excl:'منتجات حصرية', trend:'ترند اي براند', import:'منتجات مستوردة'};
 function say(t, bad){ const m = $('#msg'); m.textContent = t; m.className = 'msg' + (bad ? ' bad' : ''); m.hidden = false; clearTimeout(msgT); msgT = setTimeout(() => { m.hidden = true; }, bad ? 6000 : 2600); }
 async function call(path, opt){
+  if (DEMO){ if (path === '/log') return [{t:new Date().toISOString(), who:'نسخة عرض', what:'الحفظ غير مفعّل في نسخة العرض'}]; if (path === '/users') return []; return {ok:true}; }
   const o = opt || {}, h = Object.assign({}, o.headers); if (TOKEN) h.authorization = 'Bearer ' + TOKEN; if (o.body && typeof o.body === 'string') h['content-type'] = 'application/json';
   const r = await fetch(API + path, Object.assign({}, o, {headers:h})); let d = null; try { d = await r.json(); } catch(e){}
   if (r.status === 401 && TOKEN && path !== '/login'){ signOut(); throw new Error('انتهت الجلسة، سجّل الدخول من جديد'); }
@@ -202,6 +205,7 @@ addEventListener('beforeunload', e => { if (pgDirty || cfgDirty){ e.preventDefau
 // ---------- sign in ----------
 function signOut(){ TOKEN = ''; ls.set('ib3d-admin-token', null); $('#login').hidden = false; $('#tabs').hidden = true; $('#out').hidden = true; $('#who').textContent = ''; document.querySelectorAll('main > section[id^="t-"]').forEach(s => { s.hidden = true; }); }
 async function start(){
+  if (DEMO){ CFG = DEMO.cfg || (await getJSON('../config.json')) || {}; return enter({user:'نسخة عرض', role:'admin'}); }
   const st = await getJSON('../config.json'); API = ((st && st.api) || ls.get('ib3d-admin-api') || '').replace(/\/+$/, '');
   if (st && st.api) $('#apiRow').hidden = true; else $('#api').value = API;
   CFG = st || {};
@@ -213,13 +217,14 @@ $('#go').onclick = async () => {
   catch(e){ say(e.message, true); }
 };
 $('#pass').addEventListener('keydown', e => { if (e.key === 'Enter') $('#go').click(); });
-$('#out').onclick = signOut;
+$('#out').onclick = () => { if (!DEMO) signOut(); };
 async function enter(me){
   ROLE = me.role; $('#who').textContent = me.user + (ROLE === 'admin' ? ' (مدير)' : ''); $('#login').hidden = true; $('#tabs').hidden = false; $('#out').hidden = false;
-  const saved = await getJSON(API + '/public/config'); CFG = Object.assign({}, CFG, saved || {});
-  PG = await getJSON(API + '/public/pg'); if (!PG || !Array.isArray(PG.f)) PG = await getJSON('../plan/pg.json');
+  const saved = DEMO ? null : await getJSON(API + '/public/config'); CFG = Object.assign({}, CFG, saved || {});
+  PG = DEMO ? DEMO.pg : await getJSON(API + '/public/pg'); if (!PG || !Array.isArray(PG.f)) PG = await getJSON('../plan/pg.json');
   if (!PG){ say('تعذّر تحميل المخطط', true); PG = {v:1, W:44, D:46.1, names:[], f:[]}; }
-  const d = await getJSON('../data/products.json'); if (d && d.sections) Object.values(d.sections).forEach(s => (s.products || []).forEach(p => { if (!PRODS.has(String(p.id))) PRODS.set(String(p.id), p); }));
+  if (DEMO && DEMO.prods) Object.keys(DEMO.prods).forEach(id => PRODS.set(id, {id, name:DEMO.prods[id]}));
+  const d = DEMO && DEMO.prods ? null : await getJSON('../data/products.json'); if (d && d.sections) Object.values(d.sections).forEach(s => (s.products || []).forEach(p => { if (!PRODS.has(String(p.id))) PRODS.set(String(p.id), p); }));
   $('#usersCard').hidden = ROLE !== 'admin'; $('#resetPg').hidden = ROLE !== 'admin';
   fillSettings(); fillPromo(); drawMap(); fillShelfPicker(); show('settings');
 }
@@ -239,7 +244,7 @@ function readSettings(){
   CFG.tour = $('#tour').checked; CFG.sound = $('#sound').checked;
 }
 $('#t-settings').addEventListener('input', dirtyCfg); $('#t-promo').addEventListener('input', dirtyCfg);
-async function saveCfg(){ readSettings(); readPromo(); const out = Object.assign({}, CFG); delete out.api;
+async function saveCfg(){ readSettings(); readPromo(); if (DEMO){ cfgDirty = false; mark(); return say('نسخة عرض: التعديل لا يُحفظ'); } const out = Object.assign({}, CFG); delete out.api;
   try { await call('/config', {method:'PUT', body:JSON.stringify(out)}); cfgDirty = false; mark(); say('تم حفظ الإعدادات'); } catch(e){ say(e.message, true); } }
 $('#saveCfg').onclick = saveCfg; $('#saveCfg2').onclick = saveCfg;
 
@@ -299,10 +304,11 @@ $('#fxDel').onclick = () => { if (!SEL) return; const b = $('#fxDel'); if (b.dat
 $('#fxAdd').onclick = () => { let n = 1, code; do { code = 'N-' + String(n++).padStart(2, '0'); } while (PG.f.some(f => f.c === code));
   const fx = {c:code, z:'E', b:'', l:-1, w:0, s:5, k:0, r:[[+((PG.W || 44)/2 - .25).toFixed(1), +((PG.D || 46)/2).toFixed(1), .5, 2]], f:'A', it:[]}; PG.f.push(fx); dirtyPg(); select(fx); fillShelfPicker(); };
 $('#fxShelvesGo').onclick = () => { if (!SEL) return; $('#shFx').value = SEL.c; show('shelves'); };
-async function savePg(){ try { await call('/pg', {method:'PUT', body:JSON.stringify(PG)}); pgDirty = false; mark(); say('تم حفظ المخطط'); } catch(e){ say(e.message, true); } }
+async function savePg(){ if (DEMO){ pgDirty = false; mark(); return say('نسخة عرض: التعديل لا يُحفظ'); } try { await call('/pg', {method:'PUT', body:JSON.stringify(PG)}); pgDirty = false; mark(); say('تم حفظ المخطط'); } catch(e){ say(e.message, true); } }
 $('#savePg').onclick = savePg; $('#savePg2').onclick = savePg;
-$('#undoPg').onclick = async () => { try { await call('/pg/undo', {method:'POST'}); PG = await getJSON(API + '/public/pg'); pgDirty = false; mark(); select(null); fillShelfPicker(); say('رجعت للنسخة السابقة'); } catch(e){ say(e.message, true); } };
+$('#undoPg').onclick = async () => { if (DEMO) return say('نسخة عرض: لا يوجد حفظ للتراجع عنه'); try { await call('/pg/undo', {method:'POST'}); PG = await getJSON(API + '/public/pg'); pgDirty = false; mark(); select(null); fillShelfPicker(); say('رجعت للنسخة السابقة'); } catch(e){ say(e.message, true); } };
 $('#resetPg').onclick = async () => { const b = $('#resetPg'); if (!b.dataset.sure){ b.dataset.sure = '1'; b.textContent = 'اضغط مرة ثانية للتأكيد'; setTimeout(() => { b.dataset.sure = ''; b.textContent = 'الرجوع للمخطط الأصلي'; }, 4000); return; }
+  if (DEMO){ b.dataset.sure = ''; b.textContent = 'الرجوع للمخطط الأصلي'; return say('نسخة عرض'); }
   try { await call('/pg', {method:'DELETE'}); PG = await getJSON('../plan/pg.json'); pgDirty = false; mark(); select(null); fillShelfPicker(); say('رجعت للمخطط الأصلي'); } catch(e){ say(e.message, true); } b.dataset.sure = ''; b.textContent = 'الرجوع للمخطط الأصلي'; };
 
 // ---------- shelves ----------
