@@ -84,6 +84,15 @@
   }
   var withoutAuto = function(data){ if (!data.img) return data; var out = Object.assign({}, data, {img:{}});
     Object.keys(data.img).forEach(function(n){ if (!(AUTO[n] && JSON.stringify(data.img[n]) === AUTO[n])) out.img[n] = data.img[n]; }); return out; };
+  // a small sign in the corner: is the link with Salla working (asks the backend, which asks the token vault; nothing is sent to Salla)
+  function sallaSign(){ var b = document.createElement('button'); b.type = 'button'; b.id = 'sallaSign'; b.textContent = '🛒 سلة: جاري الفحص…';
+    b.style.cssText = 'position:fixed;left:176px;bottom:12px;z-index:50;font:600 12px/1 Tahoma,Arial,sans-serif;padding:8px 12px;border-radius:999px;border:1px solid #b0bec5;background:#eceff1;color:#37474f;cursor:pointer';
+    var why = '', check = function(){ b.textContent = '🛒 سلة: جاري الفحص…'; call('/salla/status').then(function(r){ return r.json().then(function(d){ if (r.status === 404) d = {linked:false, why:'الخادم لسه على الكود القديم'}; return d; }); }).then(function(d){
+        why = d.linked ? 'الربط مع سلة شغال: الخادم وصل للخزنة وأخذ مفتاحاً صالحاً.' : (d.why || d.error || 'غير معروف');
+        b.textContent = d.linked ? '🛒 سلة: مربوطة ✓' : '🛒 سلة: غير مربوطة ✕'; b.style.background = d.linked ? '#e8f5e9' : '#ffebee'; b.style.color = d.linked ? '#1b5e20' : '#b71c1c'; b.style.borderColor = d.linked ? '#81c784' : '#e57373'; b.title = why;
+      }).catch(function(){ why = 'تعذّر الوصول للخادم'; b.textContent = '🛒 سلة: تعذّر الفحص'; b.title = why; }); };
+    b.onclick = function(){ alert(why || 'جاري الفحص…'); check(); }; document.body.appendChild(b); check(); }
+  ready.then(function(){ if (document.body) sallaSign(); else addEventListener('DOMContentLoaded', sallaSign); }).catch(function(){});
   window.PG_STORE = {
     name:'ibrand-3d', online:true,
     init:function(){ return ready.then(function(){ return true; }); },
