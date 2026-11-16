@@ -891,6 +891,20 @@ function build(renderer){
   const EYE = 1.6, H = 6.2;   // high ceiling, as asked for the branch
   const IMF = (window.__IMF && window.__IMF.p) || {}, CATN = (window.__IMF && window.__IMF.c) || {};
   const PGD = window.__PG && window.__PG.f ? window.__PG : {W:44, D:46.1, names:[], f:[]};
+  // one brand, one place: where the drawing gives a brand two units on the same line with other units between them,
+  // the second moves up beside the first and the ones between shift along (nothing else changes place)
+  if (!PGD._joined){ PGD._joined = 1; const seen = {}, moved = [];
+    PGD.f.forEach(fx => { if (!fx.b) return; const k = fx.z + '|' + fx.b, f0 = seen[k]; if (!f0){ seen[k] = fx; return; }
+      for (const r1 of f0.r) for (const r2 of fx.r){
+        const v = r1[3] > r1[2]; if (v !== (r2[3] > r2[2])) continue;
+        const fc = v ? 0 : 1, al = v ? 1 : 0, ln = v ? 3 : 2; if (Math.abs(r1[fc] - r2[fc]) > .05) continue;
+        const a = r1[al] < r2[al] ? r1 : r2, b = a === r1 ? r2 : r1, line = [];
+        PGD.f.forEach(g => g.r.forEach(q => { if ((q[3] > q[2]) === v && Math.abs(q[fc] - a[fc]) < .05 && q[al] >= a[al] - .01 && q[al] <= b[al] + .01) line.push(q); }));
+        line.sort((p, q) => p[al] - q[al]);
+        if (line.length < 3 || line.some((q, i) => i && Math.abs(q[al] - (line[i-1][al] + line[i-1][ln])) > .05)) continue;
+        const order = [a, b].concat(line.slice(1, -1)); let at = a[al]; order.forEach(q => { q[al] = at; at += q[ln]; }); moved.push(fx.c); return;
+      } });
+    window.__pgJoined = moved; }
   // wider aisles than the drawing (1.6 m → 2.2 m): every block of gondolas moves outwards from the central walkway by the
   // extra width of the aisles between it and the walkway; the walls and what stands on them move with the room
   if (!PGD._wide){ PGD._wide = 1; const AE = .6, CS = 6*AE;
