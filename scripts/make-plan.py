@@ -43,7 +43,12 @@ rep("  {key:'quick', name:'مشتريات سريعة',",
 rep("  AV = DATA && DATA.build ? '?v=' + DATA.build : '';",
     "  AV = DATA && DATA.build ? '?v=' + DATA.build : '';\n"
     "  try { const r = await fetch('plan/imf.json'); if (r.ok) window.__IMF = await r.json(); } catch(e){}\n"
-    "  try { const r = await fetch('plan/pg.json'); if (r.ok) window.__PG = await r.json(); } catch(e){}\n"
+    "  // settings and planogram: the control panel's saved copy when its backend is set and answers, else the files published with the store\n"
+    "  try { const r = await fetch('config.json', {cache:'no-cache'}); if (r.ok) window.__CFG = await r.json(); } catch(e){}\n"
+    "  { const api = window.__CFG && window.__CFG.api, get = async u => { const c = new AbortController(), tm = setTimeout(() => c.abort(), 6000); try { const r = await fetch(u, {signal:c.signal}); return r.ok ? await r.json() : null; } catch(e){ return null; } finally { clearTimeout(tm); } };\n"
+    "    if (api){ const c2 = await get(api + '/public/config'); if (c2) window.__CFG = Object.assign({}, window.__CFG, c2, {api}); const p2 = await get(api + '/public/pg'); if (p2 && Array.isArray(p2.f)) window.__PG = p2; } }\n"
+    "  if (!window.__PG) try { const r = await fetch('plan/pg.json'); if (r.ok) window.__PG = await r.json(); } catch(e){}\n"
+    "  if (window.__CFG && 'season' in window.__CFG) SEASON = window.__CFG.season;\n"
     "  try { const r = await fetch('data/plan.json?t=' + Math.floor(Date.now() / 600000)); if (r.ok) window.__PAT = await r.json(); } catch(e){}")
 
 # plan pages have their own photo atlas (ordered like these shelves): products address it instead of their store-category atlas

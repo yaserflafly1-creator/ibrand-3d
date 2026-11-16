@@ -241,11 +241,11 @@
     spotAt(x, z, .6, .7, .5);
   }
   {
-    // down the middle of the central walkway (7 m wide in the drawing)
-    ['offers', 'excl', 'trend', 'import'].filter(k => SD(k)).forEach((k, i) => promoIsland(k, 0, zF - 12.7 - i*5.6));
+    // down the middle of the central walkway (7 m wide in the drawing); which islands, and in what order, is set in the control panel
+    ((CFG().promo && Array.isArray(CFG().promo.order)) ? CFG().promo.order : ['offers', 'excl', 'trend', 'import']).filter(k => ['offers', 'excl', 'trend', 'import'].includes(k) && SD(k)).slice(0, 4).forEach((k, i) => promoIsland(k, 0, zF - 12.7 - i*5.6));
   }
   // milk bundle table and the best-seller tower
-  if (SD('milk')){
+  if (SD('milk') && !(CFG().promo && CFG().promo.milk === false)){
     const x = 0, z = zF - 3.6, Fm = frame(x, z, 0), Fb = frame(x, z, Math.PI);
     boxInto(STRUCT, Fm, 0, .36, 0, 2.6, .72, 1.3, C_PINK); boxInto(STRUCT, Fm, 0, .74, 0, 2.7, .04, 1.4, '#ffffff');
     boxInto(STRUCT, Fm, 0, .9, 0, 1.8, .3, .62, '#ffffff'); boxInto(STRUCT, Fm, 0, 1.2, 0, 1.0, .3, .4, '#ffffff');
@@ -258,7 +258,7 @@
     s.userData.nav = 'milk'; navTargets.push(s);
     SEC.milk.focus = {pos:new THREE.Vector3(x + .3, EYE, z + 3), target:new THREE.Vector3(x, 1, z)};
   }
-  if (SD('best')){
+  if (SD('best') && !(CFG().promo && CFG().promo.best === false)){
     const x = 0, z = ZP, g = new THREE.Group(); g.position.set(x, 0, z); scene.add(g);
     [[1.35,.4],[1.0,.8],[.62,1.18]].forEach(([r,y],i)=>{
       const t = new THREE.Mesh(new THREE.CylinderGeometry(r, r, .4, 48), i===0 ? pinkMat : std('#ffffff',{roughness:.35})); t.position.y = y-.2; t.castShadow = t.receiveShadow = true; g.add(t);
@@ -303,8 +303,8 @@
 
   // ---------- the lost treasure: one chest a day, hidden at the far end of an aisle; finding it shows the prize ----------
   // The prize code is the store's own coupon (made in the store's dashboard); with no code set, the find is only congratulated.
-  const TREASURE = {code:'', note:'استخدم الكود عند إتمام الطلب.'};
-  if (SEG.length){
+  const TCFG = CFG().treasure || {}, TREASURE = {code:String(TCFG.code || ''), note:TCFG.note === undefined ? 'استخدم الكود عند إتمام الطلب.' : String(TCFG.note)};
+  if (SEG.length && TCFG.on !== false){
     const day = new Date(Date.now() + 3*3600e3).toISOString().slice(0, 10); let hsh = 7; for (const ch of day) hsh = (hsh*31 + ch.charCodeAt(0)) >>> 0;
     const spots = SEG.map(sg => ({zid:sg.zid, x:sg.x0 + .25, z:sg.zb - .6})).filter(s => !blockedGround(s.x, s.z) && s.z > zC + 2);
     const spot = spots[hsh % Math.max(1, spots.length)];

@@ -1,0 +1,346 @@
+<!doctype html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex, nofollow">
+<title>لوحة تحكم الصيدلية 3D</title>
+<link rel="icon" href="../assets/logo.png">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Almarai:wght@400;700;800&display=swap">
+<style>
+/* layout: a top bar with the tabs, then one panel at a time; the map tab is a drawing beside a properties column */
+:root{--bg:#f7f2f6;--card:#fff;--line:#e6d7e2;--fg:#2a1b27;--muted:#75607a;--pink:#e0447f;--plum:#3b1d36;--ok:#1f9a55;--bad:#c21f2f;--font:'Almarai',Tahoma,Arial,sans-serif}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--fg);font-family:var(--font);font-size:15px;line-height:1.7}
+button,input,select,textarea{font:inherit;color:inherit}
+h1{font-size:19px;margin:0;font-weight:800}
+h2{font-size:17px;margin:0 0 10px;font-weight:800;color:var(--plum)}
+.bar{position:sticky;top:0;z-index:5;background:var(--plum);color:#fff;display:flex;flex-wrap:wrap;align-items:center;gap:10px;padding:10px 16px}
+.bar .sp{flex:1}
+.tabs{display:flex;flex-wrap:wrap;gap:6px}
+.tabs button{border:0;border-radius:10px;padding:7px 14px;background:rgba(255,255,255,.12);color:#fff;cursor:pointer;font-weight:700}
+.tabs button.on{background:#fff;color:var(--plum)}
+.btn{border:0;border-radius:10px;padding:8px 16px;background:var(--pink);color:#fff;font-weight:800;cursor:pointer}
+.btn.ghost{background:#f1e8ef;color:var(--plum)}
+.btn.bad{background:#fbe4e7;color:var(--bad)}
+.btn:disabled{opacity:.5;cursor:default}
+main{max-width:1280px;margin:0 auto;padding:16px}
+.card{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:16px;margin-bottom:14px}
+.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:14px}
+label{display:block;font-size:13px;color:var(--muted);margin:8px 0 2px}
+input[type=text],input[type=password],input[type=number],input[type=url],select,textarea{width:100%;border:1px solid var(--line);border-radius:10px;padding:8px 10px;background:#fff}
+input[type=color]{width:54px;height:36px;border:1px solid var(--line);border-radius:8px;padding:2px;background:#fff}
+.row{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.chk{display:flex;gap:8px;align-items:center;margin:8px 0;color:var(--fg);font-size:15px}
+.chk input{width:18px;height:18px}
+.note{font-size:13px;color:var(--muted)}
+.msg{position:fixed;z-index:20;left:50%;bottom:22px;transform:translateX(-50%);background:var(--plum);color:#fff;border-radius:12px;padding:10px 18px;box-shadow:0 10px 30px rgba(0,0,0,.25);max-width:90vw}
+.msg.bad{background:var(--bad)}
+.mapwrap{display:grid;grid-template-columns:minmax(0,1fr) 300px;gap:14px}
+@media (max-width:900px){.mapwrap{grid-template-columns:1fr}}
+.mapbox{background:#fff;border:1px solid var(--line);border-radius:16px;overflow:auto;max-height:78vh;touch-action:none}
+svg{display:block;width:100%;height:auto;min-width:640px;user-select:none}
+.fx{cursor:grab;stroke:#fff;stroke-width:.04}
+.fx.sel{stroke:#000;stroke-width:.12}
+.legend{display:flex;flex-wrap:wrap;gap:8px;margin:8px 0 0;font-size:12px}
+.legend span{display:inline-flex;align-items:center;gap:4px}
+.legend i{width:12px;height:12px;border-radius:3px;display:inline-block}
+.shelf{border:1px solid var(--line);border-radius:12px;padding:10px;margin-bottom:10px}
+.shelf h3{margin:0 0 6px;font-size:14px;color:var(--plum)}
+.item{display:grid;grid-template-columns:minmax(0,1fr) 64px auto;gap:6px;align-items:center;padding:4px 0;border-top:1px dashed var(--line)}
+.item:first-of-type{border-top:0}
+.item .nm{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.item.off .nm{color:var(--muted);text-decoration:line-through}
+.item .ops{display:flex;gap:4px}
+.mini{border:0;background:#f1e8ef;border-radius:8px;width:30px;height:30px;cursor:pointer;font-weight:800}
+.res{max-height:240px;overflow:auto;border:1px solid var(--line);border-radius:10px;margin-top:6px}
+.res button{display:block;width:100%;text-align:right;border:0;border-bottom:1px solid var(--line);background:#fff;padding:6px 10px;cursor:pointer}
+.res button:hover{background:#faf3f8}
+table{width:100%;border-collapse:collapse;font-size:14px}
+td,th{padding:6px 8px;border-bottom:1px solid var(--line);text-align:right}
+[hidden]{display:none!important}
+</style>
+</head>
+<body>
+<div class="bar">
+  <h1>لوحة تحكم الصيدلية 3D</h1>
+  <div class="tabs" id="tabs" hidden>
+    <button data-t="settings" class="on">الإعدادات والميزات</button>
+    <button data-t="map">أماكن الجندولات</button>
+    <button data-t="shelves">محتوى الرفوف</button>
+    <button data-t="promo">العروض واللوحات</button>
+    <button data-t="team">الفريق والسجل</button>
+  </div>
+  <span class="sp"></span>
+  <span id="who" class="note" style="color:#fff"></span>
+  <button class="btn ghost" id="out" hidden>خروج</button>
+</div>
+<main>
+  <!-- sign in -->
+  <section class="card" id="login" style="max-width:420px;margin:40px auto">
+    <h2>تسجيل الدخول</h2>
+    <div id="apiRow"><label>رابط خادم لوحة التحكم</label><input type="url" id="api" placeholder="https://….workers.dev" dir="ltr"></div>
+    <label>اسم المستخدم</label><input type="text" id="user" dir="ltr" autocomplete="username">
+    <label>كلمة المرور</label><input type="password" id="pass" dir="ltr" autocomplete="current-password">
+    <div class="row" style="margin-top:14px"><button class="btn" id="go">دخول</button></div>
+    <p class="note">التعديلات تظهر في الصيدلية خلال دقيقة تقريباً بعد الحفظ وتحديث الصفحة.</p>
+  </section>
+
+  <!-- settings -->
+  <section id="t-settings" hidden>
+    <div class="grid">
+      <div class="card"><h2>الموسم</h2>
+        <label class="chk"><input type="checkbox" id="seOn"> زينة الموسم ظاهرة (الأعلام، شريحة الشاشات، لوحة جندولة العروض)</label>
+        <label>الرقم أو الشعار القصير</label><input type="text" id="seTag" maxlength="12">
+        <label>اسم الموسم</label><input type="text" id="seLine" maxlength="40">
+        <label>اللونان</label><div class="row"><input type="color" id="seA"><input type="color" id="seB"></div>
+      </div>
+      <div class="card"><h2>الكنز المفقود</h2>
+        <label class="chk"><input type="checkbox" id="trOn"> الكنز مفعّل</label>
+        <label>كود الخصم (من كوبونات سلة)</label><input type="text" id="trCode" dir="ltr" maxlength="40">
+        <label>الملاحظة تحت الكود</label><input type="text" id="trNote" maxlength="120">
+        <p class="note">الكود يظهر لكل من يجد الصندوق، وهو مقروء لمن يفتّش الصفحة. اجعل الكوبون في سلة محدود الاستخدام.</p>
+      </div>
+      <div class="card"><h2>تجربة الزائر</h2>
+        <label class="chk"><input type="checkbox" id="tour"> الجولة الترحيبية في أول زيارة</label>
+        <label class="chk"><input type="checkbox" id="sound"> الصوت مفعّل افتراضياً</label>
+      </div>
+    </div>
+    <div class="row"><button class="btn" id="saveCfg">حفظ الإعدادات</button><span class="note" id="cfgState"></span></div>
+  </section>
+
+  <!-- map -->
+  <section id="t-map" hidden>
+    <div class="mapwrap">
+      <div>
+        <div class="mapbox"><svg id="svg"></svg></div>
+        <div class="legend" id="legend"></div>
+        <p class="note">اسحب أي وحدة لتنقلها (تلتصق كل 10 سم). أعلى الرسم هو كاونتر الصيدلي وأسفله المدخل. الصيدلية توسّع الممرات تلقائياً عند العرض.</p>
+      </div>
+      <div>
+        <div class="card" id="fxCard"><h2>الوحدة المختارة</h2><p class="note" id="fxNone">اضغط على وحدة في الرسم.</p>
+          <div id="fxForm" hidden>
+            <label>الكود</label><input type="text" id="fxCode" dir="ltr">
+            <label>القسم</label><select id="fxZone"></select>
+            <label>العلامة (اتركها فاضية للرف المشترك)</label><input type="text" id="fxBrand" dir="ltr">
+            <label>الموضع</label><select id="fxWall"><option value="0">أرضية</option><option value="1">حائط</option></select>
+            <label>الوجه (للأرضية الطولية)</label><select id="fxFace"><option value="A">يواجه اليسار</option><option value="B">يواجه اليمين</option></select>
+            <label>الطول (عدد الموديولات، كل موديول 1 م)</label><input type="number" id="fxLen" min="1" max="20">
+            <label>عدد الرفوف</label><input type="number" id="fxShelves" min="3" max="6">
+            <label>النوع</label><select id="fxKind"><option value="0">رفوف</option><option value="1">هوك</option><option value="2">هوك أعلى ورفوف أسفل</option></select>
+            <div class="row" style="margin-top:12px"><button class="btn ghost" id="fxRot">تدوير</button><button class="btn ghost" id="fxShelvesGo">تعديل الرفوف</button><button class="btn bad" id="fxDel">حذف</button></div>
+          </div>
+        </div>
+        <div class="card"><h2>إضافة وحدة</h2><button class="btn ghost" id="fxAdd">وحدة جديدة في منتصف الرسم</button></div>
+        <div class="card"><h2>الحفظ</h2>
+          <div class="row"><button class="btn" id="savePg">حفظ المخطط</button><button class="btn ghost" id="undoPg">تراجع عن آخر حفظ</button></div>
+          <div class="row" style="margin-top:8px"><button class="btn bad" id="resetPg">الرجوع للمخطط الأصلي</button></div>
+          <p class="note" id="pgState"></p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- shelves -->
+  <section id="t-shelves" hidden>
+    <div class="card"><h2>محتوى الرفوف</h2>
+      <div class="grid"><div><label>الوحدة</label><select id="shFx"></select></div>
+        <div><label>أضف منتجاً (ابحث بالاسم)</label><input type="text" id="shQ" placeholder="اسم المنتج…"><div class="res" id="shRes" hidden></div></div>
+        <div><label>يُضاف إلى الرف</label><select id="shTo"></select></div></div>
+      <p class="note">الرف 1 هو الأعلى. المنتج المشطوب غير متاح حالياً في المتجر ولن يظهر في الصيدلية. بعد التعديل اضغط «حفظ المخطط».</p>
+      <div class="row"><button class="btn" id="savePg2">حفظ المخطط</button><span class="note" id="pgState2"></span></div>
+    </div>
+    <div id="shelves"></div>
+  </section>
+
+  <!-- promo -->
+  <section id="t-promo" hidden>
+    <div class="grid">
+      <div class="card"><h2>جزر الممر الرئيسي</h2><div id="prOrder"></div>
+        <label class="chk"><input type="checkbox" id="prMilk"> طاولة باندل الحليب عند المدخل</label>
+        <label class="chk"><input type="checkbox" id="prBest"> برج الأكثر طلباً</label>
+      </div>
+      <div class="card"><h2>شرائح شاشات الصيدلية</h2><div id="slides"></div><button class="btn ghost" id="slAdd">شريحة جديدة</button>
+        <p class="note">الشرائح تُعرض بالتناوب مع شرائح الصيدلية على الشاشات المعلّقة.</p></div>
+    </div>
+    <div class="row"><button class="btn" id="saveCfg2">حفظ الإعدادات</button></div>
+  </section>
+
+  <!-- team -->
+  <section id="t-team" hidden>
+    <div class="grid">
+      <div class="card" id="usersCard"><h2>أعضاء الفريق</h2><table id="users"></table>
+        <label>اسم مستخدم جديد (إنجليزي)</label><input type="text" id="nuUser" dir="ltr">
+        <label>كلمة المرور (8 أحرف على الأقل)</label><input type="password" id="nuPass" dir="ltr">
+        <label>الصلاحية</label><select id="nuRole"><option value="editor">محرر</option><option value="admin">مدير</option></select>
+        <div class="row" style="margin-top:10px"><button class="btn" id="nuAdd">إضافة</button></div></div>
+      <div class="card"><h2>سجل التعديلات</h2><table id="log"></table></div>
+    </div>
+  </section>
+</main>
+<div class="msg" id="msg" hidden></div>
+<script>
+(function(){
+'use strict';
+const $ = s => document.querySelector(s), el = (t, a, kids) => { const e = document.createElement(t); if (a) for (const k in a){ if (k === 'text') e.textContent = a[k]; else if (k in e && k !== 'list') e[k] = a[k]; else e.setAttribute(k, a[k]); } (kids || []).forEach(c => e.appendChild(c)); return e; };
+const ls = { get(k){ try { return localStorage.getItem(k); } catch(e){ return null; } }, set(k, v){ try { v === null ? localStorage.removeItem(k) : localStorage.setItem(k, v); } catch(e){} } };
+let API = '', TOKEN = '', ROLE = '', CFG = {}, PG = null, PRODS = new Map(), SEL = null, pgDirty = false, cfgDirty = false, msgT = 0;
+const ZONES = {A:['عند الكاشير', '#9c27b0'], B:['الميك أب', '#e0447f'], C:['الديرما والبريميوم', '#9c27b0'], D:['العناية بالشعر والبشرة', '#3f51b5'], E:['العناية الشخصية', '#0097a7'], F:['الأجهزة والمستلزمات الطبية', '#689f38'], G:['المكملات الغذائية', '#e0a11a'], H:['الأم والطفل', '#ef6c00'], I:['أدوية بدون وصفة', '#c62828'], J:['أدوية الوصفة (خلف الكاونتر)', '#8e1b1b']};
+const PROMO = {offers:'العروض', excl:'منتجات حصرية', trend:'ترند اي براند', import:'منتجات مستوردة'};
+function say(t, bad){ const m = $('#msg'); m.textContent = t; m.className = 'msg' + (bad ? ' bad' : ''); m.hidden = false; clearTimeout(msgT); msgT = setTimeout(() => { m.hidden = true; }, bad ? 6000 : 2600); }
+async function call(path, opt){
+  const o = opt || {}, h = Object.assign({}, o.headers); if (TOKEN) h.authorization = 'Bearer ' + TOKEN; if (o.body && typeof o.body === 'string') h['content-type'] = 'application/json';
+  const r = await fetch(API + path, Object.assign({}, o, {headers:h})); let d = null; try { d = await r.json(); } catch(e){}
+  if (r.status === 401 && TOKEN && path !== '/login'){ signOut(); throw new Error('انتهت الجلسة، سجّل الدخول من جديد'); }
+  if (!r.ok) throw new Error((d && d.error) || ('خطأ ' + r.status)); return d;
+}
+const getJSON = async u => { try { const r = await fetch(u, {cache:'no-cache'}); return r.ok ? await r.json() : null; } catch(e){ return null; } };
+const mark = () => { $('#pgState').textContent = $('#pgState2').textContent = pgDirty ? 'تعديلات غير محفوظة' : ''; $('#cfgState').textContent = cfgDirty ? 'تعديلات غير محفوظة' : ''; };
+const dirtyPg = () => { pgDirty = true; mark(); }, dirtyCfg = () => { cfgDirty = true; mark(); };
+addEventListener('beforeunload', e => { if (pgDirty || cfgDirty){ e.preventDefault(); e.returnValue = ''; } });
+
+// ---------- sign in ----------
+function signOut(){ TOKEN = ''; ls.set('ib3d-admin-token', null); $('#login').hidden = false; $('#tabs').hidden = true; $('#out').hidden = true; $('#who').textContent = ''; document.querySelectorAll('main > section[id^="t-"]').forEach(s => { s.hidden = true; }); }
+async function start(){
+  const st = await getJSON('../config.json'); API = ((st && st.api) || ls.get('ib3d-admin-api') || '').replace(/\/+$/, '');
+  if (st && st.api) $('#apiRow').hidden = true; else $('#api').value = API;
+  CFG = st || {};
+  const t = ls.get('ib3d-admin-token'); if (t && API){ TOKEN = t; try { const me = await call('/me'); await enter(me); return; } catch(e){ TOKEN = ''; } }
+}
+$('#go').onclick = async () => {
+  if (!$('#apiRow').hidden){ API = $('#api').value.trim().replace(/\/+$/, ''); if (!/^https?:\/\//.test(API)) return say('اكتب رابط الخادم أولاً', true); ls.set('ib3d-admin-api', API); }
+  try { const r = await call('/login', {method:'POST', body:JSON.stringify({user:$('#user').value, pass:$('#pass').value})}); TOKEN = r.token; ls.set('ib3d-admin-token', TOKEN); $('#pass').value = ''; await enter(r); }
+  catch(e){ say(e.message, true); }
+};
+$('#pass').addEventListener('keydown', e => { if (e.key === 'Enter') $('#go').click(); });
+$('#out').onclick = signOut;
+async function enter(me){
+  ROLE = me.role; $('#who').textContent = me.user + (ROLE === 'admin' ? ' (مدير)' : ''); $('#login').hidden = true; $('#tabs').hidden = false; $('#out').hidden = false;
+  const saved = await getJSON(API + '/public/config'); CFG = Object.assign({}, CFG, saved || {});
+  PG = await getJSON(API + '/public/pg'); if (!PG || !Array.isArray(PG.f)) PG = await getJSON('../plan/pg.json');
+  if (!PG){ say('تعذّر تحميل المخطط', true); PG = {v:1, W:44, D:46.1, names:[], f:[]}; }
+  const d = await getJSON('../data/products.json'); if (d && d.sections) Object.values(d.sections).forEach(s => (s.products || []).forEach(p => { if (!PRODS.has(String(p.id))) PRODS.set(String(p.id), p); }));
+  $('#usersCard').hidden = ROLE !== 'admin'; $('#resetPg').hidden = ROLE !== 'admin';
+  fillSettings(); fillPromo(); drawMap(); fillShelfPicker(); show('settings');
+}
+function show(t){ document.querySelectorAll('#tabs button').forEach(b => b.classList.toggle('on', b.dataset.t === t)); document.querySelectorAll('main > section[id^="t-"]').forEach(s => { s.hidden = s.id !== 't-' + t; }); if (t === 'team') loadTeam(); if (t === 'shelves') drawShelves(); }
+$('#tabs').addEventListener('click', e => { const b = e.target.closest('button'); if (b) show(b.dataset.t); });
+
+// ---------- settings ----------
+function fillSettings(){
+  const s = CFG.season; $('#seOn').checked = !!s; const sv = s || {tag:'', line:'', a:'#3b1d36', b:'#e8368f'};
+  $('#seTag').value = sv.tag || ''; $('#seLine').value = sv.line || ''; $('#seA').value = sv.a || '#3b1d36'; $('#seB').value = sv.b || '#e8368f';
+  const t = CFG.treasure || {}; $('#trOn').checked = t.on !== false; $('#trCode').value = t.code || ''; $('#trNote').value = t.note === undefined ? 'استخدم الكود عند إتمام الطلب.' : t.note;
+  $('#tour').checked = CFG.tour !== false; $('#sound').checked = CFG.sound !== false;
+}
+function readSettings(){
+  CFG.season = $('#seOn').checked ? {tag:$('#seTag').value.trim(), line:$('#seLine').value.trim(), a:$('#seA').value, b:$('#seB').value} : null;
+  CFG.treasure = {on:$('#trOn').checked, code:$('#trCode').value.trim(), note:$('#trNote').value.trim()};
+  CFG.tour = $('#tour').checked; CFG.sound = $('#sound').checked;
+}
+$('#t-settings').addEventListener('input', dirtyCfg); $('#t-promo').addEventListener('input', dirtyCfg);
+async function saveCfg(){ readSettings(); readPromo(); const out = Object.assign({}, CFG); delete out.api;
+  try { await call('/config', {method:'PUT', body:JSON.stringify(out)}); cfgDirty = false; mark(); say('تم حفظ الإعدادات'); } catch(e){ say(e.message, true); } }
+$('#saveCfg').onclick = saveCfg; $('#saveCfg2').onclick = saveCfg;
+
+// ---------- promo and screens ----------
+function fillPromo(){
+  const pr = CFG.promo || {}, order = (Array.isArray(pr.order) ? pr.order : Object.keys(PROMO)).filter(k => PROMO[k]), all = order.concat(Object.keys(PROMO).filter(k => !order.includes(k)));
+  const box = $('#prOrder'); box.textContent = '';
+  all.forEach(k => { const row = el('div', {className:'row', style:'margin:6px 0'}); row.dataset.k = k;
+    const cb = el('input', {type:'checkbox', checked:order.includes(k)}); cb.style.cssText = 'width:18px;height:18px';
+    const up = el('button', {className:'mini', type:'button', text:'▲'}), dn = el('button', {className:'mini', type:'button', text:'▼'});
+    up.onclick = () => { if (row.previousElementSibling) box.insertBefore(row, row.previousElementSibling); dirtyCfg(); }; dn.onclick = () => { if (row.nextElementSibling) box.insertBefore(row.nextElementSibling, row); dirtyCfg(); };
+    row.append(cb, el('span', {text:PROMO[k], style:'flex:1'}), up, dn); box.appendChild(row); });
+  $('#prMilk').checked = pr.milk !== false; $('#prBest').checked = pr.best !== false;
+  const sl = $('#slides'); sl.textContent = ''; (CFG.slides || []).forEach(addSlide);
+}
+function addSlide(s){ const v = s || {title:'', sub:'', a:'#3b1d36', b:'#e8368f'}, box = el('div', {className:'shelf'});
+  const t = el('input', {type:'text', value:v.title || '', placeholder:'العنوان', maxLength:40}), u = el('input', {type:'text', value:v.sub || '', placeholder:'السطر الثاني (اختياري)', maxLength:60}), a = el('input', {type:'color', value:v.a || '#3b1d36'}), b = el('input', {type:'color', value:v.b || '#e8368f'}), x = el('button', {className:'btn bad', type:'button', text:'حذف'});
+  x.onclick = () => { box.remove(); dirtyCfg(); }; t.style.marginBottom = u.style.marginBottom = '6px';
+  box.append(t, u, el('div', {className:'row'}, [a, b, x])); box._get = () => ({title:t.value.trim(), sub:u.value.trim(), a:a.value, b:b.value}); $('#slides').appendChild(box); }
+$('#slAdd').onclick = () => { addSlide(); dirtyCfg(); };
+function readPromo(){ CFG.promo = {order:[...$('#prOrder').children].filter(r => r.querySelector('input').checked).map(r => r.dataset.k), milk:$('#prMilk').checked, best:$('#prBest').checked};
+  CFG.slides = [...$('#slides').children].map(b => b._get()).filter(s => s.title); }
+
+// ---------- map ----------
+const NS = 'http://www.w3.org/2000/svg', svg = $('#svg');
+function drawMap(){
+  const W = PG.W || 44, D = PG.D || 46.1; svg.setAttribute('viewBox', `-1 -1 ${W + 2} ${D + 2}`); svg.textContent = '';
+  const add = (t, a) => { const e = document.createElementNS(NS, t); for (const k in a) e.setAttribute(k, a[k]); svg.appendChild(e); return e; };
+  add('rect', {x:0, y:0, width:W, height:D, fill:'#fbf8fa', stroke:'#cbb8c6', 'stroke-width':.08});
+  add('rect', {x:W/2 - 9, y:2.6, width:18, height:1, fill:'#14a3b5', opacity:.5}); add('rect', {x:W/2 - 3, y:D - .25, width:6, height:.35, fill:'#1f9a55'});
+  const tx = (x, y, s) => { const e = add('text', {x, y, 'font-size':.8, 'text-anchor':'middle', fill:'#75607a'}); e.textContent = s; };
+  tx(W/2, 2.3, 'كاونتر الصيدلي'); tx(W/2, D + .9, 'المدخل');
+  PG.f.forEach(fx => fx.r.forEach((r, ri) => { const e = add('rect', {x:r[0], y:r[1], width:r[2], height:r[3], fill:(ZONES[fx.z] || ['', '#999'])[1], class:'fx' + (fx === SEL ? ' sel' : ''), opacity:fx.b ? 1 : .62});
+    e._fx = fx; const ti = document.createElementNS(NS, 'title'); ti.textContent = fx.c + ' · ' + (fx.b || 'مشترك') + ' · ' + (ZONES[fx.z] || [''])[0]; e.appendChild(ti); }));
+  const lg = $('#legend'); lg.textContent = ''; Object.keys(ZONES).forEach(k => { if (k === 'A') return; const s = el('span'); const i = el('i'); i.style.background = ZONES[k][1]; s.append(i, document.createTextNode(ZONES[k][0])); lg.appendChild(s); });
+  lg.appendChild(el('span', {text:'· اللون الباهت = رف مشترك، الغامق = ستاند علامة'}));
+}
+let drag = null;
+const pt = e => { const p = svg.createSVGPoint(); p.x = e.clientX; p.y = e.clientY; return p.matrixTransform(svg.getScreenCTM().inverse()); };
+svg.addEventListener('pointerdown', e => { const fx = e.target._fx; if (!fx){ return; } select(fx); const p = pt(e); drag = {fx, x:p.x, y:p.y, base:fx.r.map(r => [r[0], r[1]]), moved:false}; svg.setPointerCapture(e.pointerId); e.preventDefault(); });
+svg.addEventListener('pointermove', e => { if (!drag) return; const p = pt(e), dx = Math.round((p.x - drag.x) * 10) / 10, dy = Math.round((p.y - drag.y) * 10) / 10; if (!dx && !dy && !drag.moved) return;
+  drag.moved = true; drag.fx.r.forEach((r, i) => { r[0] = +(drag.base[i][0] + dx).toFixed(2); r[1] = +(drag.base[i][1] + dy).toFixed(2); }); drawMap(); });
+const endDrag = () => { if (drag && drag.moved) dirtyPg(); drag = null; };
+svg.addEventListener('pointerup', endDrag); svg.addEventListener('pointercancel', endDrag);
+function select(fx){ SEL = fx; $('#fxNone').hidden = !!fx; $('#fxForm').hidden = !fx; if (!fx){ drawMap(); return; }
+  $('#fxCode').value = fx.c; $('#fxZone').value = fx.z; $('#fxBrand').value = fx.b || ''; $('#fxWall').value = fx.w ? '1' : '0'; $('#fxFace').value = fx.f === 'B' ? 'B' : 'A';
+  $('#fxLen').value = Math.round(Math.max(fx.r[0][2], fx.r[0][3])); $('#fxShelves').value = fx.s || 5; $('#fxKind').value = String(fx.k || 0); drawMap(); }
+{ const z = $('#fxZone'); Object.keys(ZONES).forEach(k => z.appendChild(el('option', {value:k, text:ZONES[k][0]}))); }
+$('#fxForm').addEventListener('change', () => { const fx = SEL; if (!fx) return;
+  const code = $('#fxCode').value.trim(); if (code && code !== fx.c && !PG.f.some(g => g !== fx && g.c === code)) fx.c = code;
+  fx.z = $('#fxZone').value; fx.b = $('#fxBrand').value.trim(); fx.w = $('#fxWall').value === '1' ? 1 : 0; fx.s = Math.max(3, Math.min(6, +$('#fxShelves').value || 5)); fx.k = +$('#fxKind').value;
+  const r = fx.r[0], v = r[3] > r[2], n = Math.max(1, Math.min(20, Math.round(+$('#fxLen').value || 1))); if (v) r[3] = n; else r[2] = n;
+  fx.f = fx.w ? 'W' : (r[3] > r[2] ? $('#fxFace').value : ''); dirtyPg(); drawMap(); fillShelfPicker(); });
+$('#fxRot').onclick = () => { if (!SEL) return; SEL.r.forEach(r => { const t = r[2]; r[2] = r[3]; r[3] = t; }); const r = SEL.r[0]; SEL.f = SEL.w ? 'W' : (r[3] > r[2] ? $('#fxFace').value : ''); dirtyPg(); drawMap(); };
+$('#fxDel').onclick = () => { if (!SEL) return; const b = $('#fxDel'); if (b.dataset.sure !== SEL.c){ b.dataset.sure = SEL.c; b.textContent = 'اضغط مرة ثانية للتأكيد'; setTimeout(() => { b.dataset.sure = ''; b.textContent = 'حذف'; }, 4000); return; }
+  PG.f = PG.f.filter(f => f !== SEL); b.dataset.sure = ''; b.textContent = 'حذف'; select(null); dirtyPg(); fillShelfPicker(); };
+$('#fxAdd').onclick = () => { let n = 1, code; do { code = 'N-' + String(n++).padStart(2, '0'); } while (PG.f.some(f => f.c === code));
+  const fx = {c:code, z:'E', b:'', l:-1, w:0, s:5, k:0, r:[[+((PG.W || 44)/2 - .25).toFixed(1), +((PG.D || 46)/2).toFixed(1), .5, 2]], f:'A', it:[]}; PG.f.push(fx); dirtyPg(); select(fx); fillShelfPicker(); };
+$('#fxShelvesGo').onclick = () => { if (!SEL) return; $('#shFx').value = SEL.c; show('shelves'); };
+async function savePg(){ try { await call('/pg', {method:'PUT', body:JSON.stringify(PG)}); pgDirty = false; mark(); say('تم حفظ المخطط'); } catch(e){ say(e.message, true); } }
+$('#savePg').onclick = savePg; $('#savePg2').onclick = savePg;
+$('#undoPg').onclick = async () => { try { await call('/pg/undo', {method:'POST'}); PG = await getJSON(API + '/public/pg'); pgDirty = false; mark(); select(null); fillShelfPicker(); say('رجعت للنسخة السابقة'); } catch(e){ say(e.message, true); } };
+$('#resetPg').onclick = async () => { const b = $('#resetPg'); if (!b.dataset.sure){ b.dataset.sure = '1'; b.textContent = 'اضغط مرة ثانية للتأكيد'; setTimeout(() => { b.dataset.sure = ''; b.textContent = 'الرجوع للمخطط الأصلي'; }, 4000); return; }
+  try { await call('/pg', {method:'DELETE'}); PG = await getJSON('../plan/pg.json'); pgDirty = false; mark(); select(null); fillShelfPicker(); say('رجعت للمخطط الأصلي'); } catch(e){ say(e.message, true); } b.dataset.sure = ''; b.textContent = 'الرجوع للمخطط الأصلي'; };
+
+// ---------- shelves ----------
+function fillShelfPicker(){ const s = $('#shFx'), cur = s.value; s.textContent = ''; PG.f.slice().sort((a, b) => a.c < b.c ? -1 : 1).forEach(f => s.appendChild(el('option', {value:f.c, text:f.c + ' · ' + (f.b || 'مشترك') + ' · ' + (ZONES[f.z] || [''])[0]}))); if (cur) s.value = cur; }
+const curFx = () => PG.f.find(f => f.c === $('#shFx').value);
+$('#shFx').onchange = drawShelves;
+function drawShelves(){
+  const fx = curFx(), box = $('#shelves'); box.textContent = ''; const to = $('#shTo'), keep = to.value; to.textContent = ''; if (!fx) return;
+  const n = fx.s || 5; for (let s = 1; s <= n; s++) to.appendChild(el('option', {value:String(s), text:'الرف ' + s + (s === 1 ? ' (الأعلى)' : s === n ? ' (الأسفل)' : '')})); if (keep && +keep <= n) to.value = keep;
+  for (let s = 1; s <= n; s++){
+    const card = el('div', {className:'shelf'}); const items = fx.it.filter(i => Math.min(n, i[0]) === s); card.appendChild(el('h3', {text:'الرف ' + s + ' · ' + items.length + ' صنف'}));
+    items.forEach(it => { const p = PRODS.get(String(it[1])), row = el('div', {className:'item' + (p ? '' : ' off')});
+      const fc = el('input', {type:'number', min:1, max:12, value:it[2] || 1, title:'عدد الأوجه'}); fc.onchange = () => { it[2] = Math.max(1, Math.min(12, +fc.value || 1)); dirtyPg(); };
+      const mv = d => () => { const all = fx.it, a = all.indexOf(it), same = all.map((x, i) => [x, i]).filter(x => Math.min(n, x[0][0]) === s), k = same.findIndex(x => x[0] === it), o = same[k + d];
+        if (o){ all[a] = o[0]; all[o[1]] = it; } else { const ns = s + d; if (ns < 1 || ns > n) return; it[0] = ns; } dirtyPg(); drawShelves(); };
+      const up = el('button', {className:'mini', type:'button', text:'▲', title:'قبل'}), dn = el('button', {className:'mini', type:'button', text:'▼', title:'بعد'}), rm = el('button', {className:'mini', type:'button', text:'✕', title:'حذف'});
+      up.onclick = mv(-1); dn.onclick = mv(1); rm.onclick = () => { fx.it.splice(fx.it.indexOf(it), 1); dirtyPg(); drawShelves(); };
+      row.append(el('div', {className:'nm', text:p ? p.name : 'صنف ' + it[1] + ' (غير متاح في المتجر)', title:p ? p.name : ''}), fc, el('div', {className:'ops'}, [up, dn, rm])); card.appendChild(row); });
+    box.appendChild(card);
+  }
+}
+$('#shQ').addEventListener('input', () => { const q = $('#shQ').value.trim(), res = $('#shRes'); res.textContent = ''; if (q.length < 2){ res.hidden = true; return; }
+  const words = q.split(/\s+/); let n = 0; for (const p of PRODS.values()){ const nm = String(p.name || ''); if (words.every(w => nm.includes(w))){ const b = el('button', {type:'button', text:nm}); b.onclick = () => addItem(p); res.appendChild(b); if (++n >= 25) break; } }
+  if (!n) res.appendChild(el('div', {className:'note', text:'لا نتائج', style:'padding:8px'})); res.hidden = false; });
+function addItem(p){ const fx = curFx(); if (!fx) return; const id = String(p.id), where = PG.f.find(f => f.it.some(i => String(i[1]) === id));
+  if (where && where !== fx) say('تنبيه: المنتج موجود أيضاً في ' + where.c + '، وسيظهر في المكان الأول فقط'); fx.it.push([+$('#shTo').value || 1, id, 1, -1]); $('#shRes').hidden = true; $('#shQ').value = ''; dirtyPg(); drawShelves(); }
+
+// ---------- team and log ----------
+async function loadTeam(){
+  try { const lg = await call('/log'), t = $('#log'); t.textContent = ''; lg.slice(0, 60).forEach(x => t.appendChild(el('tr', null, [el('td', {text:new Date(x.t).toLocaleString('ar-SA')}), el('td', {text:x.who}), el('td', {text:x.what})])));
+    if (ROLE === 'admin'){ const us = await call('/users'), u = $('#users'); u.textContent = ''; u.appendChild(el('tr', null, [el('td', {text:'admin'}), el('td', {text:'مدير'}), el('td')]));
+      us.forEach(x => { const d = el('button', {className:'btn bad', type:'button', text:'حذف'}); d.onclick = async () => { try { await call('/users/' + encodeURIComponent(x.user), {method:'DELETE'}); loadTeam(); } catch(e){ say(e.message, true); } };
+        u.appendChild(el('tr', null, [el('td', {text:x.user}), el('td', {text:x.role === 'admin' ? 'مدير' : 'محرر'}), el('td', null, [d])])); }); }
+  } catch(e){ say(e.message, true); }
+}
+$('#nuAdd').onclick = async () => { try { await call('/users', {method:'POST', body:JSON.stringify({user:$('#nuUser').value, pass:$('#nuPass').value, role:$('#nuRole').value})}); $('#nuUser').value = $('#nuPass').value = ''; say('تمت الإضافة'); loadTeam(); } catch(e){ say(e.message, true); } };
+start();
+})();
+</script>
+</body>
+</html>

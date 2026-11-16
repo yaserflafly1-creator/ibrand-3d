@@ -372,7 +372,8 @@ const isIOS = /iPhone|iPad|iPod/.test(navigator.userAgent) || (navigator.platfor
 let DATA = null, AV = '';
 const OBSTACLES = [];
 // the season the store is dressed for (banners, screen slide, offers island sign); null = none
-const SEASON = {tag:'11.11', line:'عروض 11.11', a:'#3b1d36', b:'#e8368f'};
+let SEASON = {tag:'11.11', line:'عروض 11.11', a:'#3b1d36', b:'#e8368f'};   // the control panel's settings replace it when they load
+const CFG = () => window.__CFG || {};
 const store = { get(k, d){ try { const v = localStorage.getItem(k); return v ? JSON.parse(v) : d; } catch(e){ return d; } }, set(k, v){ try { localStorage.setItem(k, JSON.stringify(v)); } catch(e){} } };
 const money = v => (Math.round(v*100)/100).toLocaleString('en-US', {minimumFractionDigits:2, maximumFractionDigits:2}) + ' ر.س';
 
@@ -1765,6 +1766,9 @@ function build(renderer){
   [-fw*.32, fw*.32].forEach(x => screen(x, 3.55, zB + .08, 0, 2.4));
   for (let z = zA0 - 2; z > zA1 + 1; z -= 9){ screen(-Wx + .06, 3.6, z, Math.PI/2, 1.9); screen(Wx - .06, 3.6, z, -Math.PI/2, 1.9); }
   screen(0, 3.45, zF - .15, Math.PI, 2.0);
+  // slides the team writes in the control panel join the store's screens
+  (CFG().slides || []).forEach(sl => { if (!sl || !sl.title) return; slides.push(x => { grad(x, sl.a || '#3b1d36', sl.b || '#e8368f'); x.fillStyle = '#ffffff'; x.textAlign = 'center'; x.direction = 'rtl';
+    fitText(x, String(sl.title), 900, 900, 120); x.fillText(String(sl.title), 512, 290); if (sl.sub){ fitText(x, String(sl.sub), 900, 700, 56); x.fillText(String(sl.sub), 512, 420); } }); });
   // ---------- seasonal dressing (one place to switch the season; null = none) ----------
   if (SEASON){
     slides.unshift(x => { grad(x, SEASON.a, SEASON.b); x.fillStyle='#ffffff'; x.textAlign='center'; x.direction='ltr'; x.font='900 230px Arial'; x.fillText(SEASON.tag, 512, 300); x.direction='rtl'; x.font='800 72px "Almarai", Tahoma'; x.fillText(SEASON.line, 512, 420); x.font='700 34px "Almarai", Tahoma'; x.fillText('تلقاها في ركن العروض', 512, 500); });
@@ -2489,7 +2493,7 @@ function build(renderer){
   }
 
   // ---------- light sound, made in the browser (no files): steps, add to cart, opening a product ----------
-  let sndOn = store.get('ib3d-snd', true), AC = null, noiseBuf = null;
+  let sndOn = store.get('ib3d-snd', CFG().sound !== false), AC = null, noiseBuf = null;
   function ac(){ if (!sndOn) return null; if (!AC){ try { AC = new (window.AudioContext || window.webkitAudioContext)(); } catch(e){ return null; } } if (AC.state === 'suspended') AC.resume().catch(() => {}); return AC; }
   function tone(f, t0, dur, vol, type){ const a = ac(); if (!a) return; const o = a.createOscillator(), g = a.createGain(), t = a.currentTime + t0; o.type = type || 'sine'; o.frequency.value = f;
     g.gain.setValueAtTime(.0001, t); g.gain.linearRampToValueAtTime(vol, t + .012); g.gain.exponentialRampToValueAtTime(.0001, t + dur); o.connect(g); g.connect(a.destination); o.start(t); o.stop(t + dur + .03); }
@@ -2627,7 +2631,7 @@ function build(renderer){
   $('#loading').classList.add('done');
   // first visit: four short cards on how to walk and buy
   (function(){ let seen = false; try { seen = localStorage.getItem('ib3d-tour') === '1'; } catch(e){}
-    if (seen) return;
+    if (seen || CFG().tour === false) return;
     const coarse = matchMedia('(pointer: coarse)').matches, steps = [
       ['أهلاً بك في صيدلية اي براند', 'تمشّى بين الرفوف كأنك في الفرع، وكل ما تراه تقدر تشتريه.'],
       ['كيف تمشي', coarse ? 'اضغط على الأرض لتمشي، أو على أي رف لتقف أمامه مباشرة. واسحب بإصبعك لتلتفت.' : 'الأسهم أو WASD للمشي، واسحب بالفأرة لتلتفت. وتقدر تضغط على الأرض لتنتقل.'],
