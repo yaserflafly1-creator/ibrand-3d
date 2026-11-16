@@ -1,0 +1,1374 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="robots" content="noindex, nofollow">
+<title>لوحة تحكم مخطط الصيدلية والـ Planogram</title>
+<style>
+:root{--bg:#f4f5f7;--fg:#1d1d1f;--mut:#6b7280;--line:#e2e4e8;--card:#fff;--acc:#1565c0;--acc2:#e3f2fd;--bad:#c62828;--ok:#2e7d32}
+*{box-sizing:border-box}
+html,body{height:100%}
+body{margin:0;font-family:"Segoe UI",Tahoma,Arial,sans-serif;background:var(--bg);color:var(--fg);font-size:13px;display:flex;flex-direction:column;overflow:hidden}
+button,select,input,textarea{font:inherit}
+button{cursor:pointer;border:1px solid var(--line);background:#fff;border-radius:7px;padding:5px 9px;color:var(--fg);white-space:nowrap}
+button:hover{background:#f1f3f5}
+button.pri{background:var(--acc);color:#fff;border-color:var(--acc)}
+button.pri:hover{background:#0d47a1}
+button.dng{color:var(--bad)}
+button:disabled{opacity:.4;cursor:default}
+button.on{background:var(--acc2);border-color:#90caf9;color:#0d47a1}
+input,select,textarea{padding:5px 7px;border:1px solid #cfd3d8;border-radius:6px;background:#fff;min-width:0;max-width:100%}
+header{background:#fff;border-bottom:1px solid var(--line);padding:8px 12px;display:flex;flex-wrap:wrap;gap:6px;align-items:center}
+header h1{font-size:15px;margin:0 0 0 10px;white-space:nowrap}
+.grp{display:flex;gap:4px;align-items:center;padding-inline-start:8px;border-inline-start:1px solid var(--line)}
+.grp:first-of-type{border:0;padding:0}
+#status{margin-inline-start:auto;display:flex;gap:8px;align-items:center;color:var(--mut);font-size:12px}
+#saveState{padding:3px 8px;border-radius:20px;background:#eceff1}
+#saveState.dirty{background:#fff3cd;color:#8a6d00}
+#saveState.ok{background:#e8f5e9;color:var(--ok)}
+#saveState.err{background:#fdecea;color:var(--bad)}
+main{flex:1;display:grid;grid-template-columns:minmax(0,1fr) 440px;min-height:0}
+#stage{position:relative;min-width:0;min-height:0;background:#e9ebee}
+#map{width:100%;height:100%;display:block;touch-action:none;user-select:none;cursor:grab}
+#map.panning{cursor:grabbing}
+#map .fx{cursor:move}
+#map .fx text{pointer-events:none}
+.t{font-size:7px;fill:#111}.st{font-weight:700;fill:#fff}.lbl{font-size:11px;fill:#333}.sm{font-size:9px;fill:#888}.big{font-size:15px;font-weight:700}.zl{font-size:12px;font-weight:700}.aisle{font-size:14px;fill:#607d8b;font-weight:600}
+#map .fx.sel .body{stroke:#111;stroke-width:1.6}
+#map .fx.hit .body{stroke:#ffb300;stroke-width:2.4}
+#map .fx.clash .body{stroke:#d50000;stroke-width:1.8;stroke-dasharray:3 2}
+#map .fx.dim{opacity:.18}
+#map .fx.drop .body{stroke:#00c853;stroke-width:3}
+#map .fx:hover .body{stroke:#000;stroke-width:1.2}
+.handle{fill:#fff;stroke:var(--acc);stroke-width:1.5;cursor:ns-resize}
+.handle.h{cursor:ew-resize}
+#marq{fill:rgba(21,101,192,.08);stroke:var(--acc);stroke-dasharray:4 3;stroke-width:1}
+#hud{position:absolute;bottom:10px;inset-inline-start:10px;display:flex;gap:6px;align-items:center;background:rgba(255,255,255,.95);border:1px solid var(--line);border-radius:9px;padding:5px 8px;font-size:12px;color:var(--mut)}
+#legend{position:absolute;top:8px;inset-inline-start:8px;inset-inline-end:8px;display:flex;flex-wrap:nowrap;overflow-x:auto;gap:4px;padding-bottom:2px;scrollbar-width:thin}
+.chip{flex-shrink:0}
+.chip{pointer-events:auto;display:inline-flex;gap:5px;align-items:center;background:rgba(255,255,255,.95);border:1px solid var(--line);border-radius:20px;padding:2px 9px 2px 7px;font-size:11.5px;cursor:pointer}
+.chip i{width:11px;height:11px;border-radius:3px;display:inline-block}
+.chip.off{opacity:.4}
+.chip.solo{border-color:#111;font-weight:700}
+#banner{position:absolute;top:44px;left:50%;transform:translateX(-50%);background:#fff8e1;border:1px solid #ffe082;border-radius:9px;padding:8px 12px;display:none;gap:8px;align-items:center;box-shadow:0 4px 16px rgba(0,0,0,.08);z-index:3}
+aside{background:#fff;border-inline-start:1px solid var(--line);display:flex;flex-direction:column;min-height:0;min-width:0}
+.tabs{display:flex;border-bottom:1px solid var(--line);flex-shrink:0}
+.tabs button{flex:1;border:0;border-radius:0;padding:9px 4px;border-bottom:2px solid transparent;background:none}
+.tabs button.act{border-bottom-color:var(--acc);color:var(--acc);font-weight:700}
+.pane{flex:1;overflow:auto;padding:12px;display:none;min-height:0}
+.pane.act{display:block}
+h2{font-size:17px;margin:0 0 4px}
+h3{font-size:13px;margin:14px 0 6px;color:#374151}
+.meta{font-size:12px;color:var(--mut);line-height:1.7}
+.empty{color:var(--mut);text-align:center;padding:40px 10px;line-height:1.9}
+.form{display:grid;grid-template-columns:96px minmax(0,1fr);gap:6px 8px;align-items:center}
+.form label{color:var(--mut);font-size:12px}
+.form .row2{display:flex;gap:6px}
+.form .row2>*{flex:1}
+.acts{display:flex;flex-wrap:wrap;gap:5px;margin:10px 0}
+.kpis{display:grid;grid-template-columns:repeat(4,1fr);gap:6px;margin:8px 0}
+.kpi{background:#f6f7f9;border-radius:8px;padding:6px;text-align:center}
+.kpi b{display:block;font-size:15px}
+.kpi span{font-size:11px;color:var(--mut)}
+.shelf{border:1px solid #c9ced4;border-bottom:4px solid #8d8d8d;background:#fff;margin-bottom:7px;border-radius:5px}
+.sh{font-size:11.5px;background:#eceff1;padding:4px 6px;display:flex;gap:6px;align-items:center}
+.sh.eye{background:#fff3cd}
+.sh .nm{font-weight:700}
+.sh .sp{flex:1}
+.sh button{padding:1px 6px;font-size:11px}
+.bar{height:4px;background:#e5e7eb;border-radius:3px;overflow:hidden;margin:0 6px}
+.bar i{display:block;height:100%;background:#43a047}
+.bar.over i{background:var(--bad)}
+.items{display:flex;flex-wrap:wrap;gap:3px;padding:5px;min-height:34px}
+.items.over{background:#e8f5e9;outline:2px dashed #66bb6a;outline-offset:-3px}
+.it{font-size:10.5px;border-radius:4px;padding:2px 5px;border:1px solid #ccc;background:#fdfdfd;max-width:200px;line-height:1.35;cursor:grab;position:relative}
+.it b{display:block;font-weight:600}
+.it.h{background:#e8f5e9;border-color:#66bb6a}
+.it.z{background:#fbe9e7;border-color:#ef9a9a}
+.it.mark{outline:2px solid #ffb300}
+.it.ins{box-shadow:inset -3px 0 0 var(--acc)}
+.it.dragging{opacity:.35}
+.it .x{position:absolute;top:-6px;left:-6px;width:16px;height:16px;border-radius:50%;background:#fff;border:1px solid #bbb;font-size:10px;line-height:13px;text-align:center;display:none;color:var(--bad)}
+.it:hover .x{display:block}
+table{border-collapse:collapse;width:100%;font-size:12px}
+td,th{border-bottom:1px solid var(--line);padding:5px 4px;text-align:right}
+th{color:var(--mut);font-weight:600}
+.res{padding:6px 8px;border:1px solid var(--line);border-radius:7px;margin-bottom:5px;cursor:pointer}
+.res:hover{background:#f6f9ff}
+.res small{color:var(--mut)}
+dialog{border:0;border-radius:12px;padding:0;box-shadow:0 20px 60px rgba(0,0,0,.25);width:min(460px,94vw)}
+dialog::backdrop{background:rgba(0,0,0,.3)}
+dialog .hd{padding:12px 14px;border-bottom:1px solid var(--line);font-weight:700;font-size:15px}
+dialog .bd{padding:14px}
+dialog .ft{padding:10px 14px;border-top:1px solid var(--line);display:flex;gap:6px;justify-content:flex-start;flex-wrap:wrap}
+#toast{position:fixed;bottom:16px;left:50%;transform:translateX(-50%);background:#263238;color:#fff;padding:8px 14px;border-radius:8px;font-size:13px;opacity:0;transition:opacity .2s;pointer-events:none;z-index:50}
+#toast.show{opacity:1}
+.menu{position:relative}
+.menu .dd{position:absolute;top:110%;inset-inline-end:0;background:#fff;border:1px solid var(--line);border-radius:9px;box-shadow:0 10px 30px rgba(0,0,0,.12);padding:5px;display:none;z-index:20;min-width:210px}
+.menu.open .dd{display:block}
+.menu .dd button{display:block;width:100%;text-align:right;border:0;margin:1px 0}
+.kbd{font-size:11px;color:var(--mut);line-height:1.9}
+.kbd kbd{background:#f1f3f5;border:1px solid #d6d9dd;border-radius:4px;padding:0 4px;font-family:inherit}
+#loading{position:fixed;inset:0;background:#fff;display:flex;align-items:center;justify-content:center;font-size:15px;color:var(--mut);z-index:100}
+/* floor areas */
+#lArea .area rect{stroke:none}
+#map:not(.floorMode) #lArea{pointer-events:none}
+#map.floorMode #lFx{pointer-events:none;opacity:.45}
+#map.floorMode #lArea .area{cursor:move}
+#map.floorMode #lArea .area rect{stroke:#455a64;stroke-dasharray:4 3;stroke-width:1}
+#map.floorMode #lArea .area.asel rect{stroke:#1565c0;stroke-width:2;stroke-dasharray:none}
+.alab{font-size:11px;font-weight:700;pointer-events:none;paint-order:stroke;stroke:#fff;stroke-width:3px}
+#floorBadge{position:absolute;top:44px;inset-inline-end:10px;background:#1565c0;color:#fff;border-radius:8px;padding:5px 10px;font-size:12px;display:none;z-index:2}
+.sw{width:30px;height:24px;padding:0;border:1px solid #cfd3d8;border-radius:5px;cursor:pointer;background:none}
+.swd{display:inline-block;width:12px;height:12px;border-radius:3px;vertical-align:-1px;border:1px solid rgba(0,0,0,.15)}
+.res.cur{border-color:#90caf9;background:#e3f2fd}
+/* elevation (front view) */
+#elev{position:absolute;inset-inline:0;bottom:0;height:56%;background:#fff;border-top:2px solid #90a4ae;box-shadow:0 -8px 24px rgba(0,0,0,.12);display:none;flex-direction:column;z-index:5}
+#elev.full{height:100%}
+#stage.eo #hud{display:none}
+.ehd{display:flex;gap:8px;align-items:center;padding:6px 10px;border-bottom:1px solid var(--line);flex-wrap:wrap}
+.ehd .sp{flex:1}
+#eLeg{display:flex;flex-wrap:wrap;gap:4px 10px;padding:5px 10px;max-height:52px;overflow:auto;border-bottom:1px solid var(--line);font-size:11px}
+#eLeg span{display:inline-flex;gap:4px;align-items:center}
+#eLeg i{width:11px;height:11px;border-radius:2px;display:inline-block;border:1px solid rgba(0,0,0,.2)}
+#eBody{flex:1;overflow:auto;padding:12px;background:#eef1f4}
+.gond{display:inline-block;min-width:max-content;background:#cfd8dc;border:6px solid #78909c;border-top-width:14px;border-radius:6px;padding:6px 8px 4px}
+.erow{display:flex;align-items:stretch;margin-bottom:6px}
+.erow.ehead{margin-bottom:2px}
+.elab{width:104px;flex-shrink:0;display:flex;flex-direction:column;justify-content:center;gap:1px;font-size:11px;background:#eceff1;border-radius:5px;padding:4px 6px;margin-inline-end:8px;cursor:pointer;color:#455a64}
+.elab:hover{background:#e3f2fd}
+.elab b{font-size:12px;color:#263238}
+.elab .bad{color:var(--bad);font-weight:700}
+.erow.eye .elab{background:#fff3cd}
+.erow.foc .elab{background:#bbdefb}
+.ehead .elab{background:none;cursor:default}
+.emods{display:flex}
+.emods span{flex-shrink:0;text-align:center;font-size:10px;color:#546e7a;border-inline-start:1px solid #90a4ae}
+.etrack.items{position:relative;display:flex;flex-wrap:nowrap;align-items:flex-end;gap:0;padding:0;min-height:0;border-bottom:7px solid #8d9ca6;
+  background:repeating-linear-gradient(to left,#f8fafb 0,#f8fafb calc(var(--mod) - 1px),#c5cdd3 calc(var(--mod) - 1px),#c5cdd3 var(--mod));box-shadow:inset 0 6px 8px -6px rgba(0,0,0,.25)}
+.etrack.curm{box-shadow:0 0 0 2px #1565c0,inset 0 6px 8px -6px rgba(0,0,0,.25)}
+.etrack.ovf{outline:2px dashed var(--bad);outline-offset:2px}
+.it.eb{flex-shrink:0;max-width:none;padding:0;border-radius:3px 3px 0 0;border:1px solid rgba(0,0,0,.3);line-height:1.15;overflow:hidden;
+  background-image:linear-gradient(90deg,rgba(255,255,255,.6) 1px,transparent 1px);background-size:calc(100% / var(--f)) 100%;display:flex;flex-direction:column;justify-content:flex-end}
+.it.eb:hover{filter:brightness(1.07);outline:2px solid #1565c0;z-index:2;overflow:visible}
+.it.eb.z{border-color:#c62828;border-style:dashed}
+.eb .en{display:block;font-size:9px;padding:2px 1px;overflow:hidden;color:#1a1a1a;word-break:break-word;flex:1;text-align:center}
+.eb .en.v{writing-mode:vertical-rl;text-align:start;padding:3px 0}
+.eb .ep{display:block;font-size:9px;font-weight:700;background:rgba(255,255,255,.75);text-align:center}
+.foc .eb .en{font-size:11px}
+.it.eb .x{top:2px;left:2px}
+/* photo view */
+.seg{display:inline-flex;border:1px solid var(--line);border-radius:8px;overflow:hidden}
+.seg button{border:0;border-radius:0;padding:5px 10px}
+.seg button.on{background:var(--acc);color:#fff}
+.gond.photo{background:#dfe4e8;border-color:#56636b}
+.gond.photo .etrack.items{background:repeating-linear-gradient(to left,transparent 0,transparent calc(var(--mod) - 2px),#aab4bb calc(var(--mod) - 2px),#aab4bb var(--mod)),linear-gradient(#fafbfc,#eef1f3);
+  border-bottom:10px solid #c3ccd2;box-shadow:inset 0 12px 14px -12px rgba(0,0,0,.35),0 3px 0 #8d9aa3}
+.it.pb{flex-shrink:0;display:flex;align-items:flex-end;padding:0;border:0;background:none;max-width:none;border-radius:0;line-height:1;position:relative;font-size:8px}
+.it.pb .fc{height:100%;overflow:hidden;position:relative;flex-shrink:0}
+.it.pb .fc img{width:100%;height:100%;display:block;transform-origin:center;pointer-events:none}
+.it.pb.noimg .fc{outline:1px dashed rgba(0,0,0,.28);outline-offset:-1px}
+.ph{width:100%;height:100%;border-radius:3px 3px 1px 1px;background-image:linear-gradient(90deg,rgba(255,255,255,.45),transparent 45%,rgba(0,0,0,.1));display:flex;align-items:center;justify-content:center;overflow:hidden}
+.ph span{writing-mode:vertical-rl;font-size:8px;color:#1a1a1a;opacity:.8;max-height:96%;overflow:hidden;line-height:1.1}
+.it.pb:hover{outline:2px solid #1565c0;z-index:3}
+.it.pb.fdrop{outline:3px solid #00c853;z-index:3}
+.it .th{width:24px;height:24px;object-fit:contain;float:right;margin-inline-end:4px;background:#fff;border-radius:3px}
+.imged{display:grid;grid-template-columns:170px minmax(0,1fr);gap:12px;align-items:start}
+.ipv{width:170px;height:240px;background:linear-gradient(#fafbfc,#eef1f3);border-bottom:10px solid #c3ccd2;border-radius:6px 6px 0 0;display:flex;align-items:flex-end;justify-content:center;gap:0;overflow:hidden;position:relative;cursor:grab;touch-action:none}
+.ipv .fc{overflow:hidden;flex-shrink:0;position:relative}
+.ipv .fc img{width:100%;height:100%;display:block;pointer-events:none}
+.ipdrop{border:2px dashed #b0bec5;border-radius:8px;padding:10px;text-align:center;color:var(--mut);font-size:12px;margin-bottom:8px;cursor:pointer}
+.ipdrop.over{border-color:#00c853;background:#e8f5e9}
+.bulk td{vertical-align:middle}
+.bulk img{width:38px;height:38px;object-fit:contain;background:#fff;border:1px solid var(--line);border-radius:4px}
+@media(max-width:900px){main{grid-template-columns:1fr;grid-template-rows:55vh minmax(0,1fr)}aside{border-inline-start:0;border-top:1px solid var(--line)}header h1{display:none}}
+</style>
+</head>
+<body>
+<div id="loading">جاري تحميل المخطط…</div>
+<header>
+  <h1>🗺️ لوحة تحكم المخطط</h1>
+  <div class="grp">
+    <button id="bUndo" title="تراجع (Ctrl+Z)">↶ تراجع</button>
+    <button id="bRedo" title="إعادة (Ctrl+Y)">↷ إعادة</button>
+  </div>
+  <div class="grp">
+    <button id="bAdd" class="pri" title="إضافة ستاند جديد">＋ ستاند</button>
+    <button id="bDup" title="نسخ الستاند المحدد بدون منتجات (Ctrl+D)">⧉ نسخ</button>
+    <button id="bRot" title="تدوير 90° (R)">⟳ تدوير</button>
+    <button id="bSplit" title="تقسيم الستاند (أو كل الستاندات) لستاندات 1 متر جنب بعض">✂️ تقسيم لمتر</button>
+    <button id="bDel" class="dng" title="حذف (Delete)">🗑 حذف</button>
+  </div>
+  <div class="grp">
+    <button id="bSnap" class="on" title="المحاذاة على شبكة 25 سم">🧲 محاذاة</button>
+    <button id="bGrid" title="شبكة 1 متر">▦ شبكة</button>
+    <button id="bBg" class="on" title="إظهار/إخفاء الخلفية">🖼 الخلفية</button>
+    <button id="bFloor" title="تعديل الأرضيات: رسم مساحات ملوّنة على الأرض">✏️ الأرضيات</button>
+  </div>
+  <div class="grp menu" id="mFile">
+    <button id="bFile">📁 ملف ▾</button>
+    <div class="dd">
+      <button data-a="json">⬇ تنزيل نسخة احتياطية (JSON)</button>
+      <button data-a="csv">⬇ تصدير الـ Planogram (CSV / Excel)</button>
+      <button data-a="svg">⬇ تصدير الرسم (SVG)</button>
+      <button data-a="html">⬇ تنزيل نسخة HTML تشتغل أوفلاين</button>
+      <hr style="border:0;border-top:1px solid var(--line)">
+      <button data-a="import">⬆ استيراد نسخة JSON</button>
+      <button data-a="bgimg">🖼 تغيير صورة الخلفية…</button>
+      <button data-a="bgclear">✕ إزالة صورة الخلفية</button>
+      <hr style="border:0;border-top:1px solid var(--line)">
+      <button data-a="reset" class="dng">↺ استرجاع آخر نسخة محفوظة</button>
+    </div>
+  </div>
+  <div id="status">
+    <span id="tot"></span>
+    <span id="saveState">—</span>
+    <button id="bAuto" class="on" title="حفظ تلقائي بعد 8 ثواني من آخر تعديل">⟳ تلقائي</button>
+    <button id="bSave" class="pri" title="حفظ (Ctrl+S)">💾 حفظ</button>
+  </div>
+</header>
+<main>
+  <div id="stage">
+    <svg id="map" xmlns="http://www.w3.org/2000/svg">
+      <defs>
+        <pattern id="gridP" width="24" height="24" patternUnits="userSpaceOnUse"><path d="M24 0H0V24" fill="none" stroke="#90a4ae" stroke-width=".4"/></pattern>
+      </defs>
+      <g id="lImg"></g>
+      <g id="lBg"></g>
+      <g id="lArea"></g>
+      <rect id="lGrid" x="0" y="0" fill="url(#gridP)" style="display:none;pointer-events:none"/>
+      <g id="lFx"></g>
+      <g id="lSel"></g>
+      <rect id="marq" style="display:none"/>
+    </svg>
+    <div id="legend"></div>
+    <div id="floorBadge">✏️ وضع تعديل الأرضيات — اسحب المساحات وغيّر حجمها من الأركان · <u style="cursor:pointer" id="fbExit">إنهاء</u></div>
+    <div id="elev">
+      <div class="ehd"><span class="seg"><button data-ev="plan" class="on">📐 الشكل</button><button data-ev="photo">📷 بالصور</button></span><b id="eTitle"></b><span class="sp"></span>
+        <button id="eBulk" style="display:none" title="ارفع صور كتير مرة واحدة — بتتربط بالأصناف من اسم الملف">⬆ رفع صور</button>
+        <label class="meta">التلوين <select id="eMode"><option value="auto">تلقائي</option><option value="brand">حسب البراند</option><option value="sub">حسب السب كاتيجوري</option><option value="ros">حسب المبيعات ROS</option><option value="stand">بلون الستاند</option></select></label>
+        <label class="meta" style="display:flex;gap:4px;align-items:center">تكبير <input type="range" id="eZoom" min="1" max="8" step="0.25" value="1" style="width:90px"></label>
+        <button id="eGrp" title="عرض أمتار المجموعة جنب بعض أو المتر ده بس">🔗 المجموعة</button>
+        <button id="eAll">كل الرفوف</button>
+        <button id="eSize" title="تكبير/تصغير اللوحة">⬍</button>
+        <button id="eClose" title="إغلاق (Esc)">✕</button></div>
+      <div id="eLeg"></div>
+      <div id="eBody"></div>
+    </div>
+    <div id="banner"><span id="bannerTxt"></span><button id="bannerYes" class="pri">استرجاع</button><button id="bannerNo">تجاهل</button></div>
+    <div id="hud">
+      <button id="zOut" title="تصغير">－</button>
+      <span id="zLvl">100%</span>
+      <button id="zIn" title="تكبير">＋</button>
+      <button id="zFit" title="ملء الشاشة">⤢</button>
+      <span id="pos">—</span>
+    </div>
+  </div>
+  <aside>
+    <div class="tabs">
+      <button data-t="fx" class="act">الستاند</button>
+      <button data-t="pool">غير موزّع <span id="poolN"></span></button>
+      <button data-t="find">بحث</button>
+      <button data-t="colors">الألوان</button>
+      <button data-t="sum">ملخص</button>
+    </div>
+    <div class="pane act" id="p-fx"></div>
+    <div class="pane" id="p-pool"></div>
+    <div class="pane" id="p-find">
+      <input id="q" placeholder="ابحث عن صنف أو براند أو كود ستاند…" style="width:100%">
+      <div class="meta" id="qInfo" style="margin:6px 0"></div>
+      <div id="qRes"></div>
+    </div>
+    <div class="pane" id="p-colors"></div>
+    <div class="pane" id="p-sum"></div>
+  </aside>
+</main>
+
+<dialog id="dlg"><form method="dialog" id="dlgForm"><div class="hd" id="dlgHd"></div><div class="bd" id="dlgBd"></div><div class="ft" id="dlgFt"></div></form></dialog>
+<input type="file" id="fileIn" accept=".json,application/json" hidden>
+<input type="file" id="imgIn" accept="image/*" hidden>
+<div id="toast"></div>
+<a href="./" style="position:fixed;z-index:50;left:10px;bottom:10px;background:#3b1d36;color:#fff;border-radius:9px;padding:6px 12px;text-decoration:none;font-size:12px">⚙ إعدادات الصيدلية 3D</a>
+
+<script src="editor-store.js"></script>
+<script id="store">
+/* =====================================================================
+   PG_STORE — storage adapter. The editor reads and writes ONLY through
+   this object. To use your own server, define window.PG_STORE in a
+   <script> placed BEFORE this one (or replace this block). Interface:
+
+     load()                 -> Promise<object>   the full state (see JSON format)
+     save(data)             -> Promise<void>     data = deep-copied snapshot object
+     saveImage(name, blob)  -> Promise<string>   store a product image, return a "ref"
+     imageUrl(ref)          -> string            turn a stored ref into an <img src>
+     init()      (optional) -> Promise           called once after the first load
+     online      (optional) boolean; false = no server save (edits stay in the
+                 browser + backup download). Missing/undefined = treated as true.
+
+   save() may throw an Error with .code:
+     'conflict'   -> someone saved a newer version
+     'not_writer' / 'offline' -> switch the UI to "browser-only" saving
+   Default behaviour below = how it works inside Claude (artifact files +
+   asset uploads), falling back to data/state.json + data: URLs elsewhere.
+   ===================================================================== */
+window.PG_STORE = window.PG_STORE || (function(){
+  var art = null, assets = null, ready = null;
+  function use(n){
+    try{ if(window.claude && window.claude.use) return Promise.resolve(window.claude.use(n)).catch(function(){return null}); }catch(e){}
+    return Promise.resolve(null);
+  }
+  function blobToDataURL(b){ return new Promise(function(ok,err){ var r=new FileReader(); r.onload=function(){ok(r.result)}; r.onerror=err; r.readAsDataURL(b); }); }
+  var store = {
+    name: 'default',
+    online: false,
+    init: function(){
+      if(!ready) ready = Promise.all([use('artifact'), use('assets')]).then(function(r){ art=r[0]; assets=r[1]; store.online = !!art; return store.online; });
+      return ready;
+    },
+    load: async function(){
+      var seed = document.getElementById('seed');                 // offline copy: data embedded in the page
+      if(seed){ try{ return JSON.parse(seed.textContent); }catch(e){} }
+      var r = await fetch('data/state.json', {cache:'no-store'});  // normal case: separate JSON file
+      if(!r.ok) throw new Error('HTTP '+r.status);
+      return r.json();
+    },
+    save: async function(data){
+      await store.init();
+      if(!art){ var e=new Error('no online storage'); e.code='offline'; throw e; }
+      await art.publish({'data/state.json': {content: JSON.stringify(data), contentType:'application/json'}});
+    },
+    saveImage: async function(name, blob){
+      await store.init();
+      if(assets){ try{ var r = await assets.upload(blob); return r.url; }catch(e){ console.warn('image upload failed, embedding instead', e); } }
+      return blobToDataURL(blob);                                  // fallback: image stored inside the JSON
+    },
+    imageUrl: function(ref){ return ref || ''; }
+  };
+  return store;
+})();
+</script>
+<script id="app">
+const SELF_SRC0='<!DOCTYPE html>\n'+document.documentElement.outerHTML;
+const STORE=()=>window.PG_STORE;
+(()=>{
+'use strict';
+/* ================= helpers ================= */
+const $=s=>document.querySelector(s), $$=s=>[...document.querySelectorAll(s)];
+const NS='http://www.w3.org/2000/svg';
+const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const clone=o=>o==null?o:JSON.parse(JSON.stringify(o));
+const r1=v=>Math.round(v*10)/10;
+const fmt=n=>Math.round(n).toLocaleString('en-US');
+const M=24; // 1 meter = 24 units (1 module)
+const LS_KEY='pharmacy-planogram-draft-v1';
+let toastT;
+function toast(msg){const t=$('#toast');t.textContent=msg;t.classList.add('show');clearTimeout(toastT);toastT=setTimeout(()=>t.classList.remove('show'),2200)}
+const lsGet=k=>{try{return localStorage.getItem(k)}catch(e){return null}};
+const lsSet=(k,v)=>{try{localStorage.setItem(k,v);return true}catch(e){return false}};
+const lsDel=k=>{try{localStorage.removeItem(k)}catch(e){}};
+
+/* item = [shelf, name, brand, facings, pcs, ros, subcat, cm] */
+const KINDS=['ستاند براند','رف مشترك Mixed','ستاند براند (هوك)','ستاند براند (هوك أعلى + رفوف أسفل)','رفوف RX خلف الكاونتر','وحدة كاشير','جزيرة عرض','ستاند عروض'];
+const HOTS=['موقع ساخن: أول الممر / مواجه للممر الرئيسي','موقع متوسط','موقع داخلي / آخر الممر'];
+
+/* ================= state ================= */
+let S=null, BASE_SAVED=0;
+let sel=new Set();       // selected fixture ids
+let cur=null;            // fixture shown in panel
+let undoS=[], redoS=[];
+let dirty=false, snap=true, zoneFilter=null;
+let markItem=null;       // {fid, name} highlighted item
+const svg=$('#map'), lFx=$('#lFx'), lSel=$('#lSel');
+let V={x:-20,y:-40,w:1096,h:1196};
+
+/* ================= derived ================= */
+const fStats=f=>{let pcs=0,ros=0;for(const i of f.it){pcs+=i[4];ros+=i[5]}return{skus:f.it.length,pcs,ros:r1(ros)}};
+const isV=p=>p.h>=p.w;
+const bbox=f=>{let x1=1e9,y1=1e9,x2=-1e9,y2=-1e9;for(const p of f.parts){x1=Math.min(x1,p.x);y1=Math.min(y1,p.y);x2=Math.max(x2,p.x+p.w);y2=Math.max(y2,p.y+p.h)}return{x:x1,y:y1,w:x2-x1,h:y2-y1}};
+const zoneColor=z=>(S.zones[z]&&S.zones[z].color)||'#78909c';
+const nextId=()=>String(Math.max(-1,...Object.keys(S.fx).map(Number))+1);
+function newCode(zone,pos){const pre=zone+'-'+(pos==='حائط'?'W':'F');let n=1;const ex=new Set(Object.values(S.fx).map(f=>f.code));while(ex.has(pre+String(n).padStart(2,'0')))n++;return pre+String(n).padStart(2,'0')}
+
+/* ================= undo ================= */
+const SK={__pool:'pool',__areas:'areas',__floor:'floor',__zones:'zones',__img:'img'};
+const snapOf=id=>SK[id]?clone(S[SK[id]]):clone(S.fx[id]??null);
+function setOf(id,v){if(SK[id]){S[SK[id]]=v??(id==='__floor'?clone(FLOOR0):(id==='__zones'||id==='__img')?{}:[]);return}if(v==null)delete S.fx[id];else S.fx[id]=v}
+function commit(label,ids,fn){
+  ids=[...new Set(ids)];
+  const before=ids.map(id=>[id,snapOf(id)]);
+  const extra=fn(); // fn may return extra ids it created
+  if(extra&&extra.length){for(const id of extra)if(!ids.includes(id)){ids.push(id);before.push([id,null])}}
+  const after=ids.map(id=>[id,snapOf(id)]);
+  pushUndo({label,before,after});
+  afterChange(ids);
+}
+function pushUndo(e){undoS.push(e);if(undoS.length>80)undoS.shift();redoS=[];markDirty();updUndo()}
+function undo(){const e=undoS.pop();if(!e)return;for(const[id,v]of e.before)setOf(id,clone(v));redoS.push(e);sel=new Set([...sel].filter(id=>S.fx[id]));if(cur&&!S.fx[cur])cur=null;afterChange(e.before.map(x=>x[0]));markDirty();updUndo();toast('تراجع: '+e.label)}
+function redo(){const e=redoS.pop();if(!e)return;for(const[id,v]of e.after)setOf(id,clone(v));undoS.push(e);sel=new Set([...sel].filter(id=>S.fx[id]));if(cur&&!S.fx[cur])cur=null;afterChange(e.after.map(x=>x[0]));markDirty();updUndo();toast('إعادة: '+e.label)}
+function updUndo(){$('#bUndo').disabled=!undoS.length;$('#bRedo').disabled=!redoS.length;$('#bUndo').title='تراجع (Ctrl+Z)'+(undoS.length?': '+undoS[undoS.length-1].label:'')}
+function afterChange(ids){
+  sel=new Set([...sel].filter(id=>S.fx[id]));if(cur&&!S.fx[cur])cur=null;
+  if(ids.includes('__floor'))applyFloor();
+  if(ids.includes('__areas')){if(selA!=null&&!S.areas.some(a=>a.id===selA))selA=null;drawAreas()}
+  if(ids.includes('__zones')){drawLegend();drawAll()}else for(const id of ids){if(!SK[id])drawFx(id)}
+  checkClash();drawSel();renderPanel();renderTotals();
+  if($('#p-pool').classList.contains('act')||ids.includes('__pool'))renderPool();
+  if($('#p-sum').classList.contains('act'))renderSum();
+  if($('#p-colors').classList.contains('act'))renderColors();
+  renderElev();
+}
+
+/* ================= map drawing ================= */
+let FITW=1100;
+function setVB(){svg.setAttribute('viewBox',`${V.x} ${V.y} ${V.w} ${V.h}`);$('#zLvl').textContent=Math.round(FITW/V.w*100)+'%';drawSel()}
+function svgAspect(){const r=svg.getBoundingClientRect();return r.width/Math.max(1,r.height)}
+function fit(){const r=svg.getBoundingClientRect(),a=r.width/Math.max(1,r.height);const W=S.room.w+40,H=S.room.h+130;let w=W,h=H;if(w/h<a)w=h*a;else h=w/a;V={x:-20-(w-W)/2,y:-90-(h-H)/2,w,h};FITW=w;setVB()}
+const FLOOR0={floor:'#fafafa',wall:'#222222',aisle:'#90a4ae',aisleOp:.18,cashier:'#d7ccc8',counter:'#b0bec5',canvas:'#e9ebee'};
+function applyFloor(F){F=F||S.floor;const bg=$('#lBg');
+  bg.querySelectorAll('rect').forEach(r=>{const o=r.dataset.o||(r.dataset.o=r.getAttribute('fill'));
+    if(o==='#fafafa'){r.setAttribute('fill',F.floor);r.setAttribute('stroke',F.wall)}
+    else if(o==='#fff')r.setAttribute('fill',F.floor);
+    else if(o==='#d7ccc8')r.setAttribute('fill',F.cashier);
+    else if(o==='#b0bec5')r.setAttribute('fill',F.counter)});
+  bg.querySelectorAll('line').forEach(l=>{l.setAttribute('stroke',F.aisle);l.setAttribute('opacity',F.aisleOp)});
+  $('#stage').style.background=F.canvas;}
+let selA=null, floorMode=false;
+function drawAreas(){
+  $('#lArea').innerHTML=(S.areas||[]).map(a=>`<g class="area${a.id===selA?' asel':''}" data-a="${a.id}"><rect x="${a.x}" y="${a.y}" width="${a.w}" height="${a.h}" rx="2" fill="${esc(a.color)}" fill-opacity="${a.op}"/>${a.label?`<text class="alab" x="${a.x+a.w/2}" y="${a.y+14}" text-anchor="middle" fill="${esc(a.color)}">${esc(a.label)}</text>`:''}</g>`).join('');
+}
+function setFloorMode(on){floorMode=on;svg.classList.toggle('floorMode',on);$('#bFloor').classList.toggle('on',on);$('#floorBadge').style.display=on?'block':'none';
+  if(on){sel.clear()}else{selA=null}drawAreas();drawSel();if(on)tab('colors');else renderColors()}
+function drawBg(){
+  $('#lBg').innerHTML=S.bg||'';applyFloor();drawAreas();
+  const g=$('#lGrid');g.setAttribute('width',S.room.w);g.setAttribute('height',S.room.h);
+  const li=$('#lImg');li.innerHTML='';
+  if(S.bgImage&&S.bgImage.src){const im=document.createElementNS(NS,'image');im.setAttribute('href',S.bgImage.src);im.setAttribute('x',0);im.setAttribute('y',0);im.setAttribute('width',S.room.w);im.setAttribute('height',S.room.h);im.setAttribute('preserveAspectRatio','xMidYMid meet');im.setAttribute('opacity',S.bgImage.op??.5);li.appendChild(im)}
+}
+function drawFx(id){
+  const old=lFx.querySelector(`g[data-id="${id}"]`);
+  const f=S.fx[id];
+  if(!f){old&&old.remove();return}
+  const g=document.createElementNS(NS,'g');g.setAttribute('class','fx');g.dataset.id=id;
+  const col=f.color||zoneColor(f.zone),op=f.brand==='Mixed'?.38:.85;
+  const st=fStats(f);
+  let h=`<title>${esc(f.code)} | ${esc(f.brand)} | ${esc(f.dept)} | ${f.modules} موديول | ${st.skus} صنف | ${st.pcs} حبة</title>`;
+  let big=f.parts[0];for(const p of f.parts)if(p.w*p.h>big.w*big.h)big=p;
+  for(const p of f.parts){
+    h+=`<rect class="body" x="${p.x}" y="${p.y}" width="${p.w}" height="${p.h}" fill="${col}" fill-opacity="${op}" stroke="#fff" stroke-width="1"/>`;
+    const v=isV(p),L=v?p.h:p.w,n=Math.round(L/M);
+    for(let k=1;k<n;k++){const c=k*L/n;h+=v?`<line x1="${p.x}" x2="${p.x+p.w}" y1="${p.y+c}" y2="${p.y+c}" stroke="#fff" stroke-width=".5" opacity=".75"/>`:`<line y1="${p.y}" y2="${p.y+p.h}" x1="${p.x+c}" x2="${p.x+c}" stroke="#fff" stroke-width=".5" opacity=".75"/>`}
+  }
+  const lab=f.brand!=='Mixed'&&f.brand?f.brand.slice(0,5):f.code.replace(/^[A-Z]+-/,'');
+  const cx=big.x+big.w/2,cy=big.y+big.h/2;
+  h+=`<text x="${cx}" y="${cy+3}" class="t${f.brand!=='Mixed'?' st':''}" text-anchor="middle"${isV(big)?` transform="rotate(-90 ${cx} ${cy})"`:''}>${esc(lab)}</text>`;
+  g.innerHTML=h;
+  if(sel.has(id))g.classList.add('sel');
+  if(zoneFilter&&f.zone!==zoneFilter)g.classList.add('dim');
+  if(old)old.replaceWith(g);else lFx.appendChild(g);
+}
+function drawAll(){lFx.innerHTML='';for(const id of Object.keys(S.fx))drawFx(id);checkClash();drawSel()}
+function drawSel(){
+  for(const g of lFx.children)g.classList.toggle('sel',sel.has(g.dataset.id));
+  lSel.innerHTML='';
+  if(floorMode){const a=selA!=null&&S.areas.find(x=>x.id===selA);if(!a)return;const r=Math.max(3,V.w/170);
+    for(const[x,y,c]of[[a.x,a.y,'tl'],[a.x+a.w,a.y+a.h,'br'],[a.x+a.w,a.y,'tr'],[a.x,a.y+a.h,'bl']]){const k=document.createElementNS(NS,'circle');k.setAttribute('cx',x);k.setAttribute('cy',y);k.setAttribute('r',r);k.setAttribute('class','handle ahandle');k.style.cursor=(c==='tl'||c==='br')?'nwse-resize':'nesw-resize';k.dataset.c=c;lSel.appendChild(k)}
+    return}
+  if(sel.size!==1)return;
+  const f=S.fx[[...sel][0]];if(!f||f.parts.length!==1)return;
+  const p=f.parts[0],v=isV(p),r=Math.max(3,V.w/180);
+  const pts=v?[[p.x+p.w/2,p.y,'s'],[p.x+p.w/2,p.y+p.h,'e']]:[[p.x,p.y+p.h/2,'s'],[p.x+p.w,p.y+p.h/2,'e']];
+  for(const[x,y,end]of pts){const c=document.createElementNS(NS,'circle');c.setAttribute('cx',x);c.setAttribute('cy',y);c.setAttribute('r',r);c.setAttribute('class','handle'+(v?'':' h'));c.dataset.end=end;lSel.appendChild(c)}
+}
+function checkClash(){
+  const rs=[];for(const[id,f]of Object.entries(S.fx))for(const p of f.parts)rs.push([id,p]);
+  const bad=new Set();
+  for(let i=0;i<rs.length;i++){const[a,p]=rs[i];for(let j=i+1;j<rs.length;j++){const[b,q]=rs[j];if(a===b)continue;
+    if(p.x<q.x+q.w-.5&&q.x<p.x+p.w-.5&&p.y<q.y+q.h-.5&&q.y<p.y+p.h-.5){bad.add(a);bad.add(b)}}}
+  for(const g of lFx.children)g.classList.toggle('clash',bad.has(g.dataset.id));
+  return bad;
+}
+function drawLegend(){
+  const el=$('#legend');
+  el.innerHTML=Object.entries(S.zones).map(([z,v])=>`<span class="chip${zoneFilter===z?' solo':zoneFilter?' off':''}" data-z="${esc(z)}"><i style="background:${esc(v.color)}"></i>${esc(z)} · ${esc(v.name.replace(/\(.*?\)/g,'').trim())}</span>`).join('');
+}
+$('#legend').addEventListener('click',e=>{const c=e.target.closest('.chip');if(!c)return;zoneFilter=zoneFilter===c.dataset.z?null:c.dataset.z;drawLegend();for(const g of lFx.children)g.classList.toggle('dim',!!zoneFilter&&S.fx[g.dataset.id].zone!==zoneFilter)});
+
+/* ================= map interaction ================= */
+function pt(e){const p=svg.createSVGPoint();p.x=e.clientX;p.y=e.clientY;return p.matrixTransform(svg.getScreenCTM().inverse())}
+const sn=v=>snap?Math.round(v/6)*6:r1(v);
+let act=null;
+const capt=e=>{try{svg.setPointerCapture(e.pointerId)}catch(_){}};
+svg.addEventListener('pointerdown',e=>{
+  if(e.button!==0)return;
+  const p=pt(e);
+  if(floorMode){
+    const ah=e.target.closest('.ahandle');
+    if(ah){const a=S.areas.find(x=>x.id===selA);act={type:'aresize',c:ah.dataset.c,p0:p,before:snapOf('__areas'),orig:{...a}};capt(e);return}
+    const ag=e.target.closest('.area');
+    if(ag){selA=+ag.dataset.a;drawAreas();drawSel();renderColors();const a=S.areas.find(x=>x.id===selA);act={type:'amove',p0:p,before:snapOf('__areas'),orig:{...a},moved:false};capt(e);return}
+  }
+  const h=e.target.closest('.handle');
+  if(h){const id=[...sel][0];act={type:'resize',id,end:h.dataset.end,p0:p,before:snapOf(id),orig:clone(S.fx[id].parts[0])};capt(e);return}
+  const g=e.target.closest('.fx');
+  if(g){
+    const id=g.dataset.id;
+    if(e.shiftKey||e.ctrlKey||e.metaKey){sel.has(id)?sel.delete(id):sel.add(id);drawSel();showFx(sel.has(id)?id:[...sel].pop()??null);return}
+    const now=Date.now(),dbl=lastDown.id===id&&now-lastDown.t<400;lastDown={id,t:now};
+    if(dbl&&S.fx[id].grp){selGrp(S.fx[id].grp);const ids=[...sel];act={type:'move',ids,p0:p,before:ids.map(i=>[i,snapOf(i)]),orig:ids.map(i=>clone(S.fx[i].parts)),moved:false};capt(e);return}
+    if(!sel.has(id)){sel=new Set([id]);drawSel()}
+    showFx(id);
+    const ids=[...sel];
+    act={type:'move',ids,p0:p,before:ids.map(i=>[i,snapOf(i)]),orig:ids.map(i=>clone(S.fx[i].parts)),moved:false};
+    capt(e);return;
+  }
+  if(e.shiftKey){act={type:'marq',p0:p};const m=$('#marq');m.style.display='';m.setAttribute('x',p.x);m.setAttribute('y',p.y);m.setAttribute('width',0);m.setAttribute('height',0)}
+  else{act={type:'pan',c0:[e.clientX,e.clientY],v0:{...V},moved:false};svg.classList.add('panning')}
+  capt(e);
+});
+svg.addEventListener('pointermove',e=>{
+  const p=pt(e);
+  $('#pos').textContent=`${(p.x/M).toFixed(1)} م × ${(p.y/M).toFixed(1)} م`;
+  if(!act)return;
+  if(act.type==='pan'){const r=svg.getBoundingClientRect(),k=V.w/r.width;const dx=e.clientX-act.c0[0],dy=e.clientY-act.c0[1];if(Math.abs(dx)+Math.abs(dy)>3)act.moved=true;V.x=act.v0.x-dx*k;V.y=act.v0.y-dy*k;setVB();return}
+  if(act.type==='marq'){const m=$('#marq');m.setAttribute('x',Math.min(p.x,act.p0.x));m.setAttribute('y',Math.min(p.y,act.p0.y));m.setAttribute('width',Math.abs(p.x-act.p0.x));m.setAttribute('height',Math.abs(p.y-act.p0.y));return}
+  if(act.type==='move'){
+    const dx=sn(p.x-act.p0.x),dy=sn(p.y-act.p0.y);
+    if(!act.moved&&Math.abs(p.x-act.p0.x)+Math.abs(p.y-act.p0.y)<2)return;
+    act.moved=true;
+    act.ids.forEach((id,k)=>{S.fx[id].parts=act.orig[k].map(q=>({...q,x:r1(q.x+dx),y:r1(q.y+dy)}));drawFx(id)});
+    drawSel();return;
+  }
+  if(act.type==='amove'){const a=S.areas.find(x=>x.id===selA);const dx=sn(p.x-act.p0.x),dy=sn(p.y-act.p0.y);if(!act.moved&&Math.abs(p.x-act.p0.x)+Math.abs(p.y-act.p0.y)<2)return;act.moved=true;a.x=r1(act.orig.x+dx);a.y=r1(act.orig.y+dy);drawAreas();drawSel();return}
+  if(act.type==='aresize'){const a=S.areas.find(x=>x.id===selA),o=act.orig;let x1=o.x,y1=o.y,x2=o.x+o.w,y2=o.y+o.h;const X=sn(p.x),Y=sn(p.y);
+    if(act.c.includes('l'))x1=X;else x2=X;if(act.c.includes('t'))y1=Y;else y2=Y;
+    a.x=r1(Math.min(x1,x2));a.y=r1(Math.min(y1,y2));a.w=r1(Math.max(6,Math.abs(x2-x1)));a.h=r1(Math.max(6,Math.abs(y2-y1)));drawAreas();drawSel();$('#pos').textContent=`${(a.w/M).toFixed(1)} × ${(a.h/M).toFixed(1)} م`;return}
+  if(act.type==='resize'){
+    const o=act.orig,f=S.fx[act.id],v=isV(o);
+    const d=v?p.y-act.p0.y:p.x-act.p0.x;
+    let L=v?o.h:o.w;
+    let nL=act.end==='e'?L+d:L-d;
+    nL=Math.max(M,Math.round(nL/M)*M);
+    const q={...o};
+    if(v){q.h=nL;if(act.end==='s')q.y=r1(o.y+o.h-nL)}else{q.w=nL;if(act.end==='s')q.x=r1(o.x+o.w-nL)}
+    f.parts=[q];f.modules=Math.round(nL/M);drawFx(act.id);drawSel();
+    $('#pos').textContent=`${f.modules} موديول (${f.modules} م)`;
+  }
+});
+function endAct(e){
+  if(!act)return;const a=act;act=null;svg.classList.remove('panning');
+  if(a.type==='pan'){if(!a.moved){if(floorMode){selA=null;drawAreas();renderColors()}sel.clear();drawSel()}return}
+  if(a.type==='amove'||a.type==='aresize'){if(a.type==='amove'&&!a.moved)return;pushUndo({label:a.type==='amove'?'نقل مساحة أرضية':'تغيير مقاس مساحة',before:[['__areas',a.before]],after:[['__areas',snapOf('__areas')]]});afterChange(['__areas']);return}
+  if(a.type==='marq'){const m=$('#marq');m.style.display='none';const x=+m.getAttribute('x'),y=+m.getAttribute('y'),w=+m.getAttribute('width'),h=+m.getAttribute('height');
+    for(const[id,f]of Object.entries(S.fx)){const b=bbox(f);if(b.x>=x&&b.y>=y&&b.x+b.w<=x+w&&b.y+b.h<=y+h&&(!zoneFilter||f.zone===zoneFilter))sel.add(id)}
+    drawSel();toast(`تم تحديد ${sel.size} ستاند`);return}
+  if(a.type==='move'){if(!a.moved)return;pushUndo({label:a.ids.length>1?`نقل ${a.ids.length} ستاند`:'نقل '+S.fx[a.ids[0]].code,before:a.before,after:a.ids.map(i=>[i,snapOf(i)])});afterChange(a.ids);return}
+  if(a.type==='resize'){const f=S.fx[a.id];if(f.parts[0].w===a.orig.w&&f.parts[0].h===a.orig.h)return;pushUndo({label:'تغيير طول '+f.code,before:[[a.id,a.before]],after:[[a.id,snapOf(a.id)]]});afterChange([a.id])}
+}
+svg.addEventListener('pointerup',endAct);svg.addEventListener('pointercancel',endAct);
+svg.addEventListener('wheel',e=>{e.preventDefault();const p=pt(e);const k=Math.exp(e.deltaY*.0015);zoomAt(p,k)},{passive:false});
+function zoomAt(p,k){const nw=Math.min(4000,Math.max(60,V.w*k));k=nw/V.w;V.x=p.x-(p.x-V.x)*k;V.y=p.y-(p.y-V.y)*k;V.w*=k;V.h*=k;setVB()}
+const center=()=>({x:V.x+V.w/2,y:V.y+V.h/2});
+$('#zIn').onclick=()=>zoomAt(center(),1/1.3);$('#zOut').onclick=()=>zoomAt(center(),1.3);$('#zFit').onclick=fit;
+addEventListener('resize',()=>{const a=svgAspect();V.h=V.w/a;setVB()});
+
+/* drop products onto map fixtures */
+let drag=null; // {from:'fx'|'pool', fid, idx}
+svg.addEventListener('dragover',e=>{if(!drag)return;const g=e.target.closest('.fx');$$('#lFx .drop').forEach(x=>x!==g&&x.classList.remove('drop'));if(g){e.preventDefault();g.classList.add('drop')}});
+svg.addEventListener('dragleave',e=>{const g=e.target.closest('.fx');g&&g.classList.remove('drop')});
+svg.addEventListener('drop',e=>{const g=e.target.closest('.fx');if(!g||!drag)return;e.preventDefault();g.classList.remove('drop');moveItem(drag,{fid:g.dataset.id,shelf:null,before:null})});
+
+/* ================= fixture operations ================= */
+function addFixture(o){
+  const id=nextId();
+  const c=center();const L=o.modules*M;const v=o.orient==='v';
+  const w=v?12:L,h=v?L:12;
+  const x=sn(c.x-w/2),y=sn(c.y-h/2);
+  commit('إضافة ستاند',[id],()=>{S.fx[id]={code:newCode(o.zone,o.pos),zone:o.zone,kind:o.kind,brand:o.brand||'Mixed',dept:o.dept||'غير مصنف',pos:o.pos,shelves:o.shelves,modules:o.modules,back:0,loc:'',hot:HOTS[1],parts:[{x,y,w,h}],it:[]}});
+  sel=new Set([id]);drawSel();showFx(id);toast('تمت إضافة '+S.fx[id].code+' — اسحبه لمكانه');
+}
+function dupSel(){
+  if(!sel.size)return toast('حدد ستاند الأول');
+  const news=[];
+  commit('نسخ ستاند',[],()=>{for(const id of sel){const f=S.fx[id];const n=nextId();const b=bbox(f);const v=b.h>=b.w;S.fx[n]={...clone(f),code:newCode(f.zone,f.pos),it:[],parts:f.parts.map(p=>({...p,x:r1(p.x+(v?b.w:0)),y:r1(p.y+(v?0:b.h))}))};news.push(n)}return news});
+  sel=new Set(news);drawSel();showFx(news[0]);toast('تم النسخ (بدون منتجات)');
+}
+function rotSel(){
+  if(!sel.size)return toast('حدد ستاند الأول');
+  commit('تدوير',[...sel],()=>{for(const id of sel){const f=S.fx[id],b=bbox(f),cx=b.x+b.w/2,cy=b.y+b.h/2;
+    f.parts=f.parts.map(p=>{const px=p.x+p.w/2,py=p.y+p.h/2;const nx=cx-(py-cy),ny=cy+(px-cx);return{x:r1(nx-p.h/2),y:r1(ny-p.w/2),w:p.h,h:p.w}})}});
+}
+function delSel(){
+  if(!sel.size)return toast('حدد ستاند الأول');
+  const ids=[...sel];const n=ids.reduce((a,id)=>a+S.fx[id].it.length,0);
+  const names=ids.map(id=>S.fx[id].code).join('، ');
+  dialog({title:'حذف '+(ids.length>1?ids.length+' ستاندات':'الستاند '+names),
+    body:`<p style="margin:0 0 10px">${n?`فيه <b>${n}</b> منتج على الرفوف.`:'الستاند فاضي.'}</p>${n?`<label style="display:flex;gap:6px;align-items:center"><input type="checkbox" id="keepIt" checked> انقل المنتجات لقائمة "غير موزّع" بدل ما تتحذف</label>`:''}`,
+    btns:[['حذف','dng',()=>{const keep=!n||$('#keepIt').checked;commit('حذف '+names,[...ids,'__pool'],()=>{for(const id of ids){if(keep)for(const i of S.fx[id].it)S.pool.push(i);delete S.fx[id]}});sel.clear();if(ids.includes(cur))cur=null;drawSel();renderPanel();toast(keep&&n?`اتحذف، و${n} منتج اتنقلوا لـ "غير موزّع"`:'اتحذف')}],['إلغاء']]});
+}
+$('#bAdd').onclick=()=>{
+  const zo=Object.entries(S.zones).map(([z,v])=>`<option value="${esc(z)}">${esc(z)} · ${esc(v.name)}</option>`).join('');
+  dialog({title:'إضافة ستاند جديد',body:`<div class="form">
+    <label>المنطقة</label><select id="nZ">${zo}</select>
+    <label>النوع</label><select id="nK">${KINDS.map(k=>`<option>${esc(k)}</option>`).join('')}</select>
+    <label>البراند</label><input id="nB" placeholder="Mixed لو رف مشترك" list="dlBrands">
+    <label>القسم</label><input id="nD" placeholder="مثلاً Hair Care" list="dlDepts">
+    <label>المكان</label><select id="nP"><option>أرضي</option><option>حائط</option></select>
+    <label>الطول</label><div class="row2"><input id="nM" type="number" min="1" max="20" value="2"><span class="meta">موديول (متر)</span></div>
+    <label>الرفوف</label><input id="nS" type="number" min="1" max="10" value="5">
+    <label>الاتجاه</label><select id="nO"><option value="v">رأسي ↕</option><option value="h">أفقي ↔</option></select>
+  </div>${datalists()}`,
+  btns:[['إضافة','pri',()=>{addFixture({zone:$('#nZ').value,kind:$('#nK').value,brand:$('#nB').value.trim(),dept:$('#nD').value.trim(),pos:$('#nP').value,modules:Math.max(1,+$('#nM').value||1),shelves:Math.max(1,+$('#nS').value||5),orient:$('#nO').value})}],['إلغاء']]});
+};
+$('#bDup').onclick=dupSel;$('#bRot').onclick=rotSel;$('#bDel').onclick=delSel;
+$('#bUndo').onclick=undo;$('#bRedo').onclick=redo;
+$('#bSnap').onclick=e=>{snap=!snap;e.currentTarget.classList.toggle('on',snap)};
+$('#bGrid').onclick=e=>{const g=$('#lGrid');const on=g.style.display==='none';g.style.display=on?'':'none';e.currentTarget.classList.toggle('on',on)};
+$('#bBg').onclick=e=>{const b=$('#lBg');const on=b.style.display==='none';b.style.display=on?'':'none';$('#lImg').style.display=on?'':'none';e.currentTarget.classList.toggle('on',on)};
+function datalists(){
+  const br=[...new Set(Object.values(S.fx).map(f=>f.brand))].sort(),dp=[...new Set(Object.values(S.fx).map(f=>f.dept))].sort();
+  return `<datalist id="dlBrands">${br.map(b=>`<option value="${esc(b)}">`).join('')}</datalist><datalist id="dlDepts">${dp.map(b=>`<option value="${esc(b)}">`).join('')}</datalist>`;
+}
+
+
+/* ================= split into 1-meter stands / merge back ================= */
+function splitFx(id){
+  const f=S.fx[id];if(!f)return [];
+  const segs=[];
+  for(const p of f.parts){const v=isV(p),L=v?p.h:p.w,n=Math.max(1,Math.round(L/M)),u=L/n;
+    for(let k=0;k<n;k++)segs.push(v?{x:p.x,y:r1(p.y+p.h-(k+1)*u),w:p.w,h:r1(u)}:{x:r1(p.x+p.w-(k+1)*u),y:p.y,w:r1(u),h:p.h})} // module 1 = far end
+  const n=segs.length;if(n<2)return [];
+  // per shelf: spread items evenly over the meters (in order), then rebalance any meter over 100 cm
+  const bk=segs.map(()=>[]),byS={};
+  for(const i of f.it)(byS[i[0]]=byS[i[0]]||[]).push(i);
+  for(const its of Object.values(byS)){
+    const tot=its.reduce((a,i)=>a+i[7],0),per=Math.max(1,tot/n),m=segs.map(()=>[]);let c=0;
+    for(const i of its){m[Math.min(n-1,Math.floor((c+i[7]/2)/per))].push(i);c+=i[7]}
+    const sum=a=>a.reduce((x,i)=>x+i[7],0);
+    for(let k=0;k<n-1;k++)while(sum(m[k])>100&&m[k].length>1)m[k+1].unshift(m[k].pop());
+    for(let k=n-1;k>0;k--)while(sum(m[k])>100&&m[k].length>1&&sum(m[k-1])+m[k][0][7]<=100)m[k-1].push(m[k].shift());
+    if(m.some(a=>sum(a)>100)){ // order can't fit: first-fit-decreasing, keep original order inside each meter
+      const idx=new Map(its.map((i,k)=>[i,k])),ff=segs.map(()=>[]),fs=segs.map(()=>0);let ok=true;
+      for(const i of [...its].sort((a,b)=>b[7]-a[7])){let k=fs.findIndex(v=>v+i[7]<=100);if(k<0){ok=false;k=fs.indexOf(Math.min(...fs))}ff[k].push(i);fs[k]+=i[7]}
+      if(ok||Math.max(...fs)<Math.max(...m.map(sum))){ff.forEach(a=>a.sort((x,y)=>idx.get(x)-idx.get(y)));ff.forEach((a,k)=>m[k]=a)}
+    }
+    m.forEach((a,k)=>bk[k].push(...a));
+  }
+  const codes=new Set(Object.values(S.fx).map(x=>x.code));
+  const base=+nextId(),out=[],back=f.back||0,g=f.code,loc=(f.loc||'').replace(/ · متر \d+\/\d+$/,'');
+  const {parts,it,...meta}=f;
+  segs.forEach((r,k)=>{const nid=k===0?id:String(base+k-1);let code=`${g}-${k+1}`;while(codes.has(code)&&code!==f.code)code+="'";codes.add(code);
+    S.fx[nid]={...clone(meta),code,modules:1,parts:[r],it:bk[k],back:Math.floor(back/n)+(k===0?back%n:0),loc:(loc?loc+' · ':'')+`متر ${k+1}/${n}`,grp:g,gi:k+1};out.push(nid)});
+  return out;
+}
+function grpIds(g){return Object.keys(S.fx).filter(k=>S.fx[k].grp===g).sort((a,b)=>(S.fx[a].gi||0)-(S.fx[b].gi||0))}
+function mergeGrp(g){
+  const ids=grpIds(g);if(ids.length<2)return;
+  const fs=ids.map(k=>S.fx[k]);const first=fs[0];
+  const parts=[];
+  for(const f of fs)for(const r of f.parts){const l=parts[parts.length-1];
+    if(l&&Math.abs(l.x-r.x)<.6&&Math.abs(l.w-r.w)<.6&&(Math.abs(l.y-(r.y+r.h))<.6||Math.abs(r.y-(l.y+l.h))<.6)){const y=Math.min(l.y,r.y);l.h=r1(Math.max(l.y+l.h,r.y+r.h)-y);l.y=y}
+    else if(l&&Math.abs(l.y-r.y)<.6&&Math.abs(l.h-r.h)<.6&&(Math.abs(l.x-(r.x+r.w))<.6||Math.abs(r.x-(l.x+l.w))<.6)){const x=Math.min(l.x,r.x);l.w=r1(Math.max(l.x+l.w,r.x+r.w)-x);l.x=x}
+    else parts.push({...r})}
+  const m={...clone(first),code:g,modules:fs.reduce((a,f)=>a+f.modules,0),shelves:Math.max(...fs.map(f=>f.shelves)),back:fs.reduce((a,f)=>a+(f.back||0),0),
+    loc:(first.loc||'').replace(/ ?· ?متر \d+\/\d+$/,'').replace(/^متر \d+\/\d+$/,''),parts,it:fs.flatMap(f=>f.it)};
+  delete m.grp;delete m.gi;
+  if(fs.some(f=>(f.color||'')!==(first.color||'')))delete m.color;
+  for(const k of ids.slice(1))delete S.fx[k];S.fx[ids[0]]=m;
+  return ids[0];
+}
+function doSplit(){
+  const targets=(sel.size?[...sel]:Object.keys(S.fx)).filter(k=>S.fx[k]&&S.fx[k].modules>1||(S.fx[k]&&S.fx[k].parts.reduce((a,p)=>a+Math.round(Math.max(p.w,p.h)/M),0)>1));
+  if(!targets.length)return toast(sel.size?'الستاند المحدد متر واحد أصلاً':'كل الستاندات متر واحد أصلاً');
+  const meters=targets.reduce((a,k)=>a+S.fx[k].parts.reduce((b,p)=>b+Math.max(1,Math.round(Math.max(p.w,p.h)/M)),0),0);
+  const run=()=>{const news=[];commit('تقسيم لمتر',targets,()=>{for(const k of targets)news.push(...splitFx(k));return news});
+    sel=new Set(sel.size?news:[]);drawSel();if(cur&&S.fx[cur])showFx(cur);toast(`اتقسم ${targets.length} ستاند إلى ${meters} ستاند متر`)};
+  if(sel.size)return run();
+  dialog({title:'تقسيم كل الستاندات لمتر؟',body:`<p style="margin:0">${targets.length} ستاند أطول من متر هيتقسموا إلى <b>${meters}</b> ستاند، كل واحد متر، جنب بعض بنفس الشكل.</p><p class="meta">المنتجات بتتوزع على كل متر حسب مكانها على الرف. كل مجموعة بتفضل مربوطة ببعض: دبل-كليك على أي متر يحدد المجموعة كلها، وتقدر تدمجها تاني في أي وقت. وتقدر تتراجع بـ Ctrl+Z.</p>`,btns:[['تقسيم','pri',run],['إلغاء']]});
+}
+function doMerge(g){const ids=grpIds(g);let keep;commit('دمج '+g,ids,()=>{keep=mergeGrp(g)});sel=new Set([keep]);drawSel();showFx(keep);toast(`اتدمجت ${ids.length} ستاندات في ${g}`)}
+function selGrp(g){sel=new Set(grpIds(g));drawSel();renderPanel();toast(`اتحددت المجموعة ${g} (${sel.size} متر) — اسحب أي متر لتحريكهم مع بعض`)}
+$('#bSplit').onclick=doSplit;
+let lastDown={id:null,t:0};
+
+/* ================= panel: fixture ================= */
+function showFx(id){if(id!==cur&&!(S.fx[id]&&S.fx[cur]&&S.fx[id].grp&&S.fx[id].grp===S.fx[cur].grp))eFocus=null;cur=id;if(!floorMode)tab('fx');renderPanel();renderElev()}
+function renderPanel(){
+  const el=$('#p-fx');
+  if(!$('#p-fx').classList.contains('act'))return;
+  if(sel.size>1){
+    const ids=[...sel];const z=Object.entries(S.zones).map(([k,v])=>`<option value="${esc(k)}">${esc(k)} · ${esc(v.name)}</option>`).join('');
+    el.innerHTML=`<h2>${ids.length} ستاند محدد</h2><div class="meta">${ids.map(i=>esc(S.fx[i].code)).join(' · ')}</div>
+    ${(()=>{const gs=new Set(ids.map(i=>S.fx[i].grp||''));const g=[...gs][0];return gs.size===1&&g?`<div class="meta">🔗 كلهم من مجموعة <b>${esc(g)}</b></div><div class="acts"><button id="mMerge">دمج المجموعة في ستاند واحد</button></div>`:ids.some(i=>S.fx[i].modules>1)?'<div class="acts"><button id="mSplit">✂️ تقسيم المحدد لمتر</button></div>':''})()}
+    <div class="acts"><button id="mRot">⟳ تدوير</button><button id="mDup">⧉ نسخ</button><button id="mDel" class="dng">🗑 حذف</button></div>
+    <h3>لون الستاندات</h3><div class="row2" style="display:flex;gap:6px;align-items:center"><input type="color" id="mC" class="sw" value="${esc(S.fx[ids[0]].color||zoneColor(S.fx[ids[0]].zone))}"><button id="mCok">تطبيق اللون</button><button id="mCr">↺ لون القسم</button></div>
+    <h3>تغيير المنطقة للكل</h3><div class="row2" style="display:flex;gap:6px"><select id="mZ">${z}</select><button id="mZok">تطبيق</button></div>
+    <p class="meta" style="margin-top:14px">اسحب أي ستاند منهم على الرسم علشان تنقلهم مع بعض. Shift + ضغطة لإضافة/إزالة من التحديد.</p>`;
+    $('#mRot').onclick=rotSel;$('#mDup').onclick=dupSel;$('#mDel').onclick=delSel;
+    $('#mMerge')&&($('#mMerge').onclick=()=>doMerge(S.fx[ids[0]].grp));$('#mSplit')&&($('#mSplit').onclick=doSplit);
+    $('#mC').oninput=()=>{for(const i of ids){const g=lFx.querySelector(`g[data-id="${i}"]`);g&&g.querySelectorAll('.body').forEach(r=>r.setAttribute('fill',$('#mC').value))}};
+    $('#mCok').onclick=()=>{const c=$('#mC').value;commit('تلوين '+ids.length+' ستاند',ids,()=>{for(const i of ids)S.fx[i].color=c})};
+    $('#mCr').onclick=()=>commit('لون القسم لـ '+ids.length+' ستاند',ids,()=>{for(const i of ids)delete S.fx[i].color});
+    $('#mZok').onclick=()=>{const zz=$('#mZ').value;commit('تغيير المنطقة',ids,()=>{for(const i of ids)S.fx[i].zone=zz})};
+    return;
+  }
+  const f=cur&&S.fx[cur];
+  if(!f){el.innerHTML=`<div class="empty">اضغط على أي ستاند في الرسم علشان تعدّله وتشوف الرفوف والمنتجات.<br><br>
+    <div class="kbd" style="text-align:right;display:inline-block">
+    🖱 <b>سحب ستاند</b>: نقله · <b>سحب الدوائر</b> على أطرافه: تغيير الطول<br>
+    🖱 <b>سحب الخلفية</b>: تحريك الرسم · <b>العجلة</b>: تكبير/تصغير<br>
+    <kbd>Shift</kbd>+ضغطة: تحديد أكتر من ستاند · <kbd>Shift</kbd>+سحب: تحديد بمستطيل<br>
+    🖱 <b>دبل-كليك</b> على ستاند متر: تحديد مجموعته كلها<br>
+    <kbd>R</kbd> تدوير · <kbd>Del</kbd> حذف · <kbd>Ctrl+D</kbd> نسخ · الأسهم: تحريك دقيق<br>
+    <kbd>Ctrl+Z</kbd> تراجع · <kbd>Ctrl+Y</kbd> إعادة · <kbd>Ctrl+S</kbd> حفظ<br>
+    📦 اسحب أي منتج من الرفوف لرف تاني، أو على أي ستاند في الرسم</div></div>`;return}
+  const st=fStats(f),b=bbox(f),cap=f.modules*100;
+  const zo=Object.entries(S.zones).map(([z,v])=>`<option value="${esc(z)}"${z===f.zone?' selected':''}>${esc(z)} · ${esc(v.name)}</option>`).join('');
+  let h=`<h2><span style="display:inline-block;width:12px;height:12px;border-radius:3px;background:${esc(zoneColor(f.zone))}"></span> ${esc(f.code)} — ${esc(f.brand)}</h2>
+  <div class="meta">${esc(f.kind)} · ${esc(f.dept)}${f.loc?'<br>📍 '+esc(f.loc):''}</div>
+  ${f.grp?`<div class="shelf" style="padding:6px 8px;border-bottom-width:1px;background:#f6f9ff;margin-top:6px"><span class="meta">🔗 جزء من مجموعة <b>${esc(f.grp)}</b> (${grpIds(f.grp).length} متر جنب بعض)</span><div class="acts" style="margin:6px 0 0"><button id="gSel">تحديد المجموعة كلها</button><button id="gMerge">دمجها في ستاند واحد</button></div></div>`:
+   f.modules>1?`<div class="acts" style="margin:6px 0 0"><button id="gSplit">✂️ تقسيمه لـ ${f.modules} ستاند متر</button></div>`:''}
+  <div class="kpis"><div class="kpi"><b>${st.skus}</b><span>صنف</span></div><div class="kpi"><b>${fmt(st.pcs)}</b><span>حبة</span></div><div class="kpi"><b>${st.ros}</b><span>ROS/يوم</span></div><div class="kpi"><b>${f.modules}×${f.shelves}</b><span>موديول×رف</span></div></div>
+  <details ${f._open?'open':''} id="propBox"><summary style="cursor:pointer;font-weight:700;margin:6px 0">⚙️ بيانات الستاند</summary>
+  <div class="form" style="margin-top:8px">
+    <label>الكود</label><input data-k="code" value="${esc(f.code)}">
+    <label>البراند</label><input data-k="brand" value="${esc(f.brand)}" list="dlBrands">
+    <label>القسم</label><input data-k="dept" value="${esc(f.dept)}" list="dlDepts">
+    <label>المنطقة</label><select data-k="zone">${zo}</select>
+    <label>النوع</label><select data-k="kind">${[...new Set([f.kind,...KINDS])].map(k=>`<option${k===f.kind?' selected':''}>${esc(k)}</option>`).join('')}</select>
+    <label>المكان</label><select data-k="pos"><option${f.pos==='أرضي'?' selected':''}>أرضي</option><option${f.pos==='حائط'?' selected':''}>حائط</option></select>
+    <label>الطول (موديول)</label><input data-k="modules" type="number" min="1" max="30" value="${f.modules}">
+    <label>عدد الرفوف</label><input data-k="shelves" type="number" min="1" max="12" value="${f.shelves}">
+    <label>مخزن احتياطي</label><input data-k="back" type="number" min="0" value="${f.back||0}">
+    <label>الموقع (وصف)</label><input data-k="loc" value="${esc(f.loc)}">
+    <label>تقييم الموقع</label><select data-k="hot">${[...new Set([f.hot,...HOTS])].map(k=>`<option${k===f.hot?' selected':''}>${esc(k)}</option>`).join('')}</select>
+    <label>اللون</label><div class="row2" style="align-items:center"><input type="color" id="fxCol" class="sw" value="${esc(f.color||zoneColor(f.zone))}" style="flex:0 0 40px"><button id="fxColR" ${f.color?'':'disabled'}>↺ لون القسم</button></div>
+    <label>المكان (م)</label><div class="row2"><input data-k="px" type="number" step="0.25" value="${(b.x/M).toFixed(2)}" title="X"><input data-k="py" type="number" step="0.25" value="${(b.y/M).toFixed(2)}" title="Y"></div>
+  </div></details>${datalists()}
+  <div class="acts">
+    <button id="aView" class="pri">🖼 شكل الستاند</button>
+    <button id="aAdd">＋ منتج</button>
+    <button id="aAuto" title="يرتب المنتجات: الأعلى ROS على مستوى النظر (رف 2) ثم مستوى اليد (3) ثم الباقي، حسب سعة كل رف">✨ ترتيب تلقائي حسب ROS</button>
+    <button id="aRot">⟳</button><button id="aDup">⧉</button><button id="aDel" class="dng">🗑</button>
+  </div>`;
+  for(let s=1;s<=f.shelves;s++){
+    const its=[];f.it.forEach((i,ix)=>{if(i[0]===s)its.push([i,ix])});
+    const p=its.reduce((a,[i])=>a+i[4],0),cm=its.reduce((a,[i])=>a+i[7],0);
+    const tag=s===2?'مستوى النظر ⭐':s===3?'مستوى اليد':s===1?'العلوي':s===f.shelves?'السفلي':'';
+    const pct=Math.min(100,cm/cap*100);
+    h+=`<div class="shelf"><div class="sh ${s===2||s===3?'eye':''}"><span class="nm" data-view="${s}" style="cursor:pointer" title="عرض شكل الرف بالأصناف">الرف ${s}</span><span class="meta">${tag}</span><span class="sp"></span><span class="meta">${its.length} صنف · ${p} حبة · ${cm} من ${cap} سم</span>
+      <button data-view="${s}" title="عرض شكل الرف بالأصناف">👁</button><button data-sort="${s}" title="رتب الرف حسب ROS">⇅</button><button data-add="${s}" title="إضافة منتج للرف">＋</button></div>
+      <div class="bar${cm>cap?' over':''}"><i style="width:${pct}%"></i></div>
+      <div class="items" data-shelf="${s}">${its.map(([i,ix])=>chip(i,ix,'fx')).join('')}</div></div>`;
+  }
+  const orphan=f.it.filter(i=>i[0]>f.shelves||i[0]<1).length;
+  if(orphan)h+=`<div class="meta" style="color:var(--bad)">⚠ ${orphan} منتج على رفوف اتشالت — زوّد عدد الرفوف أو انقلهم.</div>`;
+  h+='<div class="meta">🟩 ROS ≥ 2 يومياً · 🟥 ROS = 0 (مرشح للمراجعة) · الشريط = المساحة المستخدمة من عرض الرف</div>';
+  el.innerHTML=h;
+  // bind
+  const pb=$('#propBox');pb.ontoggle=()=>{f._open=pb.open};
+  el.querySelectorAll('[data-k]').forEach(inp=>inp.onchange=()=>setProp(cur,inp.dataset.k,inp.value));
+  $('#aAdd').onclick=()=>itemDlg(cur,null,2);$('#aView').onclick=()=>openElev(null);
+  if(f.grp){$('#gSel').onclick=()=>selGrp(f.grp);$('#gMerge').onclick=()=>doMerge(f.grp)}else if($('#gSplit'))$('#gSplit').onclick=()=>{sel=new Set([cur]);doSplit()};
+  el.querySelectorAll('[data-view]').forEach(b=>b.onclick=()=>openElev(+b.dataset.view));
+  const fc=$('#fxCol');fc.oninput=()=>{const g=lFx.querySelector(`g[data-id="${cur}"]`);g&&g.querySelectorAll('.body').forEach(r=>r.setAttribute('fill',fc.value))};
+  fc.onchange=()=>{const id=cur;commit('لون '+f.code,[id],()=>{S.fx[id].color=fc.value})};
+  $('#fxColR').onclick=()=>{const id=cur;commit('لون القسم لـ '+f.code,[id],()=>{delete S.fx[id].color})};$('#aAuto').onclick=()=>autoArrange(cur);
+  $('#aRot').onclick=rotSel;$('#aDup').onclick=dupSel;$('#aDel').onclick=()=>{sel=new Set([cur]);delSel()};
+  el.querySelectorAll('[data-add]').forEach(b=>b.onclick=()=>itemDlg(cur,null,+b.dataset.add));
+  el.querySelectorAll('[data-sort]').forEach(b=>b.onclick=()=>sortShelf(cur,+b.dataset.sort));
+  bindItems(el,'fx',cur);
+  if(markItem&&markItem.fid===cur){const m=el.querySelector('.it.mark');m&&m.scrollIntoView({block:'center'})}
+}
+function chip(i,ix,from){
+  const m=markItem&&markItem.name===i[1]&&(from==='pool'||markItem.fid===cur);
+  return `<div class="it ${i[5]>=2?'h':i[5]==0?'z':''}${m?' mark':''}" draggable="true" data-ix="${ix}" title="${esc(i[6])} | ROS ${i[5]} | ${i[7]} سم — اضغط للتعديل، اسحب للنقل"><span class="x" data-del="${ix}" title="${from==='pool'?'حذف نهائي':'شيل من الرف'}">✕</span>${S.img[i[1]]?`<img class="th" src="${esc(imgSrc(S.img[i[1]]))}" alt="" loading="lazy">`:''}<b>${esc(i[1])}</b>${esc(i[2])} · ${i[3]} وجه · <b style="display:inline">${i[4]} حبة</b></div>`;
+}
+function setProp(id,k,v){
+  const f=S.fx[id];
+  if(k==='px'||k==='py'){const b=bbox(f);const d=(+v*M)-(k==='px'?b.x:b.y);if(!isFinite(d))return;return commit('تحريك '+f.code,[id],()=>{f.parts=f.parts.map(p=>k==='px'?{...p,x:r1(p.x+d)}:{...p,y:r1(p.y+d)})})}
+  if(k==='modules'){const n=Math.max(1,Math.round(+v||1));return commit('تغيير طول '+f.code,[id],()=>{f.modules=n;let big=0;f.parts.forEach((p,i)=>{if(p.w*p.h>f.parts[big].w*f.parts[big].h)big=i});const others=f.parts.reduce((a,p,i)=>i===big?a:a+Math.round(Math.max(p.w,p.h)/M),0);const L=Math.max(1,n-others)*M;const p=f.parts[big];if(isV(p))p.h=L;else p.w=L})}
+  if(k==='shelves'||k==='back')v=Math.max(k==='shelves'?1:0,Math.round(+v||0));
+  if(k==='code'&&Object.entries(S.fx).some(([i,x])=>i!==id&&x.code===v)){toast('الكود ده مستخدم قبل كده');renderPanel();return}
+  commit('تعديل '+f.code,[id],()=>{f[k]=v});
+  if(k==='zone')drawLegend();
+}
+
+/* ================= items ================= */
+function bindItems(root,from,fid){
+  root.querySelectorAll('.it').forEach(c=>{
+    c.addEventListener('dragstart',e=>{drag={from,fid:c.dataset.fid||fid,idx:+c.dataset.ix};e.dataTransfer.effectAllowed='move';try{e.dataTransfer.setData('text/plain',c.dataset.ix)}catch(_){};setTimeout(()=>c.classList.add('dragging'))});
+    c.addEventListener('dragend',()=>{c.classList.remove('dragging');drag=null;$$('.over,.ins,.drop').forEach(x=>x.classList.remove('over','ins','drop'))});
+    c.addEventListener('click',e=>{const ix=+c.dataset.ix;const cf=c.dataset.fid||fid;if(e.target.dataset.del!=null){e.stopPropagation();from==='pool'?delPoolItem(ix):toPool(cf,ix);return}if(c.classList.contains('pb'))return imgDlg(cf,ix);itemDlg(from==='pool'?null:cf,ix,null)});
+  });
+  root.querySelectorAll('.items').forEach(z=>{
+    z.addEventListener('dragover',e=>{if(!drag)return;e.preventDefault();z.classList.add('over');$$('.it.ins').forEach(x=>x.classList.remove('ins'));const t=e.target.closest('.it');t&&t.classList.add('ins')});
+    z.addEventListener('dragleave',e=>{if(!z.contains(e.relatedTarget))z.classList.remove('over')});
+    z.addEventListener('drop',e=>{if(!drag)return;e.preventDefault();z.classList.remove('over');const t=e.target.closest('.it');
+      if(from==='pool')moveItem(drag,{pool:true,before:t?+t.dataset.ix:null});
+      else moveItem(drag,{fid:z.dataset.fid||fid,shelf:+z.dataset.shelf,before:t?+t.dataset.ix:null})});
+  });
+}
+function moveItem(src,dst){
+  // src {from,fid,idx} dst {fid,shelf,before} | {pool,before}
+  const sId=src.from==='pool'?'__pool':src.fid, dId=dst.pool?'__pool':dst.fid;
+  if(sId===dId&&src.idx===dst.before)return;
+  const getArr=id=>id==='__pool'?S.pool:S.fx[id].it;
+  let label;
+  commit('نقل منتج',[sId,dId],()=>{
+    const sa=getArr(sId),da=getArr(dId);
+    const item=sa[src.idx];
+    let before=dst.before;
+    const beforeRef=before!=null?da[before]:null;
+    sa.splice(src.idx,1);
+    if(!dst.pool){const f=S.fx[dId];item[0]=dst.shelf!=null?dst.shelf:Math.min(Math.max(1,item[0]),f.shelves)}
+    if(beforeRef&&beforeRef!==item){da.splice(da.indexOf(beforeRef),0,item)}
+    else if(dst.pool)da.push(item);
+    else{let last=-1;da.forEach((x,k)=>{if(x[0]===item[0])last=k});da.splice(last+1,0,item)}
+    label=dst.pool?'اتشال لـ "غير موزّع"':dId!==sId?'اتنقل إلى '+S.fx[dId].code+' · رف '+item[0]:'';
+  });
+  label&&toast(label);
+}
+function toPool(fid,ix){commit('شيل منتج من الرف',[fid,'__pool'],()=>{const[i]=S.fx[fid].it.splice(ix,1);S.pool.push(i)});toast('المنتج اتنقل لـ "غير موزّع" — تقدر ترجعه بالسحب')}
+function delPoolItem(ix){commit('حذف منتج نهائياً',['__pool'],()=>{S.pool.splice(ix,1)})}
+function sortShelf(fid,s){commit('ترتيب الرف '+s,[fid],()=>{const f=S.fx[fid];const on=f.it.filter(i=>i[0]===s).sort((a,b)=>b[5]-a[5]);const rest=f.it.filter(i=>i[0]!==s);f.it=[...rest,...on]})}
+function autoArrange(fid){
+  const f=S.fx[fid];const cap=f.modules*100;
+  const order=[2,3,1,4,5,6,7,8,9,10,11,12].filter(s=>s<=f.shelves);if(f.shelves===1)order.splice(0,order.length,1);
+  commit('ترتيب تلقائي '+f.code,[fid],()=>{
+    const its=[...f.it].sort((a,b)=>b[5]-a[5]||b[4]-a[4]);const used={};
+    // big/heavy items (cm>=15) prefer the bottom shelves
+    const bottomFirst=[...order].reverse();
+    for(const i of its){const pref=i[7]>=15&&f.shelves>2?bottomFirst:order;let s=pref.find(x=>(used[x]||0)+i[7]<=cap);if(s==null)s=pref[pref.length-1];used[s]=(used[s]||0)+i[7];i[0]=s}
+    f.it=its;
+  });
+  toast('اترتب: الأعلى مبيعاً على مستوى النظر واليد');
+}
+function itemDlg(fid,ix,shelf){
+  const pool=fid==null;const isNew=ix==null;
+  const i=isNew?[shelf||1,'','',1,1,0,'',4]:clone(pool?S.pool[ix]:S.fx[fid].it[ix]);
+  const fxOpts=Object.entries(S.fx).sort((a,b)=>a[1].code.localeCompare(b[1].code)).map(([k,f])=>`<option value="${k}"${k===fid?' selected':''}>${esc(f.code)} — ${esc(f.brand)}</option>`).join('');
+  const shN=fid?S.fx[fid].shelves:12;
+  dialog({title:isNew?'إضافة منتج':'تعديل منتج',body:`<div class="form">
+    <label>اسم الصنف</label><input id="iN" value="${esc(i[1])}" required>
+    <label>البراند</label><input id="iB" value="${esc(i[2])}" list="dlBrands">
+    <label>السب كاتيجوري</label><input id="iC" value="${esc(i[6])}">
+    <label>الستاند</label><select id="iF">${pool?'<option value="">— غير موزّع —</option>':''}${fxOpts}</select>
+    <label>الرف</label><input id="iS" type="number" min="1" max="12" value="${i[0]}">
+    <label>عدد الأوجه</label><input id="iFc" type="number" min="1" value="${i[3]}">
+    <label>عدد الحبات</label><input id="iP" type="number" min="0" value="${i[4]}">
+    <label>ROS / يوم</label><input id="iR" type="number" min="0" step="0.01" value="${i[5]}">
+    <label>العرض (سم)</label><input id="iW" type="number" min="1" value="${i[7]}">
+    <label>رقم المنتج (id)</label><input id="iId" value="${esc(i[8]??'')}" placeholder="اختياري — رقمه في نظام المتجر" dir="ltr">
+  </div>${datalists()}`,
+  btns:[[isNew?'إضافة':'حفظ','pri',()=>{
+      const n=$('#iN').value.trim();if(!n){toast('اكتب اسم الصنف');return false}
+      const tf=$('#iF').value||null;
+      const ni=[Math.max(1,+$('#iS').value||1),n,$('#iB').value.trim()||'—',Math.max(1,+$('#iFc').value||1),Math.max(0,+$('#iP').value||0),Math.max(0,+$('#iR').value||0),$('#iC').value.trim()||'غير مصنف',Math.max(1,+$('#iW').value||1)];
+      const idv=$('#iId').value.trim();
+      if(i.length>8&&String(i[8])===idv)ni[8]=i[8];                       // unchanged: keep exactly as stored
+      else if(idv)ni[8]=/^-?\d{1,15}$/.test(idv)?Number(idv):idv;      // new/edited id
+      const sId=pool?'__pool':fid, dId=tf||'__pool';
+      const oldN=isNew?null:i[1],ren=oldN&&oldN!==n&&S.img[oldN]&&!S.img[n];
+      commit(isNew?'إضافة منتج':'تعديل منتج',[sId,dId,...(ren?['__img']:[])],()=>{
+        if(ren){S.img[n]=S.img[oldN];delete S.img[oldN]}
+        const sa=sId==='__pool'?S.pool:S.fx[sId].it, da=dId==='__pool'?S.pool:S.fx[dId].it;
+        if(dId!=='__pool')ni[0]=Math.min(ni[0],S.fx[dId].shelves);
+        if(isNew){da.push(ni);return}
+        if(sId===dId){sa[ix]=ni}else{sa.splice(ix,1);da.push(ni)}
+      });
+      if(tf&&tf!==fid&&!pool)toast('المنتج اتنقل إلى '+S.fx[tf].code);
+    }],
+    ...(isNew?[]:pool?[['حذف نهائي','dng',()=>delPoolItem(ix)]]:[['📷 الصورة','',()=>{setTimeout(()=>imgDlg(fid,ix))}],['شيل من الرف','dng',()=>toPool(fid,ix)]]),
+    ['إلغاء']]});
+}
+
+/* ================= pool ================= */
+function renderPool(){
+  $('#poolN').textContent=S.pool.length?`(${S.pool.length})`:'';
+  const el=$('#p-pool');
+  if(!el.classList.contains('act'))return;
+  el.innerHTML=`<div class="acts"><button id="pAdd" class="pri">＋ منتج جديد</button>${S.pool.length?'<button id="pClr" class="dng">حذف الكل نهائياً</button>':''}</div>
+  <p class="meta">المنتجات اللي اتشالت من الرفوف أو من ستاند اتحذف بتيجي هنا. اسحب أي منتج منها لرف في تبويب "الستاند" أو على أي ستاند في الرسم مباشرة.</p>
+  <div class="shelf"><div class="sh"><span class="nm">غير موزّع</span><span class="sp"></span><span class="meta">${S.pool.length} صنف</span></div>
+  <div class="items" style="min-height:80px">${S.pool.map((i,ix)=>chip(i,ix,'pool')).join('')||'<span class="meta" style="padding:10px">فاضية — اسحب منتج هنا علشان تشيله من الرف</span>'}</div></div>`;
+  $('#pAdd').onclick=()=>itemDlg(null,null,1);
+  const c=$('#pClr');c&&(c.onclick=()=>dialog({title:'حذف كل المنتجات غير الموزعة؟',body:`<p>${S.pool.length} منتج هيتحذفوا. تقدر تتراجع بـ Ctrl+Z.</p>`,btns:[['حذف','dng',()=>commit('تفريغ غير موزّع',['__pool'],()=>{S.pool=[]})],['إلغاء']]}));
+  bindItems(el,'pool',null);
+}
+
+/* ================= search ================= */
+let qT;
+$('#q').addEventListener('input',()=>{clearTimeout(qT);qT=setTimeout(runSearch,180)});
+function runSearch(){
+  const t=$('#q').value.trim().toLowerCase();
+  $$('#lFx .hit').forEach(g=>g.classList.remove('hit'));
+  if(t.length<2){$('#qRes').innerHTML='';$('#qInfo').textContent='اكتب حرفين على الأقل';return}
+  const res=[],fxHit=new Set();
+  for(const[k,f]of Object.entries(S.fx)){
+    if(f.code.toLowerCase().includes(t)||f.brand.toLowerCase().includes(t)||f.dept.toLowerCase().includes(t)){fxHit.add(k);res.push({k,f,stand:true})}
+    for(const i of f.it)if(i[1].toLowerCase().includes(t)||i[2].toLowerCase().includes(t)||(i[8]!=null&&String(i[8]).toLowerCase()===t)){fxHit.add(k);res.push({k,f,i})}
+  }
+  for(const i of S.pool)if(i[1].toLowerCase().includes(t)||i[2].toLowerCase().includes(t))res.push({pool:true,i});
+  for(const g of lFx.children)if(fxHit.has(g.dataset.id))g.classList.add('hit');
+  $('#qInfo').textContent=`${res.length} نتيجة في ${fxHit.size} ستاند (متعلّمين بالأصفر على الرسم)`;
+  $('#qRes').innerHTML=res.slice(0,150).map((r,n)=>r.stand?`<div class="res" data-n="${n}"><b>🧱 ${esc(r.f.code)} — ${esc(r.f.brand)}</b><br><small>${esc(r.f.dept)} · ${r.f.it.length} صنف</small></div>`:
+    `<div class="res" data-n="${n}"><b>${esc(r.i[1])}</b><br><small>${esc(r.i[2])} · ${r.pool?'غير موزّع':esc(r.f.code)+' · رف '+r.i[0]} · ${r.i[4]} حبة · ROS ${r.i[5]}</small></div>`).join('')+(res.length>150?'<div class="meta">…أول 150 نتيجة</div>':'');
+  $('#qRes').onclick=e=>{const d=e.target.closest('.res');if(!d)return;const r=res[+d.dataset.n];
+    if(r.pool){markItem={name:r.i[1]};tab('pool');return}
+    markItem=r.i?{fid:r.k,name:r.i[1]}:null;sel=new Set([r.k]);drawSel();focusFx(r.k);showFx(r.k)};
+}
+function focusFx(id){const b=bbox(S.fx[id]);const w=Math.max(V.w>500?400:V.w,120),a=svgAspect();V={x:b.x+b.w/2-w/2,y:b.y+b.h/2-w/a/2,w,h:w/a};setVB()}
+
+/* ================= summary ================= */
+function renderTotals(){let n=0,m=0,sk=0,pc=0;for(const f of Object.values(S.fx)){n++;m+=f.modules;sk+=f.it.length;for(const i of f.it)pc+=i[4]}$('#tot').textContent=`${n} ستاند · ${m} موديول · ${fmt(sk)} صنف · ${fmt(pc)} حبة`;$('#poolN').textContent=S.pool.length?`(${S.pool.length})`:''}
+function renderSum(){
+  const el=$('#p-sum');const agg={};
+  for(const z of Object.keys(S.zones))agg[z]={n:0,m:0,sk:0,pc:0,ros:0};
+  for(const f of Object.values(S.fx)){const a=agg[f.zone]||(agg[f.zone]={n:0,m:0,sk:0,pc:0,ros:0});a.n++;a.m+=f.modules;a.sk+=f.it.length;for(const i of f.it){a.pc+=i[4];a.ros+=i[5]}}
+  const clash=checkClash();
+  el.innerHTML=`<h3 style="margin-top:0">ملخص المناطق</h3><table><tr><th></th><th>المنطقة</th><th>ستاند</th><th>موديول</th><th>أصناف</th><th>حبات</th><th>ROS</th></tr>
+  ${Object.entries(agg).map(([z,a])=>{const zz=S.zones[z]||{name:'(منطقة غير معرفة)',color:'#78909c'};return`<tr><td><span class="swd" style="background:${esc(zz.color)}"></span></td><td><b>${esc(z)}</b> · ${esc(zz.name)}</td><td>${a.n}</td><td>${a.m}</td><td>${fmt(a.sk)}</td><td>${fmt(a.pc)}</td><td>${fmt(a.ros)}</td></tr>`}).join('')}</table>
+  <div class="meta" style="margin-top:6px">ألوان وأسماء الأقسام بتتعدل من تبويب «الألوان».</div>
+  <h3>تنبيهات</h3><div class="meta">${clash.size?`🔴 ${clash.size} ستاند متداخلين مع بعض (متعلّمين بخط أحمر متقطع على الرسم): `+[...clash].slice(0,30).map(i=>`<a href="#" data-go="${i}">${esc(S.fx[i].code)}</a>`).join('، '):'✅ مفيش ستاندات متداخلة'}<br>
+  ${(()=>{const o=Object.entries(S.fx).filter(([k,f])=>{const cap=f.modules*100;const by={};for(const i of f.it)by[i[0]]=(by[i[0]]||0)+i[7];return Object.values(by).some(v=>v>cap)});return o.length?`🟠 ${o.length} ستاند فيه رف متخطي السعة: `+o.slice(0,30).map(([k,f])=>`<a href="#" data-go="${k}">${esc(f.code)}</a>`).join('، '):'✅ كل الرفوف في حدود السعة'})()}<br>
+  ${S.pool.length?`📦 ${S.pool.length} منتج غير موزّع`:'✅ كل المنتجات موزعة'}</div>
+  <h3>صورة الخلفية</h3><div class="meta">تقدر تحط مخطط حقيقي للمحل (صورة) تحت الرسم وتظبط شفافيتها.</div>
+  <div class="acts"><button id="sImg">🖼 اختيار صورة</button>${S.bgImage?`<label class="meta" style="display:flex;gap:6px;align-items:center">الشفافية <input type="range" id="sOp" min="0.05" max="1" step="0.05" value="${S.bgImage.op??.5}"></label><button id="sImgX" class="dng">إزالة</button>`:''}</div>`;
+  el.querySelectorAll('[data-go]').forEach(a=>a.onclick=e=>{e.preventDefault();const k=a.dataset.go;sel=new Set([k]);drawSel();focusFx(k);showFx(k)});
+  $('#sImg').onclick=()=>$('#imgIn').click();
+  const op=$('#sOp');op&&(op.oninput=()=>{S.bgImage.op=+op.value;const im=$('#lImg image');im&&im.setAttribute('opacity',op.value)},op.onchange=()=>markDirty());
+  const x=$('#sImgX');x&&(x.onclick=()=>{S.bgImage=null;drawBg();markDirty();renderSum()});
+}
+$('#imgIn').onchange=e=>{const f=e.target.files[0];if(!f)return;const r=new FileReader();r.onload=()=>{S.bgImage={src:r.result,op:.5};drawBg();markDirty();renderSum();toast('اتحطت صورة الخلفية')};r.readAsDataURL(f);e.target.value=''};
+
+
+/* ================= colors tab ================= */
+function renderColors(){
+  const el=$('#p-colors');if(!el.classList.contains('act'))return;
+  const F=S.floor,cnt={};for(const f of Object.values(S.fx))cnt[f.zone]=(cnt[f.zone]||0)+1;
+  const custom=Object.entries(S.fx).filter(([k,f])=>f.color).sort((a,b)=>a[1].code.localeCompare(b[1].code));
+  const a=selA!=null&&S.areas.find(x=>x.id===selA);
+  const fl=(k,l)=>`<label>${l}</label><input type="color" class="sw" data-fl="${k}" value="${esc(F[k])}">`;
+  el.innerHTML=`<h3 style="margin-top:0">🎨 ألوان الأقسام</h3>
+  <table>${Object.entries(S.zones).map(([z,v])=>`<tr><td style="width:36px"><input type="color" class="sw" data-zc="${esc(z)}" value="${esc(v.color)}"></td><td style="width:18px"><b>${esc(z)}</b></td><td><input data-zn="${esc(z)}" value="${esc(v.name)}" style="width:100%"></td><td class="meta" style="white-space:nowrap">${cnt[z]||0} ستاند</td><td style="width:28px">${cnt[z]?'':`<button data-zdel="${esc(z)}" class="dng" title="حذف القسم">✕</button>`}</td></tr>`).join('')}</table>
+  <div class="acts"><button id="zAdd">＋ قسم جديد</button></div>
+  <h3>🧱 الأرضية والحيطان</h3>
+  <div class="form">${fl('floor','الأرضية')}${fl('wall','الحيطان')}
+    <label>الممر الرئيسي</label><div class="row2" style="align-items:center"><input type="color" class="sw" data-fl="aisle" value="${esc(F.aisle)}" style="flex:0 0 30px"><input type="range" data-fl="aisleOp" min="0" max="1" step="0.02" value="${F.aisleOp}" title="الشفافية"></div>
+    ${fl('cashier','الكاشير')}${fl('counter','كاونتر الصيدلي')}${fl('canvas','خارج المحل')}</div>
+  <div class="acts"><button id="flReset">↺ الألوان الأصلية</button></div>
+  <h3>🟦 مساحات أرضية ملوّنة</h3>
+  <p class="meta" style="margin:0 0 6px">مساحات ملوّنة على الأرض (سجاد، منطقة عروض، تمييز قسم…). في وضع «تعديل الأرضيات» الستاندات بتتقفل مؤقتاً، وتقدر تسحب المساحة أو تغيّر مقاسها من الأركان.</p>
+  <div class="acts"><button id="flMode" class="${floorMode?'on':''}">✏️ ${floorMode?'إنهاء تعديل الأرضيات':'تعديل الأرضيات'}</button><button id="arAdd">＋ مساحة</button><button id="arAuto" title="يرسم مساحة بلون كل قسم تحت الستاندات بتاعته">✨ لوّن أرضية كل قسم</button>${S.areas.length?'<button id="arClr" class="dng">مسح الكل</button>':''}</div>
+  ${a?`<div class="shelf" style="padding:8px;border-bottom-width:1px"><div class="form">
+    <label>الاسم</label><input id="arL" value="${esc(a.label||'')}">
+    <label>اللون</label><input type="color" class="sw" id="arC" value="${esc(a.color)}">
+    <label>الشفافية</label><input type="range" id="arO" min="0.05" max="1" step="0.05" value="${a.op}">
+    <label>المقاس</label><span class="meta">${(a.w/M).toFixed(1)} × ${(a.h/M).toFixed(1)} م</span></div>
+    <div class="acts" style="margin-bottom:0"><button id="arDel" class="dng">🗑 حذف المساحة</button></div></div>`:''}
+  ${S.areas.map(x=>`<div class="res${x.id===selA?' cur':''}" data-ar="${x.id}"><span class="swd" style="background:${esc(x.color)}"></span> ${esc(x.label||'مساحة بدون اسم')} <small>· ${(x.w/M).toFixed(1)}×${(x.h/M).toFixed(1)} م</small></div>`).join('')}
+  <h3>🎯 ستاندات بلون خاص</h3>
+  ${custom.length?custom.map(([k,f])=>`<div class="res" data-cs="${k}" style="display:flex;align-items:center;gap:6px"><span class="swd" style="background:${esc(f.color)}"></span><b>${esc(f.code)}</b><small>${esc(f.brand)}</small><span style="flex:1"></span><button data-csr="${k}" title="رجّع للون القسم">↺</button></div>`).join('')+'<div class="acts"><button id="csAll">↺ رجّع الكل للون القسم</button></div>':'<p class="meta">مفيش — تقدر تغيّر لون أي ستاند من «بيانات الستاند» في تبويب الستاند، أو تحدد كذا ستاند وتلوّنهم مرة واحدة.</p>'}`;
+  // zones
+  el.querySelectorAll('[data-zc]').forEach(i=>{const z=i.dataset.zc;
+    i.oninput=()=>{for(const g of lFx.children){const f=S.fx[g.dataset.id];if(f.zone===z&&!f.color)g.querySelectorAll('.body').forEach(r=>r.setAttribute('fill',i.value))}const c=$(`#legend .chip[data-z="${CSS.escape(z)}"] i`);c&&(c.style.background=i.value)};
+    i.onchange=()=>commit('لون القسم '+z,['__zones'],()=>{S.zones[z].color=i.value})});
+  el.querySelectorAll('[data-zn]').forEach(i=>i.onchange=()=>{const z=i.dataset.zn,v=i.value.trim();if(!v)return renderColors();commit('اسم القسم '+z,['__zones'],()=>{S.zones[z].name=v})});
+  el.querySelectorAll('[data-zdel]').forEach(b=>b.onclick=()=>{const z=b.dataset.zdel;commit('حذف القسم '+z,['__zones'],()=>{delete S.zones[z]})});
+  $('#zAdd').onclick=()=>{let c=65;while(S.zones[String.fromCharCode(c)])c++;const z=String.fromCharCode(c);const hue=Math.floor(Math.random()*360);
+    commit('إضافة قسم',['__zones'],()=>{S.zones[z]={name:'قسم جديد',place:'',color:hslHex(hue,.55,.48)}});setTimeout(()=>{const i=$(`#p-colors [data-zn="${z}"]`);i&&(i.focus(),i.select())})};
+  // floor
+  el.querySelectorAll('[data-fl]').forEach(i=>{const k=i.dataset.fl;const val=()=>k==='aisleOp'?+i.value:i.value;
+    i.oninput=()=>applyFloor({...S.floor,[k]:val()});
+    i.onchange=()=>commit('ألوان الأرضية',['__floor'],()=>{S.floor[k]=val()})});
+  $('#flReset').onclick=()=>commit('ألوان الأرضية الأصلية',['__floor'],()=>{S.floor=clone(FLOOR0)});
+  // areas
+  $('#flMode').onclick=()=>setFloorMode(!floorMode);
+  $('#arAdd').onclick=()=>{const c=center();const id=Math.max(0,...S.areas.map(x=>x.id))+1;const w=4*M,h=3*M;
+    commit('إضافة مساحة أرضية',['__areas'],()=>{S.areas.push({id,x:sn(c.x-w/2),y:sn(c.y-h/2),w,h,color:'#ffca28',op:.35,label:'مساحة جديدة'})});selA=id;if(!floorMode)setFloorMode(true);else{drawAreas();drawSel();renderColors()}};
+  $('#arAuto').onclick=()=>{
+    // group each zone's stands into clusters of nearby stands, one floor area per cluster
+    const byZ={};for(const f of Object.values(S.fx))for(const p of f.parts)(byZ[f.zone]=byZ[f.zone]||[]).push({x1:p.x,y1:p.y,x2:p.x+p.w,y2:p.y+p.h});
+    const G=16,ar=r=>(r.x2-r.x1)*(r.y2-r.y1),near=(a,b)=>{if(!(a.x1-G<b.x2&&b.x1-G<a.x2&&a.y1-G<b.y2&&b.y1-G<a.y2))return false;const u={x1:Math.min(a.x1,b.x1),y1:Math.min(a.y1,b.y1),x2:Math.max(a.x2,b.x2),y2:Math.max(a.y2,b.y2)};return ar(u)<=2.6*(ar(a)+ar(b))+2500};
+    const clusters=[];
+    for(const[z,rs]of Object.entries(byZ)){if(!S.zones[z])continue;let cs=rs.map(r=>({...r}));let merged=true;
+      while(merged){merged=false;outer:for(let i=0;i<cs.length;i++)for(let j=i+1;j<cs.length;j++)if(near(cs[i],cs[j])){const a=cs[i],b=cs[j];cs[i]={x1:Math.min(a.x1,b.x1),y1:Math.min(a.y1,b.y1),x2:Math.max(a.x2,b.x2),y2:Math.max(a.y2,b.y2)};cs.splice(j,1);merged=true;break outer}}
+      for(const c of cs)clusters.push([z,c])}
+    commit('تلوين أرضية الأقسام',['__areas'],()=>{S.areas=S.areas.filter(a=>!a.auto);let id=Math.max(0,...S.areas.map(x=>x.id));
+      for(const[z,b]of clusters){const pad=5;S.areas.unshift({id:++id,auto:true,x:r1(b.x1-pad),y:r1(b.y1-pad),w:r1(b.x2-b.x1+2*pad),h:r1(b.y2-b.y1+2*pad),color:S.zones[z].color,op:.14,label:''})}});
+    toast('اتلوّنت أرضية كل قسم — تقدر تعدّل أي مساحة من «تعديل الأرضيات»')};
+  const cl=$('#arClr');cl&&(cl.onclick=()=>commit('مسح المساحات الأرضية',['__areas'],()=>{S.areas=[]}));
+  if(a){
+    $('#arL').onchange=()=>commit('اسم المساحة',['__areas'],()=>{S.areas.find(x=>x.id===a.id).label=$('#arL').value.trim()});
+    const ar=()=>$(`#lArea .area[data-a="${a.id}"] rect`);
+    $('#arC').oninput=()=>{const r=ar();r&&r.setAttribute('fill',$('#arC').value)};
+    $('#arC').onchange=()=>commit('لون المساحة',['__areas'],()=>{S.areas.find(x=>x.id===a.id).color=$('#arC').value});
+    $('#arO').oninput=()=>{const r=ar();r&&r.setAttribute('fill-opacity',$('#arO').value)};
+    $('#arO').onchange=()=>commit('شفافية المساحة',['__areas'],()=>{S.areas.find(x=>x.id===a.id).op=+$('#arO').value});
+    $('#arDel').onclick=()=>delArea(a.id);
+  }
+  el.querySelectorAll('[data-ar]').forEach(d=>d.onclick=()=>{selA=+d.dataset.ar;if(!floorMode)setFloorMode(true);const x=S.areas.find(q=>q.id===selA);const w=Math.max(x.w,x.h)*2.2+60,asp=svgAspect();V={x:x.x+x.w/2-w/2,y:x.y+x.h/2-w/asp/2,w,h:w/asp};setVB();drawAreas();drawSel();renderColors()});
+  // custom stands
+  el.querySelectorAll('[data-cs]').forEach(d=>d.onclick=e=>{if(e.target.dataset.csr)return;const k=d.dataset.cs;if(floorMode)setFloorMode(false);sel=new Set([k]);drawSel();focusFx(k);showFx(k)});
+  el.querySelectorAll('[data-csr]').forEach(b=>b.onclick=()=>{const k=b.dataset.csr;commit('لون القسم لـ '+S.fx[k].code,[k],()=>{delete S.fx[k].color})});
+  const ca=$('#csAll');ca&&(ca.onclick=()=>{const ids=custom.map(x=>x[0]);commit('رجوع ألوان الستاندات',ids,()=>{for(const i of ids)delete S.fx[i].color})});
+}
+function delArea(id){commit('حذف مساحة أرضية',['__areas'],()=>{S.areas=S.areas.filter(x=>x.id!==id)});selA=null;drawSel();renderColors()}
+function hslHex(h,s,l){const f=n=>{const k=(n+h/30)%12,a=s*Math.min(l,1-l);const c=l-a*Math.max(-1,Math.min(k-3,9-k,1));return Math.round(c*255).toString(16).padStart(2,'0')};return '#'+f(0)+f(8)+f(4)}
+$('#bFloor').onclick=()=>setFloorMode(!floorMode);
+$('#fbExit').onclick=()=>setFloorMode(false);
+
+/* ================= elevation (front view of a stand) ================= */
+let elevOpen=false,eFocus=null,eMode='auto',eZoom=1,eGroup=true,eView='plan';
+const SHELF_CM=33;
+const modeOf=f=>eMode==='auto'?(f.brand==='Mixed'||!f.brand?'brand':'sub'):eMode;
+function hue(str){let h=0;for(const c of String(str))h=(h*31+c.charCodeAt(0))|0;return Math.abs(h)%360}
+function rosCol(r){return r>=2?'#66bb6a':r>=1?'#9ccc65':r>=.3?'#dce775':r>0?'#fff59d':'#ef9a9a'}
+function itemCol(i,f){const eMode=modeOf(f);
+  if(eMode==='brand')return `hsl(${hue(i[2])} 62% 74%)`;
+  if(eMode==='sub')return `hsl(${hue(i[6]+'#')} 48% 68%)`;
+  if(eMode==='ros')return rosCol(i[5]);
+  return f.color||zoneColor(f.zone);
+}
+function openElev(shelf){elevOpen=true;eFocus=shelf||null;$('#elev').style.display='flex';$('#stage').classList.add('eo');renderElev()}
+function closeElev(){elevOpen=false;$('#elev').style.display='none';$('#stage').classList.remove('eo')}
+function renderElev(){
+  if(!elevOpen)return;
+  const f=cur&&S.fx[cur],body=$('#eBody');
+  if(!f){$('#eTitle').textContent='شكل الستاند';$('#eLeg').innerHTML='';body.innerHTML='<div class="empty">اضغط على أي ستاند في الرسم علشان تشوف شكله من الأمام</div>';return}
+  const G=f.grp&&eGroup?grpIds(f.grp):[cur];const FS=G.map(k=>S.fx[k]);const grp=G.length>1;
+  const nSh=Math.max(...FS.map(x=>x.shelves));
+  if(eFocus&&eFocus>nSh)eFocus=null;
+  $('#eGrp').style.display=f.grp?'':'none';$('#eGrp').classList.toggle('on',grp);
+  const totM=FS.reduce((a,x)=>a+x.modules,0),cap=totM*100,GAP=grp?5:0;
+  const avail=Math.max(240,body.clientWidth-150-GAP*G.length);
+  const sc=(eFocus?Math.max(avail/cap,6):avail/cap)*eZoom;
+  const photo=eView==='photo';
+  const rowH=photo?Math.round(Math.max(56,Math.min(440,SHELF_CM*sc))):eFocus?Math.max(150,Math.min(260,body.clientHeight-90)):Math.max(62,Math.min(96,(body.clientHeight-70)/nSh-6));
+  const shelves=eFocus?[eFocus]:Array.from({length:nSh},(_,k)=>k+1);
+  let sk=0,pc=0;for(const x of FS)for(const i of x.it){sk++;pc+=i[4]}
+  $('#eTitle').innerHTML=`<span class="swd" style="background:${esc(f.color||zoneColor(f.zone))}"></span> ${esc(grp?f.grp:f.code)} — ${esc(f.brand)} <span class="meta">· ${grp?G.length+' ستاند متر جنب بعض':f.modules+' موديول'} × ${nSh} رفوف · ${sk} صنف · ${fmt(pc)} حبة${eFocus?' · <b>الرف '+eFocus+'</b>':''}</span>`;
+  $('#eAll').style.display=eFocus?'':'none';
+  const shown=FS.flatMap(x=>x.it.filter(i=>shelves.includes(i[0])));const eMode=modeOf(f);
+  if(eMode==='ros')$('#eLeg').innerHTML=[['≥ 2',2],['1–2',1],['0.3–1',.3],['أقل من 0.3',.1],['صفر (مرشح للمراجعة)',0]].map(([l,v])=>`<span><i style="background:${rosCol(v)}"></i>${l}</span>`).join('');
+  else if(eMode==='stand')$('#eLeg').innerHTML='';
+  else{const c={};for(const i of shown){const k=eMode==='brand'?i[2]:i[6];c[k]=(c[k]||0)+i[7]}
+    const top=Object.entries(c).sort((a,b)=>b[1]-a[1]);
+    $('#eLeg').innerHTML=top.slice(0,24).map(([k])=>`<span><i style="background:${itemCol(eMode==='brand'?[0,'',k,0,0,0,'']:[0,'','',0,0,0,k],f)}"></i>${esc(k)}</span>`).join('')+(top.length>24?`<span class="meta">+${top.length-24}</span>`:'')}
+  $('#eBulk').style.display=photo?'':'none';$$('.seg [data-ev]').forEach(b=>b.classList.toggle('on',b.dataset.ev===eView));
+  if(photo){const names=new Set(FS.flatMap(x=>x.it.map(i=>i[1])));let w=0;for(const n of names)if(S.img[n])w++;$('#eTitle').innerHTML+=` <span class="meta">· 📷 ${w} من ${names.size} صنف ليهم صور</span>`}
+  let h=`<div class="gond${photo?' photo':''}" style="--mod:${100*sc}px"><div class="erow ehead"><div class="elab"></div><div class="emods" style="gap:${GAP}px">${
+    grp?G.map(k=>`<span data-pick="${k}" style="width:${S.fx[k].modules*100*sc}px;cursor:pointer;${k===cur?'background:#1565c0;color:#fff;border-radius:4px 4px 0 0;font-weight:700':''}" title="اضغط لاختيار المتر ده">${esc(S.fx[k].code)}</span>`).join('')
+       :Array.from({length:f.modules},(_,k)=>`<span style="width:${100*sc}px">موديول ${k+1}</span>`).join('')}</div></div>`;
+  for(const s of shelves){
+    let cmT=0,pcs=0,n=0,over=false;
+    const tracks=G.map(k=>{const x=S.fx[k],cp=x.modules*100;
+      if(s>x.shelves)return `<div style="width:${cp*sc}px;height:${rowH}px;flex-shrink:0;background:repeating-linear-gradient(45deg,#eceff1 0 6px,#cfd8dc 6px 12px)"></div>`;
+      const its=[];x.it.forEach((i,ix)=>{if(i[0]===s)its.push([i,ix])});
+      const cm=its.reduce((a,[i])=>a+i[7],0);cmT+=cm;n+=its.length;pcs+=its.reduce((a,[i])=>a+i[4],0);if(cm>cp)over=true;
+      return `<div class="etrack items${cm>cp?' ovf':''}${grp&&k===cur?' curm':''}" data-shelf="${s}" data-fid="${k}" style="width:${cp*sc}px;height:${rowH}px;flex-shrink:0">${its.map(([i,ix])=>(photo?photoBlock:block)(i,ix,sc,rowH,x,k)).join('')}</div>`}).join('');
+    const tag=s===2?'مستوى النظر ⭐':s===3?'مستوى اليد':s===1?'العلوي':s===nSh?'السفلي':'';
+    h+=`<div class="erow${s===2||s===3?' eye':''}${eFocus===s?' foc':''}"><div class="elab" data-fs="${s}" title="${eFocus?'رجوع لكل الرفوف':'اضغط لعرض الرف ده لوحده بحجم أكبر'}"><b>الرف ${s}</b><span>${tag}</span><span>${n} صنف · ${pcs} حبة</span><span class="${over?'bad':''}">${cmT} من ${cap} سم</span></div>
+      <div style="display:flex;gap:${GAP}px">${tracks}</div></div>`;
+  }
+  body.innerHTML=h+'</div>'+(eFocus?'':`<div class="meta" style="margin-top:8px">${grp?'المجموعة معروضة جنب بعض — المتر المحدد عليه إطار أزرق · اضغط على كود أي متر فوق علشان تختاره · ':''}${photo?'اضغط على أي صنف علشان تضيف صورته أو تعدّلها · اسحب ملف صورة من جهازك وارميه على الصنف مباشرة · الأصناف اللي بخط متقطع لسه ملهاش صورة · ':''}اضغط على اسم أي رف علشان تكبّره · اسحب أي صنف لمكان تاني أو لمتر/رف تاني أو لستاند في الرسم · عرض كل صنف = عرضه الفعلي بالسم، والخطوط البيضا جواه = عدد الأوجه</div>`);
+  body.querySelectorAll('[data-pick]').forEach(d=>d.onclick=()=>{const k=d.dataset.pick;sel=new Set([k]);drawSel();showFx(k)});
+  body.querySelectorAll('[data-fs]').forEach(d=>d.onclick=()=>{const s=+d.dataset.fs;eFocus=eFocus===s?null:s;renderElev()});
+  bindItems(body,'fx',cur);
+  if(photo)body.querySelectorAll('.it.pb').forEach(c=>{
+    c.addEventListener('dragover',e=>{if(drag||!e.dataTransfer||![...e.dataTransfer.types].includes('Files'))return;e.preventDefault();e.stopPropagation();c.classList.add('fdrop')});
+    c.addEventListener('dragleave',()=>c.classList.remove('fdrop'));
+    c.addEventListener('drop',e=>{const f=[...(e.dataTransfer?.files||[])].find(x=>x.type.startsWith('image/'));if(!f)return;e.preventDefault();e.stopPropagation();c.classList.remove('fdrop');imgDlg(c.dataset.fid,+c.dataset.ix,f)});
+  });
+  if(markItem&&markItem.fid===cur){const m=body.querySelector('.it.mark');m&&m.scrollIntoView({block:'nearest',inline:'center'})}
+}
+function block(i,ix,sc,rowH,f,fid){
+  const w=Math.max(4,i[7]*sc);const per=i[7]/Math.max(1,i[3]);
+  const hp=Math.min(.95,Math.max(.42,.38+per*.04));
+  const m=markItem&&markItem.fid===fid&&markItem.name===i[1];
+  const big=rowH>120;
+  return `<div class="it eb${i[5]==0?' z':''}${m?' mark':''}" draggable="true" data-ix="${ix}" data-fid="${fid}" style="width:${w}px;height:${Math.round(rowH*hp)}px;background-color:${itemCol(i,f)};--f:${Math.max(1,i[3])}" title="${esc(i[1])}
+${esc(i[2])} · ${esc(i[6])}
+${i[3]} وجه · ${i[4]} حبة · ${i[7]} سم · ROS ${i[5]}/يوم
+اضغط للتعديل · اسحب للنقل"><span class="x" data-del="${ix}" title="شيل من الرف">✕</span>${w>=10?`<span class="en${w<(big?70:52)?' v':''}">${esc(i[1])}</span>`:''}${w>=24?`<span class="ep">${i[4]}${big?' حبة':''}</span>`:''}</div>`;
+}
+$('#eClose').onclick=closeElev;
+$('#eAll').onclick=()=>{eFocus=null;renderElev()};
+$('#eGrp').onclick=()=>{eGroup=!eGroup;renderElev()};
+$$('.seg [data-ev]').forEach(b=>b.onclick=()=>{eView=b.dataset.ev;renderElev()});
+$('#eBulk').onclick=()=>bulkDlg();
+$('#eSize').onclick=()=>{$('#elev').classList.toggle('full');renderElev()};
+$('#eMode').onchange=e=>{eMode=e.target.value;renderElev()};
+$('#eZoom').oninput=e=>{eZoom=+e.target.value;renderElev()};
+addEventListener('resize',()=>renderElev());
+
+
+/* ================= product images ================= */
+let imgEdit=null;
+const effAr=t=>t&&t.ar?t.ar:1.6;
+function imgCss(t){return `object-fit:${t.fit||'contain'};transform:translate(${t.x||0}%,${t.y||0}%) scale(${t.z||1});${t.wb?'mix-blend-mode:multiply;':''}`}
+function photoBlock(i,ix,sc,rowH,f,fid){
+  const n=Math.max(1,i[3]),w=Math.max(4,i[7]*sc),fw=w/n,t=S.img[i[1]];
+  const h=Math.round(t?Math.min(rowH-4,fw*effAr(t)*(t.hs||1)):Math.min(rowH-4,Math.max(rowH*.5,fw*1.5)));
+  const m=markItem&&markItem.fid===fid&&markItem.name===i[1];
+  const inner=t?`<img src="${esc(imgSrc(t))}" alt="" style="${imgCss(t)}" loading="lazy">`:`<div class="ph" style="background-color:${itemCol(i,f)}">${fw>=9?`<span>${esc(i[2])}</span>`:''}</div>`;
+  let fcs='';for(let k=0;k<n;k++)fcs+=`<div class="fc" style="width:${fw}px">${inner}</div>`;
+  return `<div class="it pb${t?'':' noimg'}${m?' mark':''}" draggable="true" data-ix="${ix}" data-fid="${fid}" style="width:${w}px;height:${h}px" title="${esc(i[1])}
+${esc(i[2])} · ${i[3]} وجه · ${i[4]} حبة · ${i[7]} سم
+${t?'اضغط لتعديل الصورة':'📷 اضغط لإضافة صورة — أو اسحب ملف صورة عليه'} · اسحب للنقل"><span class="x" data-del="${ix}" title="شيل من الرف">✕</span>${fcs}</div>`;
+}
+async function loadImg(src){const im=new Image();im.crossOrigin='anonymous';await new Promise((ok,err)=>{im.onload=ok;im.onerror=err;im.src=src});return im}
+async function canvasBlob(c){let b=await new Promise(r=>c.toBlob(r,'image/webp',.86));if(!b||b.type!=='image/webp')b=await new Promise(r=>c.toBlob(r,'image/png'));return b}
+async function storeCanvas(c,name){
+  const b=await canvasBlob(c);
+  const ref=await STORE().saveImage(name,b);
+  return {ref,ar:c.height/c.width};
+}
+const imgSrc=t=>t?STORE().imageUrl(t.ref):'';
+async function processImage(src,op,name){ // src: File|url ; op: undefined|'rot'|'flip'|'trim' ; name: product name
+  const isFile=src instanceof Blob;const url=isFile?URL.createObjectURL(src):src;
+  const im=await loadImg(url);if(isFile)URL.revokeObjectURL(url);
+  let W=im.naturalWidth,H=im.naturalHeight;const k=Math.min(1,520/Math.max(W,H));W=Math.max(1,Math.round(W*k));H=Math.max(1,Math.round(H*k));
+  const c=document.createElement('canvas'),x=c.getContext('2d');
+  if(op==='rot'){c.width=H;c.height=W;x.translate(H,0);x.rotate(Math.PI/2);x.drawImage(im,0,0,W,H)}
+  else if(op==='flip'){c.width=W;c.height=H;x.translate(W,0);x.scale(-1,1);x.drawImage(im,0,0,W,H)}
+  else{c.width=W;c.height=H;x.drawImage(im,0,0,W,H)}
+  if(op==='trim'||!op){ // crop away plain white/transparent margins
+    const d=x.getImageData(0,0,c.width,c.height).data;let x1=c.width,y1=c.height,x2=-1,y2=-1;
+    for(let y=0;y<c.height;y++)for(let X=0;X<c.width;X++){const p=(y*c.width+X)*4;if(d[p+3]>20&&(d[p]<238||d[p+1]<238||d[p+2]<238)){if(X<x1)x1=X;if(X>x2)x2=X;if(y<y1)y1=y;if(y>y2)y2=y}}
+    if(x2>x1&&y2>y1&&(x2-x1+1)*(y2-y1+1)<c.width*c.height*.97){const pad=2;x1=Math.max(0,x1-pad);y1=Math.max(0,y1-pad);x2=Math.min(c.width-1,x2+pad);y2=Math.min(c.height-1,y2+pad);
+      const c2=document.createElement('canvas');c2.width=x2-x1+1;c2.height=y2-y1+1;c2.getContext('2d').drawImage(c,x1,y1,c2.width,c2.height,0,0,c2.width,c2.height);return storeCanvas(c2,name)}
+  }
+  return storeCanvas(c,name);
+}
+function imgDlg(fid,ix,preFile){
+  const f=S.fx[fid];if(!f)return;const it=f.it[ix];if(!it)return;const name=it[1];
+  const had=!!S.img[name];
+  let t=had?clone(S.img[name]):null;const D={z:1,x:0,y:0,fit:'contain',wb:false,hs:1};
+  dialog({title:'📷 صورة الصنف',body:`<div class="meta" style="margin:-4px 0 10px"><b style="color:var(--fg)">${esc(name)}</b><br>${esc(it[2])} · ${it[3]} وجه · ${it[7]} سم · ${esc(f.code)} رف ${it[0]}</div>
+    <div class="imged"><div><div class="ipv" id="ipv" title="اسحب الصورة لتحريكها جوه الإطار"></div><div class="meta" style="text-align:center;margin-top:4px">كده هتبان على الرف</div></div>
+    <div><div class="ipdrop" id="ipd">📁 اختار صورة من جهازك<br>أو اسحبها هنا · أو الصقها <kbd>Ctrl+V</kbd></div>
+      <div id="ipc" class="form" style="grid-template-columns:80px minmax(0,1fr)">
+        <label>تكبير</label><input type="range" id="ipz" min="0.5" max="3" step="0.05">
+        <label>الارتفاع</label><input type="range" id="iph" min="0.4" max="2.5" step="0.05" title="ارتفاع الصنف على الرف">
+        <label>الملء</label><select id="ipf"><option value="contain">الصورة كاملة</option><option value="cover">ملء الإطار</option></select>
+        <label></label><label style="display:flex;gap:6px;align-items:center;color:var(--fg)"><input type="checkbox" id="ipw"> إخفاء الخلفية البيضا</label>
+      </div>
+      <div class="acts" id="ipa"><button type="button" id="ipr" title="تدوير 90°">⟳ تدوير</button><button type="button" id="ipl" title="قلب">⇋ قلب</button><button type="button" id="ipt" title="قص الحواف البيضا">✂ قص الحواف</button><button type="button" id="ip0" title="رجوع للوضع الافتراضي">↺</button></div>
+      <div class="meta" id="ipm"></div></div></div>
+    <input type="file" id="ipfile" accept="image/*" hidden>`,
+    btns:[['حفظ','pri',()=>{if(!t){if(had)return;toast('اختار صورة الأول');return false}commit('صورة '+name.slice(0,30),['__img'],()=>{S.img[name]=t});toast('اتحفظت الصورة')}],
+      ...(had?[['حذف الصورة','dng',()=>commit('حذف صورة',['__img'],()=>{delete S.img[name]})]]:[]),
+      ['بيانات الصنف','',()=>{setTimeout(()=>itemDlg(fid,ix,null))}],['إلغاء']]});
+  const pv=$('#ipv');
+  const draw=()=>{const on=!!t;$('#ipc').style.opacity=on?1:.4;$('#ipa').style.opacity=on?1:.4;$$('#ipc input,#ipc select,#ipa button').forEach(e=>e.disabled=!on);
+    const n=Math.min(4,Math.max(1,it[3])),bw=Math.min(150/n,60),bh=Math.min(228,bw*effAr(t)*(t?t.hs||1:1));
+    pv.innerHTML=Array.from({length:n},()=>`<div class="fc" style="width:${bw}px;height:${t?bh:bw*1.5}px">${t?`<img src="${esc(imgSrc(t))}" style="${imgCss(t)}">`:`<div class="ph" style="background-color:${itemCol(it,f)}"><span>${esc(it[2])}</span></div>`}</div>`).join('');
+    if(t){$('#ipz').value=t.z;$('#iph').value=t.hs;$('#ipf').value=t.fit;$('#ipw').checked=!!t.wb}};
+  const busy=m=>{$('#ipm').textContent=m||''};
+  const load=async(file,op)=>{try{busy('⏳ جاري تجهيز الصورة…');const r=await processImage(file,op,name);t={...D,...(t&&op?t:{}),...r};if(op){t.x=t.x||0;t.y=t.y||0}busy('');draw()}catch(e){busy('');toast('تعذّر فتح الصورة')}};
+  imgEdit={load};
+  $('#ipd').onclick=()=>$('#ipfile').click();
+  $('#ipfile').onchange=e=>{const fl=e.target.files[0];fl&&load(fl)};
+  const dz=$('#ipd');dz.ondragover=e=>{e.preventDefault();dz.classList.add('over')};dz.ondragleave=()=>dz.classList.remove('over');
+  dz.ondrop=e=>{e.preventDefault();dz.classList.remove('over');const fl=[...e.dataTransfer.files].find(x=>x.type.startsWith('image/'));fl&&load(fl)};
+  $('#ipz').oninput=e=>{t.z=+e.target.value;draw()};$('#iph').oninput=e=>{t.hs=+e.target.value;draw()};
+  $('#ipf').onchange=e=>{t.fit=e.target.value;draw()};$('#ipw').onchange=e=>{t.wb=e.target.checked;draw()};
+  $('#ipr').onclick=()=>load(imgSrc(t),'rot');$('#ipl').onclick=()=>load(imgSrc(t),'flip');$('#ipt').onclick=()=>load(imgSrc(t),'trim');
+  $('#ip0').onclick=()=>{Object.assign(t,D);draw()};
+  let pd=null;
+  pv.onpointerdown=e=>{if(!t)return;pd={x:e.clientX,y:e.clientY,ox:t.x,oy:t.y,w:pv.firstElementChild.offsetWidth,h:pv.firstElementChild.offsetHeight};try{pv.setPointerCapture(e.pointerId)}catch(_){}};
+  pv.onpointermove=e=>{if(!pd)return;t.x=Math.round((pd.ox+(e.clientX-pd.x)/pd.w*100/(t.z||1))*10)/10;t.y=Math.round((pd.oy+(e.clientY-pd.y)/pd.h*100/(t.z||1))*10)/10;draw()};
+  pv.onpointerup=pv.onpointercancel=()=>{pd=null};
+  draw();
+  if(preFile)load(preFile);
+}
+document.addEventListener('paste',e=>{if(!imgEdit||!$('#dlg').open)return;const fl=[...(e.clipboardData?.files||[])].find(x=>x.type.startsWith('image/'));if(fl){e.preventDefault();imgEdit.load(fl)}});
+$('#dlg').addEventListener('close',()=>{imgEdit=null});
+
+/* bulk upload: match file names to products */
+const normN=s=>String(s).toLowerCase().replace(/\.(png|jpe?g|webp|gif|bmp|avif|heic)$/i,'').replace(/[_\-.]+/g,' ').replace(/[^\p{L}\p{N} ]/gu,' ').replace(/\s+/g,' ').trim();
+let NAMEIDX=null;
+function matchName(fn,pref){
+  const fq=normN(fn);if(!fq)return null;const toks=fq.split(' ').filter(t=>t.length>=3);
+  const score=(nm)=>{const m=normN(nm);if(m===fq)return 100;if(fq.length>=5&&m.includes(fq))return 88;if(m.length>=5&&fq.includes(m))return 84;
+    let hit=0;for(const t of toks)if(m.includes(t))hit++;return hit?Math.min(80,45+hit*12-(toks.length-hit)*6):0};
+  let best=null,bs=0;
+  for(const n of pref){const s=score(n);if(s>bs){bs=s;best=n}}
+  if(bs<70){if(!NAMEIDX)NAMEIDX=[...new Set(Object.values(S.fx).flatMap(f=>f.it.map(i=>i[1])))];for(const n of NAMEIDX){const s=score(n)-5;if(s>bs){bs=s;best=n}}}
+  return bs>=55?best:null;
+}
+function bulkDlg(){
+  const f=cur&&S.fx[cur];const G=f&&f.grp&&eGroup?grpIds(f.grp):cur?[cur]:[];
+  const pref=[...new Set(G.flatMap(k=>S.fx[k].it.map(i=>i[1])))];
+  const inp=document.createElement('input');inp.type='file';inp.accept='image/*';inp.multiple=true;
+  inp.onchange=()=>{
+    const files=[...inp.files].filter(x=>x.type.startsWith('image/'));if(!files.length)return;
+    NAMEIDX=null;const rows=files.map(fl=>({fl,url:URL.createObjectURL(fl),m:matchName(fl.name,pref)}));
+    const opts=n=>`<option value="">— تجاهل —</option>`+(n&&!pref.includes(n)?`<option value="${esc(n)}" selected>${esc(n)}</option>`:'')+pref.map(p=>`<option value="${esc(p)}"${p===n?' selected':''}>${esc(p)}</option>`).join('');
+    dialog({title:`⬆ رفع ${files.length} صورة`,body:`<p class="meta" style="margin:0 0 8px">ربطت كل صورة بالصنف الأقرب لاسم الملف. راجع الربط وغيّره لو محتاج، وبعدين اضغط «رفع وربط».</p>
+      <div style="max-height:52vh;overflow:auto"><table class="bulk">${rows.map((r,k)=>`<tr><td style="width:44px"><img src="${r.url}"></td><td><div class="meta" style="font-size:11px;word-break:break-all">${esc(r.fl.name)}</div><select data-bk="${k}" style="width:100%">${opts(r.m)}</select></td></tr>`).join('')}</table></div>
+      <div class="meta" style="margin-top:6px">${rows.filter(r=>r.m).length} من ${rows.length} اتربطوا تلقائياً</div>`,
+      btns:[['رفع وربط','pri',()=>{const sel=[...$$('[data-bk]')].map(s=>s.value);(async()=>{
+          const out={};let k=0;for(const r of rows){const nm=sel[k++];if(!nm)continue;toast(`⏳ رفع ${k} من ${rows.length}…`);try{out[nm]={z:1,x:0,y:0,fit:'contain',wb:false,hs:1,...(await processImage(r.fl,undefined,nm))}}catch(e){console.warn('img fail',r.fl.name,e&&e.message||e)}}
+          rows.forEach(r=>URL.revokeObjectURL(r.url));
+          const n=Object.keys(out).length;if(!n)return toast('مفيش صور اتربطت');
+          commit(`رفع ${n} صورة`,['__img'],()=>{Object.assign(S.img,out)});toast(`✓ اتربطت ${n} صورة بالأصناف`)})()}],['إلغاء']]});
+  };
+  inp.click();
+}
+
+/* ================= tabs ================= */
+function tab(t){$$('.tabs button').forEach(b=>b.classList.toggle('act',b.dataset.t===t));$$('.pane').forEach(p=>p.classList.toggle('act',p.id==='p-'+t));
+  if(t==='fx')renderPanel();if(t==='pool')renderPool();if(t==='sum')renderSum();if(t==='colors')renderColors();if(t==='find')setTimeout(()=>$('#q').focus())}
+$$('.tabs button').forEach(b=>{b.onclick=()=>tab(b.dataset.t);
+  b.addEventListener('dragover',e=>{if(drag&&b.dataset.t==='pool'&&drag.from!=='pool'){e.preventDefault();b.classList.add('on')}});
+  b.addEventListener('dragleave',()=>b.classList.remove('on'));
+  b.addEventListener('drop',e=>{b.classList.remove('on');if(drag&&b.dataset.t==='pool'&&drag.from==='fx'){e.preventDefault();toPool(drag.fid,drag.idx)}});
+});
+
+/* ================= dialog ================= */
+function dialog({title,body,btns}){
+  const d=$('#dlg');$('#dlgHd').textContent=title;$('#dlgBd').innerHTML=body;const ft=$('#dlgFt');ft.innerHTML='';
+  for(const[txt,cls,fn]of btns){const b=document.createElement('button');b.type='button';b.textContent=txt;if(cls)b.className=cls;b.onclick=()=>{const r=fn&&fn();if(r!==false)d.close()};ft.appendChild(b)}
+  d.showModal();const f=$('#dlgBd input,#dlgBd select');f&&f.focus();
+}
+$('#dlgForm').addEventListener('keydown',e=>{if(e.key==='Enter'&&e.target.tagName==='INPUT'){e.preventDefault();$('#dlgFt button').click()}});
+
+/* ================= keyboard ================= */
+addEventListener('keydown',e=>{
+  const tg=e.target.tagName;const typing=tg==='INPUT'||tg==='TEXTAREA'||tg==='SELECT'||e.target.isContentEditable||$('#dlg').open;
+  const mod=e.ctrlKey||e.metaKey;
+  if(mod&&e.key.toLowerCase()==='s'){e.preventDefault();saveNow();return}
+  if(typing)return;
+  if(mod&&e.key.toLowerCase()==='z'){e.preventDefault();e.shiftKey?redo():undo();return}
+  if(mod&&e.key.toLowerCase()==='y'){e.preventDefault();redo();return}
+  if(mod&&e.key.toLowerCase()==='d'){e.preventDefault();dupSel();return}
+  if(floorMode&&(e.key==='Delete'||e.key==='Backspace')){if(selA!=null){e.preventDefault();delArea(selA)}return}
+  if(e.key==='Delete'||e.key==='Backspace'){if(sel.size){e.preventDefault();delSel()}return}
+  if(e.key==='r'||e.key==='R'||e.key==='ق'){rotSel();return}
+  if(e.key==='Escape'){if(floorMode){setFloorMode(false);return}if(elevOpen&&!sel.size){closeElev();return}sel.clear();drawSel();return}
+  const ar={ArrowLeft:[-1,0],ArrowRight:[1,0],ArrowUp:[0,-1],ArrowDown:[0,1]}[e.key];
+  if(ar&&sel.size){e.preventDefault();const st=e.shiftKey?M:(snap?6:1);const ids=[...sel];
+    // merge consecutive nudges into one undo step
+    const last=undoS[undoS.length-1];const merge=last&&last.nudge&&last.ids===ids.join(',')&&Date.now()-last.t<1200;
+    const before=merge?last.before:ids.map(i=>[i,snapOf(i)]);
+    for(const id of ids)S.fx[id].parts=S.fx[id].parts.map(p=>({...p,x:r1(p.x+ar[0]*st),y:r1(p.y+ar[1]*st)}));
+    const after=ids.map(i=>[i,snapOf(i)]);
+    if(merge){last.after=after;last.t=Date.now();markDirty()}else{pushUndo({label:'تحريك',before,after,nudge:true,ids:ids.join(','),t:Date.now()})}
+    afterChange(ids)}
+});
+
+/* ================= file menu ================= */
+$('#bFile').onclick=e=>{e.stopPropagation();$('#mFile').classList.toggle('open')};
+addEventListener('click',()=>$('#mFile').classList.remove('open'));
+$('#mFile .dd').onclick=e=>{const a=e.target.closest('button')?.dataset.a;if(!a)return;$('#mFile').classList.remove('open');fileAct(a)};
+const stamp=()=>new Date().toISOString().slice(0,16).replace(/[T:]/g,'-');
+function stateJson(){const o={...S,fx:{}};for(const[k,f]of Object.entries(S.fx)){const{_open,...rest}=f;o.fx[k]=rest}return JSON.stringify(o)}
+async function download(name,data){
+  try{const dl=window.claude&&await window.claude.use('downloads');if(dl){await dl.save({filename:name,data});toast('تم التنزيل');return}}
+  catch(err){if(err&&err.code==='declined')return;if(err&&!['unavailable','not_granted','capability_disabled'].includes(err.code)){toast('تعذّر التنزيل: '+(err.message||err.code));return}}
+  try{const u=URL.createObjectURL(new Blob([data]));const a=document.createElement('a');a.href=u;a.download=name;document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(u),4000)}catch(e){toast('التنزيل مش متاح هنا')}
+}
+async function fileAct(a){
+  if(a==='json')return download(`planogram-backup-${stamp()}.json`,stateJson());
+  if(a==='csv'){
+    const rows=[['كود الستاند','المنطقة','النوع','براند الستاند','القسم','المكان','الرف','الترتيب على الرف','الصنف','البراند','السب كاتيجوري','الأوجه','الحبات','ROS/يوم','العرض سم','رقم المنتج (id)']];
+    for(const f of Object.values(S.fx).sort((a,b)=>a.code.localeCompare(b.code))){const pos={};for(const i of f.it){pos[i[0]]=(pos[i[0]]||0)+1;rows.push([f.code,f.zone,f.kind,f.brand,f.dept,f.pos,i[0],pos[i[0]],i[1],i[2],i[6],i[3],i[4],i[5],i[7],i[8]??''])}}
+    for(const i of S.pool)rows.push(['غير موزّع','','','','','','','',i[1],i[2],i[6],i[3],i[4],i[5],i[7],i[8]??'']);
+    const csv='\ufeff'+rows.map(r=>r.map(v=>{v=String(v);return /[",\n]/.test(v)?'"'+v.replace(/"/g,'""')+'"':v}).join(',')).join('\r\n');
+    return download(`planogram-${stamp()}.csv`,csv);
+  }
+  if(a==='svg'){
+    const fx=[...lFx.children].map(g=>{const c=g.cloneNode(true);c.classList.remove('sel','hit','dim','drop');return c.outerHTML}).join('');
+    const css=`.t{font-size:7px;fill:#111;font-family:Tahoma,Arial}.st{font-weight:700;fill:#fff}.lbl{font-size:11px;fill:#333;font-family:Tahoma,Arial}.sm{font-size:9px;fill:#888}.big{font-size:15px;font-weight:700;font-family:Tahoma,Arial}.zl{font-size:12px;font-weight:700;font-family:Tahoma,Arial}.aisle{font-size:14px;fill:#607d8b;font-weight:600;font-family:Tahoma,Arial}.clash .body{stroke:#d50000;stroke-dasharray:3 2}`;
+    const s=`<svg xmlns="http://www.w3.org/2000/svg" viewBox="-20 -40 ${S.room.w+40} ${S.room.h+90}" width="${(S.room.w+40)*1.5}" height="${(S.room.h+90)*1.5}"><style>${css}</style><rect x="-20" y="-40" width="${S.room.w+40}" height="${S.room.h+90}" fill="${S.floor.canvas}"/>${$('#lImg').innerHTML}${$('#lBg').innerHTML}${$('#lArea').innerHTML.replace(/ class="area[^"]*"/g,'')}${fx}</svg>`;
+    return download(`pharmacy-layout-${stamp()}.svg`,s);
+  }
+  if(a==='html'){
+    let src=null;try{src=await (await fetch('index.html',{cache:'no-store'})).text()}catch(e){}
+    if(!src||!src.includes('<script id="app">'))src=SELF_SRC0;
+    if(!src){toast('تعذّر تجهيز النسخة');return}
+    src=src.replace(/\n<script id="seed" type="application\/json">[^\n]*<\/script>(?=\n)/,'');
+    const st=JSON.parse(stateJson());
+    const ext=Object.values(st.img||{}).filter(v=>v.ref&&!String(v.ref).startsWith('data:'));
+    if(ext.length){toast(`⏳ تجهيز ${ext.length} صورة للنسخة الأوفلاين…`);for(const v of ext){try{const b=await (await fetch(STORE().imageUrl(v.ref))).blob();v.ref=await new Promise(r=>{const fr=new FileReader();fr.onload=()=>r(fr.result);fr.readAsDataURL(b)})}catch(e){}}}
+    const seed='<script id="se'+'ed" type="application/json">'+JSON.stringify(st).replace(/</g,'\\u003c')+'<\/script>\n';
+    const at=src.indexOf('\n<script id="app">');if(at<0){toast('تعذّر تجهيز النسخة');return}
+    return download(`pharmacy-planogram-editor-${stamp()}.html`,src.slice(0,at+1)+seed+src.slice(at+1));
+  }
+  if(a==='import')return $('#fileIn').click();
+  if(a==='bgimg')return $('#imgIn').click();
+  if(a==='bgclear'){S.bgImage=null;drawBg();markDirty();return}
+  if(a==='reset')return dialog({title:'استرجاع آخر نسخة محفوظة؟',body:'<p>كل التعديلات اللي ما اتحفظتش هتضيع.</p>',btns:[['استرجاع','dng',()=>{lsDel(LS_KEY);load(true)}],['إلغاء']]});
+}
+$('#fileIn').onchange=e=>{const f=e.target.files[0];if(!f)return;const r=new FileReader();r.onload=()=>{try{const o=JSON.parse(r.result);if(!o.fx||!o.zones)throw 0;applyState(o);markDirty();toast('تم الاستيراد — اضغط حفظ علشان يتثبت')}catch(_){toast('الملف مش نسخة صالحة')}};r.readAsText(f);e.target.value=''};
+
+/* ================= save / persistence ================= */
+let canPublish=null, lsT=null, autoT=null, saving=false, autoSave=true;
+function setSave(cls,txt){const s=$('#saveState');s.className=cls;s.textContent=txt}
+function saveDraft(){return lsSet(LS_KEY,'{"base":'+BASE_SAVED+',"at":'+Date.now()+',"state":'+stateJson()+'}')}
+// every edit: mark dirty, keep a browser draft (1.5 s) and schedule the auto-save (8 s after the last edit)
+function markDirty(){dirty=true;setSave('dirty','● تعديلات غير محفوظة');clearTimeout(lsT);lsT=setTimeout(()=>{saveDraft()},1500);scheduleAutoSave()}
+function scheduleAutoSave(){clearTimeout(autoT);if(canPublish&&autoSave)autoT=setTimeout(()=>{if(dirty&&!act&&!$('#dlg').open)saveNow()},AUTOSAVE_MS)}
+const AUTOSAVE_MS=45000;   // on the pharmacy's own backend: saves are counted, so the auto-save waits 45 s after the last edit
+async function saveNow(){
+  if(saving)return;
+  if(!canPublish){
+    saveDraft();
+    setSave('ok','✓ محفوظ على الجهاز ده');dirty=false;
+    toast(canPublish===false?'الحفظ أونلاين مش متاح هنا — اتحفظ في المتصفح. نزّل نسخة من قائمة "ملف" للأمان':'اتحفظ في المتصفح');
+    return;
+  }
+  saving=true;setSave('','⏳ جاري الحفظ…');
+  S.savedAt=Date.now();
+  try{
+    await STORE().save(JSON.parse(stateJson()));
+    BASE_SAVED=S.savedAt;dirty=false;lsDel(LS_KEY);setSave('ok','✓ محفوظ');toast('اتحفظ ✓');
+  }catch(err){
+    const c=err&&err.code;
+    if(c==='offline'||c==='not_writer'||c==='not_granted'||c==='capability_disabled'||c==='capability_removed'||c==='not_declared'){canPublish=false;saveDraft();setSave('err','وضع القراءة فقط');toast('مش عندك صلاحية الحفظ هنا — التعديلات محفوظة في المتصفح بس')}
+    else if(c==='conflict'){try{sessionStorage.setItem(LS_KEY+'-c','1')}catch(_){}setSave('err','في نسخة أحدث — جاري التحديث');}
+    else{setSave('err','✕ فشل الحفظ');toast('فشل الحفظ: '+((err&&err.message)||c||'خطأ')+' — التعديلات لسه في المتصفح')}
+  }finally{saving=false}
+}
+$('#bSave').onclick=saveNow;
+$('#bAuto').onclick=e=>{autoSave=!autoSave;e.currentTarget.classList.toggle('on',autoSave);toast(autoSave?'الحفظ التلقائي شغال':'الحفظ التلقائي متوقف — استخدم زر حفظ')};
+addEventListener('beforeunload',e=>{if(dirty){saveDraft();}});
+
+function applyState(o){
+  S=o;S.pool=S.pool||[];S.zones=S.zones||{};S.room=S.room||{w:1056,h:1106.4};S.floor={...FLOOR0,...(S.floor||{})};S.areas=S.areas||[];S.img=S.img||{};
+  for(const v of Object.values(S.img)){if(v.u!=null&&v.ref==null)v.ref=v.u;delete v.u}
+  selA=null;if(floorMode)setFloorMode(false);
+  sel.clear();cur=null;undoS=[];redoS=[];updUndo();
+  drawBg();drawLegend();drawAll();renderTotals();renderPanel();renderPool();
+  if($('#p-sum').classList.contains('act'))renderSum();
+  renderColors();renderElev();
+}
+async function load(skipDraft){
+  let o=null;
+  if(!o){try{o=await STORE().load()}catch(e){console.error('PG_STORE.load failed',e)}}
+  if(!o){$('#loading').textContent='تعذّر تحميل بيانات المخطط.';return}
+  BASE_SAVED=o.savedAt||0;
+  applyState(o);fit();setSave('ok','✓ محفوظ');dirty=false;
+  $('#loading').style.display='none';
+  if(!skipDraft){
+    let d=null;try{d=JSON.parse(lsGet(LS_KEY)||'null')}catch(e){}
+    if(d&&d.state&&d.at>BASE_SAVED){
+      $('#bannerTxt').textContent='في تعديلات محفوظة في المتصفح ده من '+new Date(d.at).toLocaleString('ar-EG')+' ما اتحفظتش أونلاين.';
+      const b=$('#banner');b.style.display='flex';
+      $('#bannerYes').onclick=()=>{b.style.display='none';applyState(d.state);markDirty();toast('اتسترجعت — اضغط حفظ')};
+      $('#bannerNo').onclick=()=>{b.style.display='none';lsDel(LS_KEY)};
+    }
+  }
+}
+(async()=>{
+  await load(false);
+  try{const st=STORE();if(st.init)await st.init();canPublish=st.online!==false}catch(e){canPublish=false}
+  if(!canPublish){$('#bSave').textContent='💾 حفظ في المتصفح';$('#bAuto').style.display='none'}
+})();
+})();
+</script>
+</body>
+</html>

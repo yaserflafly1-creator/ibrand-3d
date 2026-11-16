@@ -66,8 +66,7 @@ td,th{padding:6px 8px;border-bottom:1px solid var(--line);text-align:right}
   <h1>لوحة تحكم الصيدلية 3D</h1>
   <div class="tabs" id="tabs" hidden>
     <button data-t="settings" class="on">الإعدادات والميزات</button>
-    <button data-t="map">أماكن الجندولات</button>
-    <button data-t="shelves">محتوى الرفوف</button>
+    <button data-t="map">المخطط</button>
     <button data-t="promo">العروض واللوحات</button>
     <button data-t="team">الفريق والسجل</button>
   </div>
@@ -111,6 +110,7 @@ td,th{padding:6px 8px;border-bottom:1px solid var(--line);text-align:right}
 
   <!-- map -->
   <section id="t-map" hidden>
+    <div class="card"><h2>محرر المخطط</h2><p class="note">أماكن الستاندات ومحتوى الرفوف تُعدَّل من محرر المخطط الكامل؛ كل حفظ فيه يُنشر للصيدلية. الرسم هنا للاطلاع والتعديلات السريعة.</p><a class="btn" href="editor.html" style="text-decoration:none;display:inline-block">فتح محرر المخطط</a></div>
     <div class="mapwrap">
       <div>
         <div class="mapbox"><svg id="svg"></svg></div>
@@ -230,6 +230,7 @@ async function enter(me){
   const d = DEMO && DEMO.prods ? null : await getJSON('../data/products.json'); if (d && d.sections) Object.values(d.sections).forEach(s => (s.products || []).forEach(p => { if (!PRODS.has(String(p.id))) PRODS.set(String(p.id), p); }));
   $('#usersCard').hidden = ROLE !== 'admin'; $('#resetPg').hidden = ROLE !== 'admin';
   fillSettings(); fillPromo(); drawMap(); fillShelfPicker(); show('settings');
+  if (!DEMO && /[?&]next=editor\b/.test(location.search)) location.replace('editor.html');
 }
 function show(t){ document.querySelectorAll('#tabs button').forEach(b => b.classList.toggle('on', b.dataset.t === t)); document.querySelectorAll('main > section[id^="t-"]').forEach(s => { s.hidden = s.id !== 't-' + t; }); if (t === 'team') loadTeam(); if (t === 'shelves') drawShelves(); }
 $('#tabs').addEventListener('click', e => { const b = e.target.closest('button'); if (b) show(b.dataset.t); });

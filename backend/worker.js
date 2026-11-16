@@ -22,7 +22,8 @@ async function readToken(env, req){
   try { const d = JSON.parse(new TextDecoder().decode(unb64u(p))); return d.exp > Date.now() ? d : null; } catch(e){ return null; }
 }
 const getJ = async (env, key, dflt) => { const v = await env.KV.get(key); if (!v) return dflt; try { return JSON.parse(v); } catch(e){ return dflt; } };
-async function log(env, who, what){ const l = await getJ(env, 'log', []); l.unshift({t:new Date().toISOString(), who, what}); await env.KV.put('log', JSON.stringify(l.slice(0, 200))); }
+// (the same person repeating the same thing within ten minutes — the editor's auto-save — is logged once)
+async function log(env, who, what){ const l = await getJ(env, 'log', []); if (l[0] && l[0].who === who && l[0].what === what && Date.now() - Date.parse(l[0].t) < 600000) return; l.unshift({t:new Date().toISOString(), who, what}); await env.KV.put('log', JSON.stringify(l.slice(0, 200))); }
 
 export default {
   async fetch(req, env){
@@ -33,6 +34,9 @@ export default {
       // ---- public: what the 3D store reads ----
       if (M === 'GET' && path === '/public/config') return json(await getJ(env, 'config', {}), 200, {'cache-control':'public, max-age=60'});
       if (M === 'GET' && path === '/public/pg'){ const v = await env.KV.get('pg'); return v ? new Response(v, {headers:{'content-type':'application/json; charset=utf-8', 'cache-control':'public, max-age=60', ...CORS}}) : json({error:'no planogram saved'}, 404); }
+      if (M === 'GET' && path.startsWith('/public/img/')){ const id = path.slice(12); if (!/^[a-f0-9]{16,64}$/.test(id)) return json({error:'غير موجود'}, 404);
+        const r = await env.KV.getWithMetadata('img:' + id, {type:'arrayBuffer'}); if (!r || !r.value) return json({error:'غير موجود'}, 404);
+        return new Response(r.value, {headers:{'content-type':(r.metadata && r.metadata.type) || 'image/webp', 'cache-control':'public, max-age=31536000, immutable', ...CORS}}); }
       if (M === 'GET' && path === '/') return json({ok:true, service:'ibrand-3d control panel'});
       // ---- sign in ----
       if (M === 'POST' && path === '/login'){
@@ -57,8 +61,25 @@ export default {
       if (M === 'PUT' && path === '/pg'){
         const t = await req.text(); if (t.length > 6000000) return json({error:'المخطط أكبر من المسموح'}, 413);
         const p = JSON.parse(t); if (!p || !Array.isArray(p.f) || !p.f.length || !p.f.every(f => f && f.c && Array.isArray(f.r) && Array.isArray(f.it))) return json({error:'مخطط غير صالح'}, 400);
-        const old = await env.KV.get('pg'); if (old) await env.KV.put('pg:prev', old);            // one step of undo
-        await env.KV.put('pg', JSON.stringify(p)); await log(env, me.u, 'حفظ المخطط (' + p.f.length + ' وحدة)' + (url.searchParams.get('note') ? ': ' + url.searchParams.get('note').slice(0, 120) : '')); return json({ok:true});
+        const quiet = url.searchParams.get('auto') === '1', lastP = +(await env.KV.get('pg:prevAt')) || 0;   // a manual save keeps one step of undo; the editor's auto-publish keeps an hourly one
+        if (!quiet || Date.now() - lastP > 3600e3){ const old = await env.KV.get('pg'); if (old){ await env.KV.put('pg:prev', old); await env.KV.put('pg:prevAt', String(Date.now())); } }
+        await env.KV.put('pg', JSON.stringify(p)); if (!quiet) await log(env, me.u, 'حفظ المخطط (' + p.f.length + ' وحدة)'); return json({ok:true});
+      }
+      // ---- the planogram editor's own full state (private: it carries sales figures) and its product pictures ----
+      if (M === 'GET' && path === '/editor'){ const v = await env.KV.get('ed'); return v ? new Response(v, {headers:{'content-type':'application/json; charset=utf-8', 'cache-control':'no-store', ...CORS}}) : json({error:'لا توجد نسخة محفوظة من المحرر بعد'}, 404); }
+      if (M === 'PUT' && path === '/editor'){
+        const t = await req.text(); if (t.length > 20000000) return json({error:'ملف المحرر أكبر من المسموح'}, 413);
+        const d = JSON.parse(t); if (!d || typeof d.fx !== 'object' || !d.zones) return json({error:'ملف محرر غير صالح'}, 400);
+        const at = +(await env.KV.get('ed:at')) || 0, base = +url.searchParams.get('base') || 0;
+        if (at && base && at > base) return json({error:'في نسخة أحدث محفوظة', code:'conflict', savedAt:at}, 409);
+        const last = +(await env.KV.get('ed:prevAt')) || 0;                       // an hourly safety copy
+        if (Date.now() - last > 3600e3){ const old = await env.KV.get('ed'); if (old){ await env.KV.put('ed:prev', old); await env.KV.put('ed:prevAt', String(Date.now())); } }
+        await env.KV.put('ed', t); await env.KV.put('ed:at', String(+d.savedAt || Date.now())); await log(env, me.u, 'حفظ من محرر المخطط'); return json({ok:true});
+      }
+      if (M === 'POST' && path === '/img'){
+        const buf = await req.arrayBuffer(); if (!buf.byteLength || buf.byteLength > 2000000) return json({error:'الصورة أكبر من 2 ميغا'}, 413);
+        const type = (req.headers.get('content-type') || 'image/webp').split(';')[0]; if (!/^image\/(png|jpeg|webp|gif)$/.test(type)) return json({error:'نوع الصورة غير مدعوم'}, 415);
+        const id = hex(await crypto.subtle.digest('SHA-256', buf)).slice(0, 32); await env.KV.put('img:' + id, buf, {metadata:{type}}); return json({ref:'/public/img/' + id});
       }
       if (M === 'POST' && path === '/pg/undo'){ const prev = await env.KV.get('pg:prev'); if (!prev) return json({error:'لا توجد نسخة سابقة'}, 404); const cur = await env.KV.get('pg'); await env.KV.put('pg', prev); if (cur) await env.KV.put('pg:prev', cur); await log(env, me.u, 'تراجع عن آخر حفظ للمخطط'); return json({ok:true}); }
       // ---- admin only ----
