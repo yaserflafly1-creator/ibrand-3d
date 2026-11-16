@@ -132,6 +132,9 @@ td,th{padding:6px 8px;border-bottom:1px solid var(--line);text-align:right}
           </div>
         </div>
         <div class="card"><h2>إضافة وحدة</h2><button class="btn ghost" id="fxAdd">وحدة جديدة في منتصف الرسم</button></div>
+        <div class="card"><h2>استيراد من محرر المخطط</h2>
+          <p class="note">نزّل من المحرر «نسخة احتياطية JSON» واختره هنا: يُحوَّل لمخطط الصيدلية (الأماكن، الأصناف، الأوجه، عرض كل صنف). ثم راجعه واضغط «حفظ المخطط».</p>
+          <input type="file" id="edFile" accept="application/json,.json"><p class="note" id="edState"></p></div>
         <div class="card"><h2>الحفظ</h2>
           <div class="row"><button class="btn" id="savePg">حفظ المخطط</button><button class="btn ghost" id="undoPg">تراجع عن آخر حفظ</button></div>
           <div class="row" style="margin-top:8px"><button class="btn bad" id="resetPg">الرجوع للمخطط الأصلي</button></div>
@@ -310,6 +313,24 @@ $('#undoPg').onclick = async () => { if (DEMO) return say('نسخة عرض: لا
 $('#resetPg').onclick = async () => { const b = $('#resetPg'); if (!b.dataset.sure){ b.dataset.sure = '1'; b.textContent = 'اضغط مرة ثانية للتأكيد'; setTimeout(() => { b.dataset.sure = ''; b.textContent = 'الرجوع للمخطط الأصلي'; }, 4000); return; }
   if (DEMO){ b.dataset.sure = ''; b.textContent = 'الرجوع للمخطط الأصلي'; return say('نسخة عرض'); }
   try { await call('/pg', {method:'DELETE'}); PG = await getJSON('../plan/pg.json'); pgDirty = false; mark(); select(null); fillShelfPicker(); say('رجعت للمخطط الأصلي'); } catch(e){ say(e.message, true); } b.dataset.sure = ''; b.textContent = 'الرجوع للمخطط الأصلي'; };
+
+// ---------- import from the planogram editor's backup ----------
+// Only where things stand, their order, facings and widths are taken: sales rates and piece counts never leave the file.
+$('#edFile').onchange = async e => { const file = e.target.files[0]; if (!file) return; const st = $('#edState'); st.textContent = 'جارٍ التحويل…';
+  try { const ED = JSON.parse(await file.text()); if (!ED || !ED.fx || !ED.room) throw new Error('هذا ليس ملف نسخة احتياطية من المحرر');
+    const map = await getJSON('../plan/pgmap.json'); if (!map) throw new Error('تعذّر تحميل جدول الأصناف');
+    const names = [], nidx = {}, nm = s => { if (!(s in nidx)){ nidx[s] = names.length; names.push(s); } return nidx[s]; }, used = new Set(); let tot = 0, hit = 0;
+    const f = Object.values(ED.fx).sort((a, b) => a.code < b.code ? -1 : 1).map(x => { const its = [];
+      (x.it || []).forEach(it => { tot++; const c = map.ids[String(it[1]).trim().slice(0, 48)]; if (!c) return; const b = String(it[2] || '').toLowerCase();
+        const pick = (c.find(q => !used.has(q[0]) && q[1] === b) || c.find(q => !used.has(q[0])) || [])[0]; if (!pick) return; used.add(pick); hit++;
+        const ca = map.cat[it[6]]; its.push([it[0], pick, Math.max(1, Math.round(+it[3] || 1)), ca ? nm(ca) : -1, Math.round((+it[7] || 0) * 10) / 10]); });
+      const dep = String(x.dept || '').split('+').map(s => s.trim()).map(s => map.dept[s]).find(Boolean) || map.zname[x.zone], kind = String(x.kind || ''), wall = x.pos === 'حائط' ? 1 : 0, m = /وجه (\w)/.exec(x.loc || '');
+      return {c:x.code, z:x.zone, b:!x.brand || x.brand === 'Mixed' ? '' : x.brand, l:dep ? nm(dep) : -1, w:wall, s:x.shelves || 5, k:kind.includes('هوك أعلى') ? 2 : kind.includes('هوك') ? 1 : 0,
+        r:(x.parts || []).map(q => [q.x, q.y, q.w, q.h].map(v => Math.round(v / 24 * 1000) / 1000)), f:wall ? 'W' : (x.face || (m ? m[1] : '')), it:its}; }).filter(x => x.r.length);
+    const zones = {}; Object.keys(ED.zones || {}).forEach(k => { if (ED.zones[k].color) zones[k] = ED.zones[k].color; });
+    PG = {v:2, W:Math.round(ED.room.w / 24 * 1000) / 1000, D:Math.round(ED.room.h / 24 * 1000) / 1000, names, zones, f};
+    SEL = null; select(null); fillShelfPicker(); dirtyPg(); st.textContent = 'تم: ' + f.length + ' وحدة، ' + hit + ' صنف من ' + tot + ' تعرّفت عليه. راجع ثم احفظ.';
+  } catch(err){ st.textContent = ''; say(err.message, true); } e.target.value = ''; };
 
 // ---------- shelves ----------
 function fillShelfPicker(){ const s = $('#shFx'), cur = s.value; s.textContent = ''; PG.f.slice().sort((a, b) => a.c < b.c ? -1 : 1).forEach(f => s.appendChild(el('option', {value:f.c, text:f.c + ' · ' + (f.b || 'مشترك') + ' · ' + (ZONES[f.z] || [''])[0]}))); if (cur) s.value = cur; }

@@ -9,7 +9,7 @@
   const PGD = window.__PG && window.__PG.f ? window.__PG : {W:44, D:46.1, names:[], f:[]};
   // one brand, one place: where the drawing gives a brand two units on the same line with other units between them,
   // the second moves up beside the first and the ones between shift along (nothing else changes place)
-  if (!PGD._joined){ PGD._joined = 1; const seen = {}, moved = [];
+  if (!PGD._joined){ PGD._joined = 1; const seen = {}, moved = [], own = new Map(); PGD.f.forEach(g => g.r.forEach(q => own.set(q, g)));
     PGD.f.forEach(fx => { if (!fx.b) return; const k = fx.z + '|' + fx.b, f0 = seen[k]; if (!f0){ seen[k] = fx; return; }
       for (const r1 of f0.r) for (const r2 of fx.r){
         const v = r1[3] > r1[2]; if (v !== (r2[3] > r2[2])) continue;
@@ -17,6 +17,7 @@
         const a = r1[al] < r2[al] ? r1 : r2, b = a === r1 ? r2 : r1, line = [];
         PGD.f.forEach(g => g.r.forEach(q => { if ((q[3] > q[2]) === v && Math.abs(q[fc] - a[fc]) < .05 && q[al] >= a[al] - .01 && q[al] <= b[al] + .01) line.push(q); }));
         line.sort((p, q) => p[al] - q[al]);
+        if (line.slice(1, -1).every(q => own.get(q).b === fx.b && own.get(q).z === fx.z)) continue;   // already one run of the brand
         if (line.length < 3 || line.some((q, i) => i && Math.abs(q[al] - (line[i-1][al] + line[i-1][ln])) > .05)) continue;
         const order = [a, b].concat(line.slice(1, -1)); let at = a[al]; order.forEach(q => { q[al] = at; at += q[ln]; }); moved.push(fx.c); return;
       } });
@@ -34,6 +35,7 @@
   // departments of the planogram (its letters), each with its colour
   const ZINFO = [{key:'z_makeup', L:'B', hex:'#e0447f', old:4}, {key:'z_derma', L:'CA', hex:'#9c27b0', old:4}, {key:'z_hair', L:'D', hex:'#3f51b5', old:4}, {key:'z_care', L:'E', hex:'#0097a7', old:3},
     {key:'z_dev', L:'F', hex:'#689f38', old:2}, {key:'z_vit', L:'G', hex:'#e0a11a', old:2}, {key:'z_kids', L:'H', hex:'#ef6c00', old:0}, {key:'z_rx', L:'IJ', hex:'#c62828', old:1}];
+  ZINFO.forEach(z => { const c = PGD.zones && PGD.zones[z.L[0]]; if (/^#[0-9a-f]{6}$/i.test(c || '')) z.hex = c; });   // the planogram editor's own department colours
   const SECZ = {baby:0, meds:1, vit:2, devices:2, pets:2, daily:3, other:3, skin:4, hair:4, makeup:4};
   const zoneProducts = [[], [], [], [], []];
   { // merchandising attributes per product: zone, category path, facings, display (stand / shared shelf), fixture (shelf / hook), unit (floor / wall)
@@ -84,25 +86,33 @@
   const normB = s => String(s || '').toLowerCase().replace(/[^a-z0-9\u0600-\u06ff]/g, '');
   function pgBays(fx, n, G, z, phase, lim){
     const shelves = shelvesOf(G), rows = shelves.map(() => []);
-    fx.it.forEach(i => { const p = pid.get(i[1]); if (p && i[0] >= 1 && !(fx._skip && fx._skip.has(p))) rows[Math.min(shelves.length, i[0]) - 1].push({p, fc:i[2], c:i[3]}); });
+    fx.it.forEach(i => { const p = pid.get(i[1]); if (p && i[0] >= 1 && !(fx._skip && fx._skip.has(p))) rows[Math.min(shelves.length, i[0]) - 1].push({p, fc:i[2], c:i[3], sw:i[4] > 0 ? i[4] / Math.max(1, i[2]) / 100 : 0}); });
     const own = rows.flat();
     const run = (cap, ks, fin) => {
       const bays = []; for (let b = 0; b < n; b++) bays.push({items:[], hdr:null, kind:fx.k || 0, cats:{}});
       let carry = []; const tk = new Set(), fb = fx.b ? normB(fx.b) : '';
       for (let k = 0; k < shelves.length; k++){
         const sh = shelves[k], list = carry.concat(rows[k]); carry = [];
-        let x = .015, full = false;
-        const put = (o, first) => { const [w, h, d] = szOf(o.p)(o.p, sh.maxH, ks); let bi = Math.floor(x / BW);
+        let x = list.length && list[0].sw ? 0 : .015, full = false;
+        // a product the planogram gives a width to takes exactly that much of the shelf (so a shelf holds what the planogram
+        // says it holds); its pack is drawn as large as fits inside that slot
+        const slot = o => { const b = szOf(o.p)(o.p, sh.maxH, 1), k = Math.max(.3, Math.min(1.5, (o.sw - .004) / b[0], sh.maxH / b[1])); let bi = Math.floor((x + 1e-6) / BW);
+          if (x + o.sw > (bi + 1)*BW + .003){ bi++; x = bi*BW; }
+          if (bi >= n || x + o.sw > n*BW + .003) return false;
+          bays[bi].items.push({p:o.p, x:x - bi*BW + o.sw/2, s:k0, y:sh.y, w:b[0]*k, h:b[1]*k, d:b[2]*Math.min(1, k), yaw:(Math.random()-.5)*.05, back:Math.random()*.006, first:o._first});
+          if (o.c >= 0) bays[bi].cats[o.c] = (bays[bi].cats[o.c] || 0) + o.sw; x += o.sw; return true; };
+        const k0 = k;
+        const put = (o, first) => { if (o.sw){ o._first = first; return slot(o); } const [w, h, d] = szOf(o.p)(o.p, sh.maxH, ks); let bi = Math.floor(x / BW);
           if (x + w > (bi + 1)*BW - .01){ bi++; x = bi*BW + .015; }
           if (bi >= n || x + w > n*BW - .01) return false;
           const b = bays[bi]; b.items.push({p:o.p, x:x - bi*BW + w/2, s:k, y:sh.y, w, h, d, yaw:(Math.random()-.5)*.07, back:Math.random() < .14 ? .015 + Math.random()*.03 : Math.random()*.006, first});
           if (o.c >= 0) b.cats[o.c] = (b.cats[o.c] || 0) + w;
           x += w + .004 + Math.random()*.004; return true; };
         for (let i = 0; i < list.length; i++){
-          const o = list[i], w0 = szOf(o.p)(o.p, sh.maxH, ks)[0], f = Math.min(cap, Math.max(o.fc || 1, w0 < .075 ? 2 : 1));
+          const o = list[i], w0 = szOf(o.p)(o.p, sh.maxH, ks)[0], f = o.sw ? (o.fc || 1) : Math.min(cap, Math.max(o.fc || 1, w0 < .075 ? 2 : 1));
           let placed = 0; for (let j = 0; j < f; j++){ if (!put(o, j === 0)){ full = true; break; } placed++; }
           if (full){ carry = list.slice(placed ? i + 1 : i); break; }
-          x += .009 + Math.random()*.008;
+          if (!o.sw) x += .009 + Math.random()*.008;
         }
         if (full) continue;
         // room to spare: products of the department the planogram does not list (each once), then more of this shelf
@@ -122,7 +132,7 @@
           if (more){ const p = next(); if (p){ o = {p, c:-1}; extra = true; } else more = false; }
           if (!o){ if (rep.length) o = rep[j++ % rep.length]; else break; }
           if (!put(o, extra)){ if (extra || ++miss > 3) break; continue; }   // too wide for what is left: try the next few before giving the shelf up
-          if (extra) tk.add(o.p); x += .009 + Math.random()*.008;
+          if (extra) tk.add(o.p); if (!o.sw) x += .009 + Math.random()*.008;
         }
       }
       return {bays, dropped:carry.length, tk, carry};

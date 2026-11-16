@@ -1086,12 +1086,12 @@ function build(renderer){
     });
   }
   REDRAW.push(() => nameMeshes.forEach(dropNames));
-  // neighbouring tags on one shelf never overlap: a tag is as wide as the room its product has (7–11 cm)
+  // neighbouring tags on one shelf never overlap: a tag is as wide as the room its product has (down to 3.6 cm on a shelf of very small packs, 11 cm at most)
   function tagW(bay, it){
     if (!bay._tg){ bay._tg = new Map(); const rows = {};
       bay.items.forEach(i => { if (i.first !== false) (rows[i.y] || (rows[i.y] = [])).push(i); });
       Object.values(rows).forEach(r => { r.sort((a, b) => a.x - b.x);
-        r.forEach((i, k) => { const g = Math.min(k ? i.x - r[k-1].x : 9, k < r.length - 1 ? r[k+1].x - i.x : 9); bay._tg.set(i, Math.max(.07, Math.min(.11, g - .004))); }); }); }
+        r.forEach((i, k) => { const g = Math.min(k ? i.x - r[k-1].x : 9, k < r.length - 1 ? r[k+1].x - i.x : 9); bay._tg.set(i, Math.max(.036, Math.min(.11, g - .004))); }); }); }
     return bay._tg.get(it) || .11;
   }
   const PLUSB = Bucket(true); let plusMesh = null;      // the "+" under every price tag: one tap puts the product in the cart
