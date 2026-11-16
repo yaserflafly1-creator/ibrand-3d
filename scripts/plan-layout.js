@@ -301,6 +301,51 @@
   });
   SEC.z_rx.focus = {pos:new THREE.Vector3(0, EYE, zC + 3.2), target:new THREE.Vector3(0, 1.5, zB)};
 
+  // ---------- the lost treasure: one chest a day, hidden at the far end of an aisle; finding it shows the prize ----------
+  // The prize code is the store's own coupon (made in the store's dashboard); with no code set, the find is only congratulated.
+  const TREASURE = {code:'', note:'استخدم الكود عند إتمام الطلب.'};
+  if (SEG.length){
+    const day = new Date(Date.now() + 3*3600e3).toISOString().slice(0, 10); let hsh = 7; for (const ch of day) hsh = (hsh*31 + ch.charCodeAt(0)) >>> 0;
+    const spots = SEG.map(sg => ({zid:sg.zid, x:sg.x0 + .25, z:sg.zb - .6})).filter(s => !blockedGround(s.x, s.z) && s.z > zC + 2);
+    const spot = spots[hsh % Math.max(1, spots.length)];
+    if (spot){
+      const g = new THREE.Group(), wood = std('#6b3f17', {roughness:.7}), gold = std('#e0a400', {roughness:.35, metalness:.3});
+      const body = new THREE.Mesh(new THREE.BoxGeometry(.44, .24, .3), wood); body.position.y = .12; g.add(body);
+      const lid = new THREE.Group(), lidM = new THREE.Mesh(new THREE.BoxGeometry(.46, .1, .32), wood); lidM.position.set(0, .05, .16); lid.add(lidM); lid.position.set(0, .24, -.16); g.add(lid);
+      [-.15, .15].forEach(x => { const b = new THREE.Mesh(new THREE.BoxGeometry(.04, .25, .31), gold); b.position.set(x, .12, 0); g.add(b); const t = new THREE.Mesh(new THREE.BoxGeometry(.04, .11, .33), gold); t.position.set(x, .05, .16); lid.add(t); });
+      const lock = new THREE.Mesh(new THREE.BoxGeometry(.07, .08, .02), gold); lock.position.set(0, .2, .16); g.add(lock);
+      const ring = new THREE.Mesh(new THREE.RingGeometry(.34, .46, 40), new THREE.MeshBasicMaterial({color:0xf2c14e, transparent:true, opacity:.55, depthWrite:false, toneMapped:false, side:THREE.DoubleSide})); ring.rotation.x = -Math.PI/2; ring.position.y = .012; g.add(ring);
+      g.position.set(spot.x, 0, spot.z); g.rotation.y = Math.PI; scene.add(g);
+      const css = document.createElement('style'); css.textContent = '.trBtn{position:fixed;z-index:5;right:max(18px, env(safe-area-inset-right,0px));bottom:calc(env(safe-area-inset-bottom,0px) + 136px);width:46px;height:46px;border-radius:50%;border:1px solid var(--line);background:rgba(255,255,255,.92);color:#b8860b;display:flex;align-items:center;justify-content:center;cursor:pointer;box-shadow:0 6px 16px rgba(59,29,54,.14)}.trBtn.done{color:#1f9a55}body.sheet .trBtn{display:none}'
+        + '.trBox{position:fixed;z-index:40;left:50%;top:50%;transform:translate(-50%,-50%);width:min(380px,calc(100vw - 32px));background:#fff;border:1px solid var(--line);border-radius:20px;padding:22px 20px 18px;box-shadow:0 24px 60px rgba(60,20,50,.35);direction:rtl;font-family:var(--font);text-align:center}.trBox b{display:block;font-size:21px;font-weight:800;color:var(--plum);margin-bottom:6px}.trBox p{margin:0 0 12px;font-size:15px;line-height:1.8;color:var(--muted)}'
+        + '.trCode{font:800 24px Arial,sans-serif;letter-spacing:2px;direction:ltr;border:2px dashed #f2c14e;border-radius:12px;padding:10px;margin:0 0 12px;color:var(--plum);user-select:all}.trRow{display:flex;gap:10px;justify-content:center}.trRow button{border:0;border-radius:12px;padding:10px 18px;font:800 15px var(--font);cursor:pointer}.trCopy{background:var(--pink);color:#fff}.trClose{background:#f3eef2;color:var(--plum)}';
+      document.head.appendChild(css);
+      const btn = document.createElement('button'); btn.type = 'button'; btn.className = 'trBtn'; btn.setAttribute('aria-label', 'الكنز المفقود');
+      btn.innerHTML = '<svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"><path d="M3 11V8a4 4 0 0 1 4-4h10a4 4 0 0 1 4 4v3"/><rect x="3" y="11" width="18" height="9" rx="1.5"/><path d="M12 11v4M10.5 15h3"/></svg>';
+      document.body.appendChild(btn);
+      let found = store.get('ib3d-treasure', '') === day, box = null;
+      const open = () => { lid.rotation.x = -1.15; ring.visible = false; btn.classList.add('done'); };
+      const show = () => { if (box) box.remove(); box = document.createElement('div'); box.className = 'trBox'; box.setAttribute('role', 'dialog');
+        const t = document.createElement('b'); t.textContent = 'مبروك! لقيت كنز اليوم'; box.appendChild(t);
+        const p = document.createElement('p'); p.textContent = TREASURE.code ? 'هذا كود جائزتك:' : 'وصلت للكنز المخفي في الصيدلية.'; box.appendChild(p);
+        const row = document.createElement('div'); row.className = 'trRow';
+        if (TREASURE.code){ const c = document.createElement('div'); c.className = 'trCode'; c.textContent = TREASURE.code; box.appendChild(c);
+          if (TREASURE.note){ const n = document.createElement('p'); n.textContent = TREASURE.note; box.appendChild(n); }
+          const cp = document.createElement('button'); cp.type = 'button'; cp.className = 'trCopy'; cp.textContent = 'انسخ الكود';
+          cp.onclick = () => { const done = () => { cp.textContent = 'تم النسخ'; }; try { navigator.clipboard.writeText(TREASURE.code).then(done, () => { const r = document.createRange(); r.selectNodeContents(c); const s = getSelection(); s.removeAllRanges(); s.addRange(r); }); } catch(e){} }; row.appendChild(cp); }
+        const cl = document.createElement('button'); cl.type = 'button'; cl.className = 'trClose'; cl.textContent = 'إغلاق'; cl.onclick = () => { box.remove(); box = null; }; row.appendChild(cl);
+        box.appendChild(row); document.body.appendChild(box); };
+      if (found) open();
+      btn.addEventListener('click', () => { btn.blur(); if (found) show(); else toast('كنز اليوم مخفي في قسم «' + SEC[Z[spot.zid].key].name + '»… دوّر عند نهاية الممرات'); });
+      let ph = 0;
+      setInterval(() => { if (document.hidden) return;
+        if (!found){ ph += .35; const s = 1 + Math.sin(ph)*.12; ring.scale.set(s, s, 1); ring.material.opacity = .4 + Math.sin(ph)*.18;
+          if (Math.hypot(camera.position.x - spot.x, camera.position.z - spot.z) < 1.5 && camera.position.y < 2.4){ found = true; store.set('ib3d-treasure', day); open(); try { sfx.add(); } catch(e){} show(); } }
+      }, 120);
+      window.__treasure = {x:spot.x, z:spot.z, zone:Z[spot.zid].key, spots:spots.length};
+    }
+  }
+
   // ---------- soft shading on the floor, worked out from where the shelving really stands ----------
   // (the look of the Blender render: every unit sits in a soft pool of shade, the open floor stays bright; one small texture, no per-frame cost)
   {
