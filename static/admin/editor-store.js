@@ -33,8 +33,8 @@
   // Every product the store sells gets its store picture in the editor's photo view, unless the team gave it one of
   // their own. These automatic pictures are not saved with the editor's state: they are looked up again on each load.
   var getMap = function(){ if (!mapP) mapP = fetch('../plan/pgmap.json').then(function(x){ return x.json(); }); return mapP; };
-  var prodP = null, getProducts = function(){ if (!prodP) prodP = fetch('../data/products.json', {cache:'no-cache'}).then(function(r){ return r.json(); }).then(function(pr){ var by = {};
-    Object.keys(pr.sections || {}).forEach(function(k){ (pr.sections[k].products || []).forEach(function(q){ if (q.img && !by[q.id]) by[String(q.id)] = q; }); }); return by; }); return prodP; };
+  var prodP = null, getProducts = function(){ if (!prodP) prodP = fetch('../data/products.json', {cache:'no-cache'}).then(function(r){ return r.json(); }).then(function(pr){ var by = {}, base = pr.imgBase || '';   // the daily build writes picture addresses without their common start
+    Object.keys(pr.sections || {}).forEach(function(k){ (pr.sections[k].products || []).forEach(function(q){ if (q.img && !by[q.id]){ if (!/^https?:/.test(q.img)) q.img = base + q.img; by[String(q.id)] = q; } }); }); return by; }); return prodP; };
   // which Salla product an editor item is: its own product number if it has one, else by its name (and brand when several share the name)
   async function productOf(it){ var map = await getMap(), by = await getProducts();
     if (it[8]) return by[String(it[8])] || {id:String(it[8]), name:''};
