@@ -622,7 +622,6 @@ function build(renderer){
   const pageMeshes = [];      // {key, pg, mesh, loaded, loading, tex}
   const sideBuckets = {};     // key → bucket of box sides
   const frontBuckets = {};    // key:pg → bucket
-  const FACES = new Map();    // product id → the four corners of every one of its packs' fronts (to veil it when its branch has none)
   const PLACE = new Map();    // product id → world position + normal (first placement, main shelves preferred)
   const placeholderMat = new THREE.MeshStandardMaterial({vertexColors:true, roughness:.5, envMapIntensity:.5, side:THREE.DoubleSide});
   const sideMat = new THREE.MeshStandardMaterial({vertexColors:true, roughness:.45, envMapIntensity:.6});
@@ -704,7 +703,6 @@ function build(renderer){
     // discount sticker on the front of packs that are on sale
     if (p.onSale && p.regular > p.price && h > .07){ const a2 = F.at, sz = Math.min(.05, w*.5), sx = cx + w/2 - sz*.6, sy = y + h - sz*.6, sz2 = cz + .004;
       quad(STICK, [a2(sx-sz/2,sy-sz/2,sz2), a2(sx+sz/2,sy-sz/2,sz2), a2(sx+sz/2,sy+sz/2,sz2), a2(sx-sz/2,sy+sz/2,sz2)], F.n(0,0,1), C_WHITE, null, [0,0, 1,0, 1,1, 0,1]); }
-    { const fk = String(p.id), zf = cz + .008; let fa = FACES.get(fk); if (!fa) FACES.set(fk, fa = []); fa.push(...F.at(cx - w/2, y, zf), ...F.at(cx + w/2, y, zf), ...F.at(cx + w/2, y + h, zf), ...F.at(cx - w/2, y + h, zf)); }
     if (!PLACE.has(p.id) || (SEC[key].main && !SEC[PLACE.get(p.id).key].main)){
       PLACE.set(p.id, {key, p, pos:new THREE.Vector3(...a(cx, y + h/2, cz)), normal:new THREE.Vector3(...n(0,0,1))});
     }
@@ -2043,7 +2041,7 @@ function build(renderer){
   function setAlloc(a){
     ALLOC = a; try { a ? sessionStorage.setItem('ib3d-alloc', JSON.stringify(a)) : sessionStorage.removeItem('ib3d-alloc'); } catch(e){}
     availMemo.clear(); cartOut = new Set(); branchName = '';
-    nameMeshes.forEach(nm => { if (nm.out){ nm.out = null; dropNames(nm); } nm.chk = 0; }); try { drawVeil(); } catch(e){}
+    nameMeshes.forEach(nm => { if (nm.out){ nm.out = null; dropNames(nm); } nm.chk = 0; });
     saveCart(); if (a){ announceAlloc(); checkCart(); } else toast('تعرض الآن كل المنتجات دون تحديد فرع');
     if (current && !panel.hidden) showProduct(current, curKey);
   }
@@ -2059,15 +2057,7 @@ function build(renderer){
     q.oninput = draw; draw();
   }
   // on the shelf the shopper stands at, tags of products their branch does not have turn into a red "not in your branch" label
-  let stillAt = null, stillT = 0, veil = null;
-  // …and the packs themselves go pale: a white veil over every pack of a product the branch does not have
-  function drawVeil(){
-    const P = []; if (ALLOC) nameMeshes.forEach(nm => { if (nm.out) nm.out.forEach(i => { const f = FACES.get(String(nm.ids[i])); if (f) for (let k = 0; k < f.length; k++) P.push(f[k]); }); });
-    if (veil){ scene.remove(veil); veil.geometry.dispose(); veil = null; }
-    if (!P.length) return;
-    const g = new THREE.BufferGeometry(), I = []; g.setAttribute('position', new THREE.Float32BufferAttribute(P, 3)); for (let k = 0; k < P.length / 12; k++){ const n = k*4; I.push(n, n+1, n+2, n, n+2, n+3); } g.setIndex(I);
-    veil = new THREE.Mesh(g, new THREE.MeshBasicMaterial({color:0xffffff, transparent:true, opacity:.7, depthWrite:false, toneMapped:false, side:THREE.DoubleSide})); veil.frustumCulled = false; veil.renderOrder = 3; scene.add(veil);
-  }
+  let stillAt = null, stillT = 0;
   setInterval(() => {
     if (!ALLOC || !nameMeshes.length) return;
     const cp = camera.position, now = Date.now();
@@ -2077,7 +2067,7 @@ function build(renderer){
     if (!best) return; best.chk = now; const a0 = ALLOC;
     availability(best.ids).then(m => { if (!m || ALLOC !== a0) return; const out = new Set(); best.ids.forEach((id, i) => { if (m.get(id) === false) out.add(i); });
       const same = (best.out ? best.out.size : 0) === out.size && [...out].every(i => best.out && best.out.has(i));
-      if (!same){ best.out = out.size ? out : null; dropNames(best); drawVeil(); } });
+      if (!same){ best.out = out.size ? out : null; dropNames(best); } });   // the pack itself stays as it is: only its tag says it is not in the branch
   }, 500);
   const inCart = it => !cartOut.has(String(it.id));
   const cartCount = () => Object.values(cart).reduce((a, it) => a + it.qty, 0);
