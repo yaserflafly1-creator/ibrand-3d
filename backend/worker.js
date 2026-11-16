@@ -6,6 +6,11 @@
 //   KV              KV namespace
 //   ADMIN_PASSWORD  secret: password of the built-in user "admin"
 //   TOKEN_SECRET    secret: any long random text (signs the sign-in tokens)
+// Optional, for "publish this picture to Salla" in the editor. This Worker never keeps or renews Salla tokens:
+// it asks the token vault for the current one each time.
+//   VAULT_URL       the vault's token address
+//   VAULT_KEY       secret: the key the vault asks for
+//   VAULT           service binding to the vault Worker (needed when both Workers are on the same account)
 const CORS = {'access-control-allow-origin':'*', 'access-control-allow-headers':'authorization,content-type', 'access-control-allow-methods':'GET,PUT,POST,DELETE,OPTIONS', 'access-control-max-age':'86400'};
 const json = (d, status = 200, h = {}) => new Response(JSON.stringify(d), {status, headers:{'content-type':'application/json; charset=utf-8', ...CORS, ...h}});
 const enc = new TextEncoder();
@@ -24,6 +29,17 @@ async function readToken(env, req){
 const getJ = async (env, key, dflt) => { const v = await env.KV.get(key); if (!v) return dflt; try { return JSON.parse(v); } catch(e){ return dflt; } };
 // (the same person repeating the same thing within ten minutes — the editor's auto-save — is logged once)
 async function log(env, who, what){ const l = await getJ(env, 'log', []); if (l[0] && l[0].who === who && l[0].what === what && Date.now() - Date.parse(l[0].t) < 600000) return; l.unshift({t:new Date().toISOString(), who, what}); await env.KV.put('log', JSON.stringify(l.slice(0, 200))); }
+
+const SALLA = env => String(env.SALLA_API || 'https://api.salla.dev/admin/v2').replace(/\/+$/, '');
+async function sallaToken(env){
+  if (!env.VAULT_URL || !env.VAULT_KEY) return {error:'الربط مع سلة غير مهيأ في الخادم بعد', status:503};
+  const q = new Request(env.VAULT_URL, {headers:{authorization:'Bearer ' + env.VAULT_KEY, 'x-ops-key':env.VAULT_KEY, accept:'application/json'}});
+  let r; try { r = await (env.VAULT ? env.VAULT.fetch(q) : fetch(q)); } catch(e){ return {error:'تعذّر الوصول لخزنة المفاتيح', status:502}; }
+  if (r.status === 409) return {error:'ربط سلة يحتاج إعادة تثبيت التطبيق في المتجر', status:409};
+  if (!r.ok) return {error:'خزنة المفاتيح رفضت الطلب (' + r.status + ')', status:502};
+  const t = (await r.text()).trim(); let tok = t; try { const j = JSON.parse(t); tok = j.access_token || j.token || (j.data && (j.data.access_token || j.data.token)) || ''; } catch(e){}
+  return /^[\w.\-~+\/=]{20,4000}$/.test(tok) ? {token:tok} : {error:'خزنة المفاتيح لم ترجع مفتاحاً صالحاً', status:502};
+}
 
 export default {
   async fetch(req, env){
@@ -80,6 +96,20 @@ export default {
         const buf = await req.arrayBuffer(); if (!buf.byteLength || buf.byteLength > 2000000) return json({error:'الصورة أكبر من 2 ميغا'}, 413);
         const type = (req.headers.get('content-type') || 'image/webp').split(';')[0]; if (!/^image\/(png|jpeg|webp|gif)$/.test(type)) return json({error:'نوع الصورة غير مدعوم'}, 415);
         const id = hex(await crypto.subtle.digest('SHA-256', buf)).slice(0, 32); await env.KV.put('img:' + id, buf, {metadata:{type}}); return json({ref:'/public/img/' + id});
+      }
+      // ---- Salla: put a picture on a product as its main picture (the product's other pictures stay) ----
+      if (M === 'GET' && path === '/salla/status'){ const t = await sallaToken(env); return json(t.token ? {linked:true} : {linked:false, why:t.error}); }
+      if (M === 'POST' && path.startsWith('/salla/image/')){
+        const id = path.slice(13); if (!/^\d{3,15}$/.test(id)) return json({error:'رقم منتج غير صحيح'}, 400);
+        const buf = await req.arrayBuffer(); if (!buf.byteLength || buf.byteLength > 5000000) return json({error:'الصورة أكبر من 5 ميغا'}, 413);
+        const type = (req.headers.get('content-type') || '').split(';')[0]; if (!/^image\/(png|jpeg)$/.test(type)) return json({error:'الصورة لازم تكون JPG أو PNG'}, 415);
+        const t = await sallaToken(env); if (!t.token) return json({error:t.error}, t.status);
+        const fd = new FormData(); fd.append('photo', new Blob([buf], {type}), 'product.' + (type === 'image/png' ? 'png' : 'jpg')); fd.append('default', '1');
+        const r = await fetch(SALLA(env) + '/products/' + id + '/images', {method:'POST', headers:{authorization:'Bearer ' + t.token, accept:'application/json'}, body:fd});
+        const d = await r.json().catch(() => null);
+        if (!r.ok || !d || d.success === false){ const m = d && d.error && (d.error.message || (d.error.fields && JSON.stringify(d.error.fields))) || ''; return json({error:'سلة رفضت الصورة (' + r.status + ')' + (m ? ': ' + m : '')}, 502); }
+        await log(env, me.u, 'نشر صورة في سلة للمنتج ' + id);
+        const im = d.data && d.data.image || {}; return json({ok:true, url:(im.original && im.original.url) || (d.data && d.data.url) || ''});
       }
       if (M === 'POST' && path === '/pg/undo'){ const prev = await env.KV.get('pg:prev'); if (!prev) return json({error:'لا توجد نسخة سابقة'}, 404); const cur = await env.KV.get('pg'); await env.KV.put('pg', prev); if (cur) await env.KV.put('pg:prev', cur); await log(env, me.u, 'تراجع عن آخر حفظ للمخطط'); return json({ok:true}); }
       // ---- admin only ----

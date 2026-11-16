@@ -1160,6 +1160,7 @@ function imgDlg(fid,ix,preFile){
     <input type="file" id="ipfile" accept="image/*" hidden>`,
     btns:[['حفظ','pri',()=>{if(!t){if(had)return;toast('اختار صورة الأول');return false}commit('صورة '+name.slice(0,30),['__img'],()=>{S.img[name]=t});toast('اتحفظت الصورة')}],
       ...(had?[['حذف الصورة','dng',()=>commit('حذف صورة',['__img'],()=>{delete S.img[name]})]]:[]),
+      ...(STORE().publishToSalla?[['🛒 نشر في سلة','',()=>{STORE().publishToSalla(it,name,t,toast);return false}]]:[]),
       ['بيانات الصنف','',()=>{setTimeout(()=>itemDlg(fid,ix,null))}],['إلغاء']]});
   const pv=$('#ipv');
   const draw=()=>{const on=!!t;$('#ipc').style.opacity=on?1:.4;$('#ipa').style.opacity=on?1:.4;$$('#ipc input,#ipc select,#ipa button').forEach(e=>e.disabled=!on);
@@ -1167,7 +1168,7 @@ function imgDlg(fid,ix,preFile){
     pv.innerHTML=Array.from({length:n},()=>`<div class="fc" style="width:${bw}px;height:${t?bh:bw*1.5}px">${t?`<img src="${esc(imgSrc(t))}" style="${imgCss(t)}">`:`<div class="ph" style="background-color:${itemCol(it,f)}"><span>${esc(it[2])}</span></div>`}</div>`).join('');
     if(t){$('#ipz').value=t.z;$('#iph').value=t.hs;$('#ipf').value=t.fit;$('#ipw').checked=!!t.wb}};
   const busy=m=>{$('#ipm').textContent=m||''};
-  const load=async(file,op)=>{try{busy('⏳ جاري تجهيز الصورة…');const r=await processImage(file,op,name);t={...D,...(t&&op?t:{}),...r};if(op){t.x=t.x||0;t.y=t.y||0}busy('');draw()}catch(e){busy('');toast('تعذّر فتح الصورة')}};
+  const load=async(file,op)=>{try{busy('⏳ جاري تجهيز الصورة…');const r=await processImage(file,op,name);STORE().hiRes&&STORE().hiRes(name,file,op,r.ref);t={...D,...(t&&op?t:{}),...r};if(op){t.x=t.x||0;t.y=t.y||0}busy('');draw()}catch(e){busy('');toast('تعذّر فتح الصورة')}};
   imgEdit={load};
   $('#ipd').onclick=()=>$('#ipfile').click();
   $('#ipfile').onchange=e=>{const fl=e.target.files[0];fl&&load(fl)};
