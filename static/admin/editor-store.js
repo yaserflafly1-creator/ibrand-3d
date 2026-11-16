@@ -56,6 +56,23 @@
     if (x2 <= x1 || y2 <= y1){ x1 = 0; y1 = 0; x2 = W - 1; y2 = H - 1; }
     var w = x2 - x1 + 1, h = y2 - y1 + 1, side = Math.round(Math.max(w, h) * 1.1), o = document.createElement('canvas'); o.width = o.height = side; var g = o.getContext('2d');
     g.fillStyle = '#fff'; g.fillRect(0, 0, side, side); g.drawImage(c, x1, y1, w, h, Math.round((side - w) / 2), Math.round((side - h) / 2), w, h); return o; }
+  // The editor shows only what the store sells right now. Items whose product is not on sale (hidden, out of stock,
+  // not in the store at all) are set aside on load and put back untouched on every save, so nothing is lost and an
+  // item returns by itself the day its product is back on sale.
+  var HID = {};
+  async function onlyOnSale(d){
+    var map, by; try { map = await getMap(); by = await getProducts(); if (Object.keys(by).length < 500) return d; } catch(e){ console.warn('store products not loaded: showing every item', e); return d; }
+    HID = {};
+    Object.keys(d.fx || {}).forEach(function(k){ var f = d.fx[k], keep = [], hid = [];
+      (f.it || []).forEach(function(it){ var on = it[8] ? !!by[String(it[8])] : (map.ids[String(it[1]).trim().slice(0, 48)] || []).some(function(q){ return by[q[0]]; }); (on ? keep : hid).push(it); });
+      if (hid.length){ HID[k] = hid; f.it = keep; } });
+    return d;
+  }
+  var withHidden = function(data){ var out = Object.assign({}, data, {fx:{}});
+    Object.keys(data.fx || {}).forEach(function(k){ var f = data.fx[k], h = HID[k]; if (!h){ out.fx[k] = f; return; }
+      var have = new Set((f.it || []).map(function(it){ return it[1]; })), extra = h.filter(function(it){ return !have.has(it[1]); });
+      out.fx[k] = extra.length ? Object.assign({}, f, {it:(f.it || []).concat(extra)}) : f; });
+    return out; };
   async function storePictures(d){
     try { var map = await getMap(), by = await getProducts();
       d.img = d.img || {}; AUTO = {};
@@ -75,11 +92,11 @@
       if (r.status === 401){ toLogin(); throw new Error('انتهت الجلسة'); }
       if (r.status === 404){ BASE = 0; var e = await fetch('empty-state.json', {cache:'no-cache'}); return e.json(); }   // nothing saved yet: the empty room; import the backup from the "ملف" menu
       if (!r.ok) throw fail(r, await r.json().catch(function(){ return null; }));
-      var d = await r.json(); BASE = +d.savedAt || 0; return storePictures(d);
+      var d = await r.json(); BASE = +d.savedAt || 0; return storePictures(await onlyOnSale(d));
     },
     save:async function(data){
       await ready;
-      var r = await call('/editor?base=' + BASE, {method:'PUT', headers:{'content-type':'application/json'}, body:JSON.stringify(withoutAuto(data))});
+      var r = await call('/editor?base=' + BASE, {method:'PUT', headers:{'content-type':'application/json'}, body:JSON.stringify(withoutAuto(withHidden(data)))});
       if (!r.ok) throw fail(r, await r.json().catch(function(){ return null; }));
       BASE = +data.savedAt || Date.now();
       // publish to the store
