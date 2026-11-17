@@ -117,6 +117,32 @@
       await ready; var r = await call('/img', {method:'POST', headers:{'content-type':blob.type || 'image/webp'}, body:blob});
       var d = await r.json().catch(function(){ return null; }); if (!r.ok || !d || !d.ref) throw fail(r, d); return d.ref;
     },
+    // The picture dialog asks: how good is this picture for the store and the 3D pharmacy, and what will be sent?
+    check:async function(name, t, el){ if (!el) return; var my = el._n = (el._n || 0) + 1;
+      if (!t || !t.ref){ el.innerHTML = ''; return; }
+      el.innerHTML = '<div style="font-size:12px;color:#78909c;padding:6px 0">⏳ جاري فحص الصورة…</div>';
+      try {
+        var c = HIREF[name] === t.ref ? await HI[name] : null, own = !!c; if (!c) c = await bigCanvas(this.imageUrl(t.ref));
+        var W = c.width, H = c.height, d = c.getContext('2d').getImageData(0, 0, W, H).data, x1 = W, y1 = H, x2 = -1, y2 = -1, ring = Math.max(2, Math.round(Math.min(W, H) * .02)), rb = 0, rn = 0;
+        for (var y = 0; y < H; y++) for (var x = 0; x < W; x++){ var q = (y * W + x) * 4, white = d[q + 3] <= 20 || (d[q] >= 238 && d[q + 1] >= 238 && d[q + 2] >= 238);
+          if (!white){ if (x < x1) x1 = x; if (x > x2) x2 = x; if (y < y1) y1 = y; if (y > y2) y2 = y; }
+          if (x < ring || y < ring || x >= W - ring || y >= H - ring){ rn++; if (white) rb++; } }
+        if (my !== el._n) return;
+        var bw = Math.max(1, x2 - x1 + 1), bh = Math.max(1, y2 - y1 + 1), big = Math.max(bw, bh), bg = rb / rn, fill = Math.max(bw / W, bh / H), edge = bg > .9 && (x1 <= 1 || y1 <= 1 || x2 >= W - 2 || y2 >= H - 2);
+        var bad = [], warn = [], ok = [];
+        if (bg < .75) bad.push('الخلفية مش بيضاء: اختار صورة بخلفية بيضاء صافية'); else if (bg < .95) warn.push('الخلفية مش بيضاء بالكامل (ظل أو إطار على الأطراف)'); else ok.push('خلفية بيضاء');
+        if (big < 400) bad.push('المنتج صغير جداً (' + big + ' بكسل): هيبان مغبّش، دوّر على صورة أكبر'); else if (big < 800) warn.push('المنتج متوسط الوضوح (' + big + ' بكسل)، الأفضل 1000 وأكتر'); else ok.push('وضوح عالي (' + big + ' بكسل)');
+        if (edge) warn.push('المنتج لازق في حافة الصورة: اتأكد إنه مش مقصوص');
+        if (bg >= .75 && fill < .45) ok.push('فراغ كبير حوالين المنتج: هيتقص تلقائي عند النشر');
+        if (!own) warn.push('دي صورة محفوظة بمقاس المحرر: ارفعها من جهازك عشان تتبعت لسلة بمقاسها الكامل');
+        var col = bad.length ? '#c62828' : warn.length ? '#ef6c00' : '#2e7d32', word = bad.length ? 'ضعيفة' : warn.length ? 'مقبولة' : 'ممتازة', sq = squared(c), pv = document.createElement('canvas'); pv.width = pv.height = 96;
+        var g = pv.getContext('2d'); g.fillStyle = '#fff'; g.fillRect(0, 0, 96, 96); g.drawImage(sq, 0, 0, 96, 96);
+        var li = function(a, m){ return a.map(function(x){ return '<div>' + m + ' ' + x + '</div>'; }).join(''); };
+        el.innerHTML = '<div style="display:flex;gap:10px;align-items:flex-start;margin-top:8px;padding:8px;border:1px solid ' + col + '55;border-radius:10px;background:' + col + '0d">' +
+          '<div style="flex:none;text-align:center"><img src="' + pv.toDataURL('image/jpeg', .85) + '" width="96" height="96" style="display:block;border:1px solid #cfd8dc;border-radius:6px;background:#fff"><div style="font-size:10px;color:#607d8b;margin-top:3px">كده هتتنشر</div></div>' +
+          '<div style="min-width:0;font-size:12px;line-height:1.7"><div style="font-weight:700;color:' + col + '">جودة الصورة للمتجر والصيدلية 3D: ' + word + '</div>' + li(bad, '✕') + li(warn, '⚠') + li(ok, '✓') + '</div></div>';
+      } catch(e){ if (my === el._n) el.innerHTML = '<div style="font-size:12px;color:#78909c;padding:6px 0">فحص الجودة متاح للصور اللي بترفعها من جهازك.</div>'; }
+    },
     // called by the picture dialog each time the picture changes (a new file, a turn, a flip)
     hiRes:function(name, src, op, ref){ var prev = HIREF[name] ? HI[name] : null, fresh = src instanceof Blob; HIREF[name] = ref || '';
       HI[name] = (fresh ? bigCanvas(src) : (prev || Promise.reject()).catch(function(){ return bigCanvas(src); }).then(function(c){ return turn(c, op); })).catch(function(){ return null; }); },

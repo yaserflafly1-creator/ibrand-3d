@@ -1157,6 +1157,7 @@ function imgDlg(fid,ix,preFile){
       </div>
       <div class="acts" id="ipa"><button type="button" id="ipr" title="تدوير 90°">⟳ تدوير</button><button type="button" id="ipl" title="قلب">⇋ قلب</button><button type="button" id="ipt" title="قص الحواف البيضا">✂ قص الحواف</button><button type="button" id="ip0" title="رجوع للوضع الافتراضي">↺</button></div>
       <div class="meta" id="ipm"></div></div></div>
+    <div id="ipq"></div>
     <input type="file" id="ipfile" accept="image/*" hidden>`,
     btns:[['حفظ','pri',()=>{if(!t){if(had)return;toast('اختار صورة الأول');return false}commit('صورة '+name.slice(0,30),['__img'],()=>{S.img[name]=t});toast('اتحفظت الصورة')}],
       ...(had?[['حذف الصورة','dng',()=>commit('حذف صورة',['__img'],()=>{delete S.img[name]})]]:[]),
@@ -1168,7 +1169,8 @@ function imgDlg(fid,ix,preFile){
     pv.innerHTML=Array.from({length:n},()=>`<div class="fc" style="width:${bw}px;height:${t?bh:bw*1.5}px">${t?`<img src="${esc(imgSrc(t))}" style="${imgCss(t)}">`:`<div class="ph" style="background-color:${itemCol(it,f)}"><span>${esc(it[2])}</span></div>`}</div>`).join('');
     if(t){$('#ipz').value=t.z;$('#iph').value=t.hs;$('#ipf').value=t.fit;$('#ipw').checked=!!t.wb}};
   const busy=m=>{$('#ipm').textContent=m||''};
-  const load=async(file,op)=>{try{busy('⏳ جاري تجهيز الصورة…');const r=await processImage(file,op,name);STORE().hiRes&&STORE().hiRes(name,file,op,r.ref);t={...D,...(t&&op?t:{}),...r};if(op){t.x=t.x||0;t.y=t.y||0}busy('');draw()}catch(e){busy('');toast('تعذّر فتح الصورة')}};
+  const load=async(file,op)=>{try{busy('⏳ جاري تجهيز الصورة…');const r=await processImage(file,op,name);STORE().hiRes&&STORE().hiRes(name,file,op,r.ref);t={...D,...(t&&op?t:{}),...r};if(op){t.x=t.x||0;t.y=t.y||0}busy('');draw();chk()}catch(e){busy('');toast('تعذّر فتح الصورة')}};
+  const chk=()=>{STORE().check&&STORE().check(name,t,$('#ipq'))};
   imgEdit={load};
   $('#ipd').onclick=()=>$('#ipfile').click();
   $('#ipfile').onchange=e=>{const fl=e.target.files[0];fl&&load(fl)};
@@ -1182,7 +1184,7 @@ function imgDlg(fid,ix,preFile){
   pv.onpointerdown=e=>{if(!t)return;pd={x:e.clientX,y:e.clientY,ox:t.x,oy:t.y,w:pv.firstElementChild.offsetWidth,h:pv.firstElementChild.offsetHeight};try{pv.setPointerCapture(e.pointerId)}catch(_){}};
   pv.onpointermove=e=>{if(!pd)return;t.x=Math.round((pd.ox+(e.clientX-pd.x)/pd.w*100/(t.z||1))*10)/10;t.y=Math.round((pd.oy+(e.clientY-pd.y)/pd.h*100/(t.z||1))*10)/10;draw()};
   pv.onpointerup=pv.onpointercancel=()=>{pd=null};
-  draw();
+  draw();chk();
   if(preFile)load(preFile);
 }
 document.addEventListener('paste',e=>{if(!imgEdit||!$('#dlg').open)return;const fl=[...(e.clipboardData?.files||[])].find(x=>x.type.startsWith('image/'));if(fl){e.preventDefault();imgEdit.load(fl)}});
