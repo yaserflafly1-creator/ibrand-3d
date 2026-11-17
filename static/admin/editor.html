@@ -1191,6 +1191,7 @@ function imgDlg(fid,ix,preFile){
   const had=!!S.img[name];
   let t=had?clone(S.img[name]):null;const D={z:1,x:0,y:0,fit:'contain',wb:false,hs:1};
   dialog({title:'📷 صورة الصنف',body:`<div class="meta" style="margin:-4px 0 10px"><b style="color:var(--fg)">${esc(name)}</b><br>${esc(it[2])} · ${it[3]} وجه · ${it[7]} سم · ${esc(f.code)} رف ${it[0]}</div>
+    <div id="ipi"></div>
     <div class="imged"><div><div class="ipv" id="ipv" title="اسحب الصورة لتحريكها جوه الإطار"></div><div class="meta" style="text-align:center;margin-top:4px">كده هتبان على الرف</div></div>
     <div><div class="ipdrop" id="ipd">📁 اختار صورة من جهازك<br>أو اسحبها هنا · أو الصقها <kbd>Ctrl+V</kbd></div>
       <div id="ipc" class="form" style="grid-template-columns:80px minmax(0,1fr)">
@@ -1228,7 +1229,7 @@ function imgDlg(fid,ix,preFile){
   pv.onpointerdown=e=>{if(!t)return;pd={x:e.clientX,y:e.clientY,ox:t.x,oy:t.y,w:pv.firstElementChild.offsetWidth,h:pv.firstElementChild.offsetHeight};try{pv.setPointerCapture(e.pointerId)}catch(_){}};
   pv.onpointermove=e=>{if(!pd)return;t.x=Math.round((pd.ox+(e.clientX-pd.x)/pd.w*100/(t.z||1))*10)/10;t.y=Math.round((pd.oy+(e.clientY-pd.y)/pd.h*100/(t.z||1))*10)/10;draw()};
   pv.onpointerup=pv.onpointercancel=()=>{pd=null};
-  draw();chk();
+  draw();chk();STORE().info&&STORE().info(it,$('#ipi'));
   if(preFile)load(preFile);
 }
 document.addEventListener('paste',e=>{if(!imgEdit||!$('#dlg').open)return;const fl=[...(e.clipboardData?.files||[])].find(x=>x.type.startsWith('image/'));if(fl){e.preventDefault();imgEdit.load(fl)}});

@@ -43,6 +43,7 @@
     return pick ? by[pick[0]] : (live.length > 1 ? {many:live.length} : null); }
   // a large copy of the picture being edited, kept only while the page is open: this is what goes to Salla
   var HI = {}, HIREF = {};
+  var skuP = null;
   async function bigCanvas(src){ var isFile = src instanceof Blob, url = isFile ? URL.createObjectURL(src) : src, im = new Image(); im.crossOrigin = 'anonymous';
     try { await new Promise(function(ok, err){ im.onload = ok; im.onerror = err; im.src = url; }); } finally { if (isFile) setTimeout(function(){ URL.revokeObjectURL(url); }, 0); }
     var W = im.naturalWidth, H = im.naturalHeight, k = Math.min(1, 1600 / Math.max(W, H)), c = document.createElement('canvas'); c.width = Math.max(1, Math.round(W * k)); c.height = Math.max(1, Math.round(H * k));
@@ -164,6 +165,20 @@
       await ready; var r = await call('/img', {method:'POST', headers:{'content-type':blob.type || 'image/webp'}, body:blob});
       var d = await r.json().catch(function(){ return null; }); if (!r.ok || !d || !d.ref) throw fail(r, d); return d.ref;
     },
+    // under the item's name in the picture dialog: its barcode (to search for a better photo) and quick links
+    info:async function(it, el){ if (!el) return; el.textContent = '';
+      try { var p = await productOf(it); if (!p || p.many){ el.textContent = p && p.many ? 'في أكتر من منتج في سلة بنفس الاسم' : 'الصنف ده مش مربوط بمنتج في سلة'; return; }
+        if (!skuP) skuP = fetch('../data/sku.json', {cache:'no-cache'}).then(function(r){ return r.ok ? r.json() : {}; }).catch(function(){ return {}; });
+        var bc = (await skuP)[p.id] || '', q = bc || p.name || it[1], mk = function(t, h){ var a = document.createElement('a'); a.textContent = t; a.href = h; a.target = '_blank'; a.rel = 'noopener'; a.style.cssText = 'color:#1565c0;text-decoration:none;white-space:nowrap'; return a; };
+        el.style.cssText = 'display:flex;flex-wrap:wrap;gap:6px 14px;align-items:center;font-size:12px;margin:2px 0 8px;color:#455a64';
+        if (bc){ var s1 = document.createElement('span'); s1.innerHTML = 'الباركود: <b dir="ltr" style="user-select:all;font-family:ui-monospace,Consolas,monospace;font-size:13px;color:#263238">' + esc(bc) + '</b>'; el.appendChild(s1);
+          var cp = document.createElement('button'); cp.type = 'button'; cp.textContent = 'نسخ'; cp.style.cssText = 'border:1px solid #cfd8dc;background:#fff;border-radius:6px;padding:1px 8px;cursor:pointer;font:inherit';
+          cp.onclick = function(){ try { navigator.clipboard.writeText(bc).then(function(){ cp.textContent = 'اتنسخ ✓'; }); } catch(e){} }; el.appendChild(cp); }
+        else { var s2 = document.createElement('span'); s2.textContent = 'الباركود مش متوفر للمنتج ده'; el.appendChild(s2); }
+        el.appendChild(mk('🔎 صور قوقل' + (bc ? ' بالباركود' : ' بالاسم'), 'https://www.google.com/search?tbm=isch&q=' + encodeURIComponent(q)));
+        if (bc && p.name) el.appendChild(mk('🔎 بالاسم', 'https://www.google.com/search?tbm=isch&q=' + encodeURIComponent(p.name + ' white background')));
+        el.appendChild(mk('↗ المنتج في سلة', 'https://s.salla.sa/products/' + p.id));
+      } catch(e){ el.textContent = ''; } },
     // The picture dialog asks: how good is this picture for the store and the 3D pharmacy, and what will be sent?
     check:async function(name, t, el){ if (!el) return; var my = el._n = (el._n || 0) + 1;
       if (!t || !t.ref){ el.innerHTML = ''; return; }

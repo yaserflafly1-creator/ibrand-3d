@@ -138,7 +138,10 @@ async function listAll0(query, cap = Infinity){
 }
 const catQuery = id => `source=categories&source_value[]=${id}&per_page=50`;
 
+// barcodes (the store's SKU), for the editor only: kept in their own small file so shoppers do not download them
+const SKU = {};
 function toItem(p){
+  { const sk = p.sku || p.gtin; if (sk && p.id) SKU[String(p.id)] = String(sk).trim(); }
   return {
     id: String(p.id), name: p.name, url: short(p.url, 'https://ibrand.com.sa/ar/'),
     img: short(p.image && p.image.url, 'https://cdn.salla.sa/yKErG/'),
@@ -616,6 +619,7 @@ async function main(){
   // the published file: random-looking text does not compress, and it was a third of what every visitor downloads
   try { for (const sec of Object.values(result.sections || {})) for (const p of sec.products || []){ delete p.sig; delete p.psig; delete p.ah; delete p.pk; delete p.ai; delete p.aiNo; } } catch (e){ console.warn('trim skipped:', e.message); }
   await fs.writeFile(`${OUT}/data/products.json`, JSON.stringify(result));
+  try { await fs.writeFile(`${OUT}/data/sku.json`, JSON.stringify(SKU)); console.log('BARCODES', Object.keys(SKU).length); } catch (e){ console.warn('barcodes not written:', e.message); }
 }
 
 main().catch(e => { console.error(e); process.exit(1); });
