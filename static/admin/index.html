@@ -66,6 +66,7 @@ td,th{padding:6px 8px;border-bottom:1px solid var(--line);text-align:right}
   <h1>لوحة تحكم الصيدلية 3D</h1>
   <div class="tabs" id="tabs" hidden>
     <button data-t="settings" class="on">الإعدادات والميزات</button>
+    <button data-t="events">الفعاليات</button>
     <button data-t="map">المخطط</button>
     <button data-t="promo">العروض واللوحات</button>
     <button data-t="team">الفريق والسجل</button>
@@ -94,18 +95,42 @@ td,th{padding:6px 8px;border-bottom:1px solid var(--line);text-align:right}
         <label>اسم الموسم</label><input type="text" id="seLine" maxlength="40">
         <label>اللونان</label><div class="row"><input type="color" id="seA"><input type="color" id="seB"></div>
       </div>
-      <div class="card"><h2>الكنز المفقود</h2>
-        <label class="chk"><input type="checkbox" id="trOn"> الكنز مفعّل</label>
-        <label>كود الخصم (من كوبونات سلة)</label><input type="text" id="trCode" dir="ltr" maxlength="40">
-        <label>الملاحظة تحت الكود</label><input type="text" id="trNote" maxlength="120">
-        <p class="note">الكود يظهر لكل من يجد الصندوق، وهو مقروء لمن يفتّش الصفحة. اجعل الكوبون في سلة محدود الاستخدام.</p>
-      </div>
       <div class="card"><h2>تجربة الزائر</h2>
         <label class="chk"><input type="checkbox" id="tour"> الجولة الترحيبية في أول زيارة</label>
         <label class="chk"><input type="checkbox" id="sound"> الصوت مفعّل افتراضياً</label>
       </div>
     </div>
     <div class="row"><button class="btn" id="saveCfg">حفظ الإعدادات</button><span class="note" id="cfgState"></span></div>
+  </section>
+
+  <!-- events -->
+  <section id="t-events" hidden>
+    <div class="card"><h2>فعاليات الصيدلية</h2>
+      <p class="note">ألعاب صغيرة تخلّي الزائر يتجوّل في الصيدلية. كل فعالية لها زر صغير على يمين الشاشة، وتتغيّر أماكنها كل يوم تلقائياً. كود الجائزة تكتبه أنت من كوبونات سلة؛ بدون كود يظهر للفائز تهنئة فقط. الكود مقروء لمن يفتّش الصفحة، فاجعل الكوبون في سلة محدود الاستخدام.</p></div>
+    <div class="grid">
+      <div class="card"><h2>الكنز المفقود</h2>
+        <label class="chk"><input type="checkbox" id="trOn"> الكنز مفعّل</label>
+        <label>كود الخصم (من كوبونات سلة)</label><input type="text" id="trCode" dir="ltr" maxlength="40">
+        <label>الملاحظة تحت الكود</label><input type="text" id="trNote" maxlength="120">
+        <p class="note">الكود يظهر لكل من يجد الصندوق، وهو مقروء لمن يفتّش الصفحة. اجعل الكوبون في سلة محدود الاستخدام.</p>
+      </div>
+      <div class="card"><h2>القطع المفقودة</h2>
+        <label class="chk"><input type="checkbox" id="pcOn"> الفعالية مفعّلة</label>
+        <p class="note">قطع لامعة مخفية بين الممرات في أقسام مختلفة. الزائر يجمعها كلها ليفوز.</p>
+        <label>عدد القطع (من 3 إلى 7)</label><input type="number" id="pcCount" min="3" max="7" step="1">
+        <label>كود الخصم (من كوبونات سلة)</label><input type="text" id="pcCode" dir="ltr" maxlength="40">
+        <label>الملاحظة تحت الكود</label><input type="text" id="pcNote" maxlength="120">
+      </div>
+      <div class="card"><h2>لغز اليوم</h2>
+        <label class="chk"><input type="checkbox" id="rdOn"> الفعالية مفعّلة</label>
+        <p class="note">الزائر يقرأ اللغز ثم يمشي للقسم الصحيح ويقف على علامة الاستفهام فيه. كل يوم يظهر لغز واحد من القائمة بالدور.</p>
+        <div id="rdList"></div>
+        <div class="row"><button class="btn ghost" type="button" id="rdAdd" style="color:var(--plum);border-color:var(--line)">+ لغز جديد</button></div>
+        <label>كود الخصم (من كوبونات سلة)</label><input type="text" id="rdCode" dir="ltr" maxlength="40">
+        <label>الملاحظة تحت الكود</label><input type="text" id="rdNote" maxlength="120">
+      </div>
+    </div>
+    <div class="row"><button class="btn" id="saveEv">حفظ الفعاليات</button><span class="note" id="evState"></span></div>
   </section>
 
   <!-- map -->
@@ -201,7 +226,7 @@ async function call(path, opt){
   if (!r.ok) throw new Error((d && d.error) || ('خطأ ' + r.status)); return d;
 }
 const getJSON = async u => { try { const r = await fetch(u, {cache:'no-cache'}); return r.ok ? await r.json() : null; } catch(e){ return null; } };
-const mark = () => { $('#pgState').textContent = $('#pgState2').textContent = pgDirty ? 'تعديلات غير محفوظة' : ''; $('#cfgState').textContent = cfgDirty ? 'تعديلات غير محفوظة' : ''; };
+const mark = () => { $('#pgState').textContent = $('#pgState2').textContent = pgDirty ? 'تعديلات غير محفوظة' : ''; $('#cfgState').textContent = $('#evState').textContent = cfgDirty ? 'تعديلات غير محفوظة' : ''; };
 const dirtyPg = () => { pgDirty = true; mark(); }, dirtyCfg = () => { cfgDirty = true; mark(); };
 addEventListener('beforeunload', e => { if (pgDirty || cfgDirty){ e.preventDefault(); e.returnValue = ''; } });
 
@@ -229,7 +254,7 @@ async function enter(me){
   if (DEMO && DEMO.prods) Object.keys(DEMO.prods).forEach(id => PRODS.set(id, {id, name:DEMO.prods[id]}));
   const d = DEMO && DEMO.prods ? null : await getJSON('../data/products.json'); if (d && d.sections) Object.values(d.sections).forEach(s => (s.products || []).forEach(p => { if (!PRODS.has(String(p.id))) PRODS.set(String(p.id), p); }));
   $('#usersCard').hidden = ROLE !== 'admin'; $('#resetPg').hidden = ROLE !== 'admin';
-  fillSettings(); fillPromo(); drawMap(); fillShelfPicker(); show('settings');
+  fillSettings(); fillEvents(); fillPromo(); drawMap(); fillShelfPicker(); show('settings');
   if (!DEMO && /[?&]next=editor\b/.test(location.search)) location.replace('editor.html');
 }
 function show(t){ document.querySelectorAll('#tabs button').forEach(b => b.classList.toggle('on', b.dataset.t === t)); document.querySelectorAll('main > section[id^="t-"]').forEach(s => { s.hidden = s.id !== 't-' + t; }); if (t === 'team') loadTeam(); if (t === 'shelves') drawShelves(); }
@@ -242,15 +267,33 @@ function fillSettings(){
   const t = CFG.treasure || {}; $('#trOn').checked = t.on !== false; $('#trCode').value = t.code || ''; $('#trNote').value = t.note === undefined ? 'استخدم الكود عند إتمام الطلب.' : t.note;
   $('#tour').checked = CFG.tour !== false; $('#sound').checked = CFG.sound !== false;
 }
+const EVZ = [['z_makeup','الميك أب'],['z_derma','الديرما والبريميوم'],['z_hair','العناية بالشعر والبشرة'],['z_care','العناية الشخصية'],['z_dev','الأجهزة والمستلزمات الطبية'],['z_vit','المكملات الغذائية'],['z_kids','الأم والطفل'],['z_rx','الدواء والصيدلية']];
+const NOTE0 = 'استخدم الكود عند إتمام الطلب.';
+function riddleRow(r){ const d = el('div', {class:'rdRow'}); d.style.cssText = 'display:grid;grid-template-columns:1fr 190px 36px;gap:8px;align-items:center;margin:8px 0';
+  const q = el('input', {type:'text', maxlength:'160', placeholder:'نص اللغز (مثال: أحمي بشرتك من الشمس، في أي قسم تلقاني؟)'}); q.value = (r && r.q) || '';
+  const z = el('select'); EVZ.forEach(o => z.appendChild(el('option', {value:o[0], text:o[1]}))); z.value = (r && r.zone) || EVZ[0][0];
+  const x = el('button', {type:'button', class:'btn ghost', text:'✕', title:'حذف اللغز'}); x.style.cssText = 'color:#b3261e;border-color:var(--line);padding:6px 0'; x.onclick = () => { d.remove(); dirtyCfg(); };
+  d.appendChild(q); d.appendChild(z); d.appendChild(x); return d; }
+function fillEvents(){
+  const p = CFG.pieces || {}; $('#pcOn').checked = p.on === true; $('#pcCount').value = Math.max(3, Math.min(7, +p.count || 5)); $('#pcCode').value = p.code || ''; $('#pcNote').value = p.note === undefined ? NOTE0 : p.note;
+  const r = CFG.riddle || {}; $('#rdOn').checked = r.on === true; $('#rdCode').value = r.code || ''; $('#rdNote').value = r.note === undefined ? NOTE0 : r.note;
+  const L = $('#rdList'); L.textContent = ''; (Array.isArray(r.list) ? r.list : []).forEach(x => L.appendChild(riddleRow(x)));
+}
+function readEvents(){
+  CFG.pieces = {on:$('#pcOn').checked, count:Math.max(3, Math.min(7, Math.round(+$('#pcCount').value || 5))), code:$('#pcCode').value.trim(), note:$('#pcNote').value.trim()};
+  const list = [...document.querySelectorAll('#rdList .rdRow')].map(d => ({q:d.querySelector('input').value.trim(), zone:d.querySelector('select').value})).filter(x => x.q);
+  CFG.riddle = {on:$('#rdOn').checked, code:$('#rdCode').value.trim(), note:$('#rdNote').value.trim(), list};
+}
 function readSettings(){
   CFG.season = $('#seOn').checked ? {tag:$('#seTag').value.trim(), line:$('#seLine').value.trim(), a:$('#seA').value, b:$('#seB').value} : null;
   CFG.treasure = {on:$('#trOn').checked, code:$('#trCode').value.trim(), note:$('#trNote').value.trim()};
   CFG.tour = $('#tour').checked; CFG.sound = $('#sound').checked;
 }
 $('#t-settings').addEventListener('input', dirtyCfg); $('#t-promo').addEventListener('input', dirtyCfg);
-async function saveCfg(){ readSettings(); readPromo(); if (DEMO){ cfgDirty = false; mark(); return say('نسخة عرض: التعديل لا يُحفظ'); } const out = Object.assign({}, CFG); delete out.api;
+$('#t-events').addEventListener('input', dirtyCfg); $('#rdAdd').addEventListener('click', () => { $('#rdList').appendChild(riddleRow(null)); dirtyCfg(); });
+async function saveCfg(){ readSettings(); readEvents(); readPromo(); if (DEMO){ cfgDirty = false; mark(); return say('نسخة عرض: التعديل لا يُحفظ'); } const out = Object.assign({}, CFG); delete out.api;
   try { await call('/config', {method:'PUT', body:JSON.stringify(out)}); cfgDirty = false; mark(); say('تم حفظ الإعدادات'); } catch(e){ say(e.message, true); } }
-$('#saveCfg').onclick = saveCfg; $('#saveCfg2').onclick = saveCfg;
+$('#saveCfg').onclick = saveCfg; $('#saveCfg2').onclick = saveCfg; $('#saveEv').onclick = saveCfg;
 
 // ---------- promo and screens ----------
 function fillPromo(){

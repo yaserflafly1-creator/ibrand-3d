@@ -81,6 +81,11 @@ h3{font-size:13px;margin:14px 0 6px;color:#374151}
 .bar i{display:block;height:100%;background:#43a047}
 .bar.over i{background:var(--bad)}
 .items{display:flex;flex-wrap:wrap;gap:3px;padding:5px;min-height:34px}
+#ctx{display:none;position:fixed;z-index:200;min-width:190px;background:#fff;border:1px solid #cfd8dc;border-radius:10px;box-shadow:0 10px 30px rgba(0,0,0,.22);padding:5px;font-size:13px}
+#ctx button{display:block;width:100%;text-align:start;border:0;background:none;padding:7px 10px;border-radius:6px;cursor:pointer;font:inherit;color:#263238}
+#ctx button:hover:not(:disabled){background:#e3f2fd}
+#ctx button:disabled{color:#b0bec5;cursor:default}
+#ctx hr{border:0;border-top:1px solid #eceff1;margin:4px 0}
 .items.over{background:#e8f5e9;outline:2px dashed #66bb6a;outline-offset:-3px}
 .it{font-size:10.5px;border-radius:4px;padding:2px 5px;border:1px solid #ccc;background:#fdfdfd;max-width:200px;line-height:1.35;cursor:grab;position:relative}
 .it b{display:block;font-weight:600}
@@ -797,10 +802,23 @@ function setProp(id,k,v){
 /* ================= items ================= */
 function bindItems(root,from,fid){
   root.querySelectorAll('.it').forEach(c=>{
-    c.addEventListener('dragstart',e=>{drag={from,fid:c.dataset.fid||fid,idx:+c.dataset.ix};e.dataTransfer.effectAllowed='move';try{e.dataTransfer.setData('text/plain',c.dataset.ix)}catch(_){};setTimeout(()=>c.classList.add('dragging'))});
+    c.addEventListener('dragstart',e=>{drag={from,fid:c.dataset.fid||fid,idx:+c.dataset.ix,copy:from!=='pool'&&(e.ctrlKey||e.altKey)};e.dataTransfer.effectAllowed=drag.copy?'copy':'move';try{e.dataTransfer.setData('text/plain',c.dataset.ix)}catch(_){};setTimeout(()=>c.classList.add('dragging'))});
     c.addEventListener('dragend',()=>{c.classList.remove('dragging');drag=null;$$('.over,.ins,.drop').forEach(x=>x.classList.remove('over','ins','drop'))});
     c.addEventListener('click',e=>{const ix=+c.dataset.ix;const cf=c.dataset.fid||fid;if(e.target.dataset.del!=null){e.stopPropagation();from==='pool'?delPoolItem(ix):toPool(cf,ix);return}if(c.classList.contains('pb'))return imgDlg(cf,ix);itemDlg(from==='pool'?null:cf,ix,null)});
   });
+  root.querySelectorAll('.it').forEach(c=>{const ix=+c.dataset.ix,cf=c.dataset.fid||fid;
+    c.addEventListener('pointerenter',()=>{hov=from==='pool'?{pool:true,it:S.pool[ix]}:{fid:cf,it:S.fx[cf]&&S.fx[cf].it[ix]}});
+    c.addEventListener('contextmenu',e=>{
+      if(from==='pool')return ctxMenu(e,[['✏️ تعديل بيانات الصنف',()=>itemDlg(null,ix,null)],['📋 نسخ',()=>copyItem(null,ix)],null,['🗑 حذف نهائي',()=>delPoolItem(ix)]]);
+      const sh=S.fx[cf].it[ix][0];
+      ctxMenu(e,[['✏️ تعديل بيانات الصنف',()=>itemDlg(cf,ix,null)],['📷 صورة الصنف',()=>imgDlg(cf,ix)],null,
+        ['📋 نسخ',()=>copyItem(cf,ix)],['📑 تكرار جنبه',()=>{clip=clone(S.fx[cf].it[ix]);pasteItem(cf,sh,ix)}],['📥 لصق قبله',()=>pasteItem(cf,sh,ix),!clip],null,
+        ['➡ حرّكه لليمين',()=>shiftItem(cf,ix,-1)],['⬅ حرّكه لليسار',()=>shiftItem(cf,ix,1)],['⏮ لأول الرف (يمين)',()=>shiftItem(cf,ix,-9)],['⏭ لآخر الرف (يسار)',()=>shiftItem(cf,ix,9)],null,
+        ['✕ شيل من الرف',()=>toPool(cf,ix)]])});
+  });
+  if(from!=='pool')root.querySelectorAll('.items').forEach(z=>{const zf=z.dataset.fid||fid,sh=+z.dataset.shelf;
+    z.addEventListener('pointerenter',()=>{hovZ={fid:zf,shelf:sh}});
+    z.addEventListener('contextmenu',e=>{if(e.target.closest('.it'))return;shelfMenu(e,zf,sh)})});
   root.querySelectorAll('.items').forEach(z=>{
     z.addEventListener('dragover',e=>{if(!drag)return;e.preventDefault();z.classList.add('over');$$('.it.ins').forEach(x=>x.classList.remove('ins'));const t=e.target.closest('.it');t&&t.classList.add('ins')});
     z.addEventListener('dragleave',e=>{if(!z.contains(e.relatedTarget))z.classList.remove('over')});
@@ -812,23 +830,47 @@ function bindItems(root,from,fid){
 function moveItem(src,dst){
   // src {from,fid,idx} dst {fid,shelf,before} | {pool,before}
   const sId=src.from==='pool'?'__pool':src.fid, dId=dst.pool?'__pool':dst.fid;
-  if(sId===dId&&src.idx===dst.before)return;
+  if(sId===dId&&src.idx===dst.before&&!src.copy)return;
+  const cp=src.copy&&!dst.pool;
   const getArr=id=>id==='__pool'?S.pool:S.fx[id].it;
   let label;
-  commit('نقل منتج',[sId,dId],()=>{
+  commit(src.copy&&!dst.pool?'نسخ منتج':'نقل منتج',[sId,dId],()=>{
     const sa=getArr(sId),da=getArr(dId);
-    const item=sa[src.idx];
+    const item=cp?clone(sa[src.idx]):sa[src.idx];
     let before=dst.before;
     const beforeRef=before!=null?da[before]:null;
-    sa.splice(src.idx,1);
+    if(!cp)sa.splice(src.idx,1);
     if(!dst.pool){const f=S.fx[dId];item[0]=dst.shelf!=null?dst.shelf:Math.min(Math.max(1,item[0]),f.shelves)}
     if(beforeRef&&beforeRef!==item){da.splice(da.indexOf(beforeRef),0,item)}
     else if(dst.pool)da.push(item);
     else{let last=-1;da.forEach((x,k)=>{if(x[0]===item[0])last=k});da.splice(last+1,0,item)}
-    label=dst.pool?'اتشال لـ "غير موزّع"':dId!==sId?'اتنقل إلى '+S.fx[dId].code+' · رف '+item[0]:'';
+    label=dst.pool?'اتشال لـ "غير موزّع"':cp?'اتنسخ إلى '+S.fx[dId].code+' · رف '+item[0]:dId!==sId?'اتنقل إلى '+S.fx[dId].code+' · رف '+item[0]:'';
   });
   label&&toast(label);
 }
+/* ---- copy / paste, order inside the shelf, right-click menus ---- */
+let clip=null,hov=null,hovZ=null; // a copied item ; the item and the shelf under the pointer
+function copyItem(fid,ix){const it=fid==null?S.pool[ix]:S.fx[fid].it[ix];if(!it)return;clip=clone(it);toast('اتنسخ: '+String(it[1]).slice(0,34)+' — كلك يمين على أي رف ثم «لصق» (أو Ctrl+V)')}
+function pasteItem(fid,shelf,before){
+  if(!clip)return toast('انسخ صنف الأول (كلك يمين ← نسخ)');const f=S.fx[fid];if(!f)return;
+  const sh=Math.min(Math.max(1,shelf||clip[0]),f.shelves);
+  commit('لصق منتج',[fid],()=>{const it=clone(clip);it[0]=sh;const ref=before!=null?f.it[before]:null;
+    if(ref)f.it.splice(f.it.indexOf(ref),0,it);else{let last=-1;f.it.forEach((x,k)=>{if(x[0]===sh)last=k});f.it.splice(last+1,0,it)}});
+  toast('اتلصق في '+f.code+' · رف '+sh)}
+function shiftItem(fid,ix,d){ // inside its own shelf: -1 one place earlier, 1 one later, -9 first, 9 last
+  const f=S.fx[fid],it=f&&f.it[ix];if(!it)return;const same=[];f.it.forEach((x,k)=>{if(x[0]===it[0])same.push(k)});
+  const p=same.indexOf(ix),q=d===-9?0:d===9?same.length-1:Math.max(0,Math.min(same.length-1,p+d));if(q===p)return;
+  commit('ترتيب منتج في الرف',[fid],()=>{const order=same.map(k=>f.it[k]);order.splice(p,1);order.splice(q,0,it);same.forEach((k,n)=>{f.it[k]=order[n]})})}
+function shelfMenu(e,fid,sh){const f=S.fx[fid];if(!f)return;
+  ctxMenu(e,[['📥 لصق هنا'+(clip?' — '+esc(String(clip[1]).slice(0,22)):''),()=>pasteItem(fid,sh,null),!clip],['＋ إضافة صنف جديد للرف',()=>itemDlg(fid,null,sh)],null,
+    ['⇅ رتّب الرف حسب ROS',()=>sortShelf(fid,sh)],['🔍 '+(eFocus===sh&&elevOpen?'رجوع لكل الرفوف':'كبّر الرف ده'),()=>{if(eFocus===sh&&elevOpen){eFocus=null;renderElev()}else{sel=new Set([fid]);drawSel();showFx(fid);openElev(sh);renderElev()}}],null,
+    ['⚙ بيانات الستاند ('+esc(f.code)+')',()=>{sel=new Set([fid]);drawSel();showFx(fid);tab('fx')}]])}
+function ctxMenu(e,rows){e.preventDefault();e.stopPropagation();let m=$('#ctx');if(!m){m=document.createElement('div');m.id='ctx';document.body.appendChild(m)}
+  m.innerHTML=rows.map((r,k)=>r?`<button type="button" data-k="${k}"${r[2]?' disabled':''}>${r[0]}</button>`:'<hr>').join('');
+  m.style.display='block';const W=m.offsetWidth,H=m.offsetHeight;m.style.left=Math.max(4,Math.min(innerWidth-W-4,e.clientX))+'px';m.style.top=Math.max(4,Math.min(innerHeight-H-4,e.clientY))+'px';
+  m.onclick=ev=>{const b=ev.target.closest('button');if(!b||b.disabled)return;m.style.display='none';rows[+b.dataset.k][1]()}}
+const ctxHide=()=>{const m=$('#ctx');if(m)m.style.display='none'};
+addEventListener('pointerdown',e=>{const m=$('#ctx');if(m&&!m.contains(e.target))ctxHide()},true);addEventListener('wheel',ctxHide,true);addEventListener('blur',ctxHide);
 function toPool(fid,ix){commit('شيل منتج من الرف',[fid,'__pool'],()=>{const[i]=S.fx[fid].it.splice(ix,1);S.pool.push(i)});toast('المنتج اتنقل لـ "غير موزّع" — تقدر ترجعه بالسحب')}
 function delPoolItem(ix){commit('حذف منتج نهائياً',['__pool'],()=>{S.pool.splice(ix,1)})}
 function sortShelf(fid,s){commit('ترتيب الرف '+s,[fid],()=>{const f=S.fx[fid];const on=f.it.filter(i=>i[0]===s).sort((a,b)=>b[5]-a[5]);const rest=f.it.filter(i=>i[0]!==s);f.it=[...rest,...on]})}
@@ -1072,9 +1114,10 @@ function renderElev(){
     h+=`<div class="erow${s===2||s===3?' eye':''}${eFocus===s?' foc':''}"><div class="elab" data-fs="${s}" title="${eFocus?'رجوع لكل الرفوف':'اضغط لعرض الرف ده لوحده بحجم أكبر'}"><b>الرف ${s}</b><span>${tag}</span><span>${n} صنف · ${pcs} حبة</span><span class="${over?'bad':''}">${cmT} من ${cap} سم</span></div>
       <div style="display:flex;gap:${GAP}px">${tracks}</div></div>`;
   }
-  body.innerHTML=h+'</div>'+(eFocus?'':`<div class="meta" style="margin-top:8px">${grp?'المجموعة معروضة جنب بعض — المتر المحدد عليه إطار أزرق · اضغط على كود أي متر فوق علشان تختاره · ':''}${photo?'اضغط على أي صنف علشان تضيف صورته أو تعدّلها · اسحب ملف صورة من جهازك وارميه على الصنف مباشرة · الأصناف اللي بخط متقطع لسه ملهاش صورة · ':''}اضغط على اسم أي رف علشان تكبّره · اسحب أي صنف لمكان تاني أو لمتر/رف تاني أو لستاند في الرسم · عرض كل صنف = عرضه الفعلي بالسم، والخطوط البيضا جواه = عدد الأوجه</div>`);
+  body.innerHTML=h+'</div>'+(eFocus?'':`<div class="meta" style="margin-top:8px">${grp?'المجموعة معروضة جنب بعض — المتر المحدد عليه إطار أزرق · اضغط على كود أي متر فوق علشان تختاره · ':''}${photo?'اضغط على أي صنف علشان تضيف صورته أو تعدّلها · اسحب ملف صورة من جهازك وارميه على الصنف مباشرة · الأصناف اللي بخط متقطع لسه ملهاش صورة · ':''}اضغط على اسم أي رف علشان تكبّره · اسحب أي صنف لمكان تاني أو لمتر/رف تاني أو لستاند في الرسم · <b>كلك يمين</b> على أي صنف أو رف: نسخ، لصق، تكرار، ترتيب، إضافة · Ctrl+سحب = نسخة · Ctrl+C / Ctrl+V على الصنف والرف · عرض كل صنف = عرضه الفعلي بالسم، والخطوط البيضا جواه = عدد الأوجه</div>`);
   body.querySelectorAll('[data-pick]').forEach(d=>d.onclick=()=>{const k=d.dataset.pick;sel=new Set([k]);drawSel();showFx(k)});
   body.querySelectorAll('[data-fs]').forEach(d=>d.onclick=()=>{const s=+d.dataset.fs;eFocus=eFocus===s?null:s;renderElev()});
+  body.querySelectorAll('[data-fs]').forEach(d=>d.oncontextmenu=e=>shelfMenu(e,cur,+d.dataset.fs));
   bindItems(body,'fx',cur);
   if(photo)body.querySelectorAll('.it.pb').forEach(c=>{
     c.addEventListener('dragover',e=>{if(drag||!e.dataTransfer||![...e.dataTransfer.types].includes('Files'))return;e.preventDefault();e.stopPropagation();c.classList.add('fdrop')});
@@ -1249,6 +1292,9 @@ addEventListener('keydown',e=>{
   if(mod&&e.key.toLowerCase()==='z'){e.preventDefault();e.shiftKey?redo():undo();return}
   if(mod&&e.key.toLowerCase()==='y'){e.preventDefault();redo();return}
   if(mod&&e.key.toLowerCase()==='d'){e.preventDefault();dupSel();return}
+  if(e.key==='Escape'&&$('#ctx')&&$('#ctx').style.display==='block'){ctxHide();return}
+  if(mod&&(e.key.toLowerCase()==='c'||e.key==='ؤ')&&hov&&hov.it&&!String(getSelection()||'')){const a=hov.pool?S.pool:(S.fx[hov.fid]||{}).it||[];const k=a.indexOf(hov.it);if(k>=0){e.preventDefault();copyItem(hov.pool?null:hov.fid,k)}return}
+  if(mod&&(e.key.toLowerCase()==='v'||e.key==='ر')&&clip&&hovZ&&S.fx[hovZ.fid]){e.preventDefault();pasteItem(hovZ.fid,hovZ.shelf,null);return}
   if(floorMode&&(e.key==='Delete'||e.key==='Backspace')){if(selA!=null){e.preventDefault();delArea(selA)}return}
   if(e.key==='Delete'||e.key==='Backspace'){if(sel.size){e.preventDefault();delSel()}return}
   if(e.key==='r'||e.key==='R'||e.key==='ق'){rotSel();return}

@@ -1377,14 +1377,18 @@ function build(renderer){
         const yaw = fx.w ? (v ? (cx < 0 ? Math.PI/2 : -Math.PI/2) : (cz > -PGD.D/2 ? Math.PI : 0)) : (!v ? 0 : fx.f === 'B' ? Math.PI/2 : -Math.PI/2);
         const run = bays.slice(o, o + mods[ri]); o += mods[ri];
         gondolaFace(frame(cx, cz, yaw), run, z.key, {G, zc:z.zc, endPanels: !touch(r, 0) && !touch(r, 1)});
-        if (!fx.w && v) z.runs.push({x0:cx - .25, x1:cx + .25, zf:cz + r[3]/2, zb:cz - r[3]/2, row:Math.round((-cz - 9.2) / 8.4)});
+        if (!fx.w) z.runs.push(v ? {x0:cx - .25, x1:cx + .25, zf:cz + r[3]/2, zb:cz - r[3]/2} : {x0:cx - r[2]/2, x1:cx + r[2]/2, zf:cz + .25, zb:cz - .25});
       });
     });
     window.__pgStats.unplaced = Z.reduce((a, z) => a + z.left.length, 0);
-    // each department's stretches of floor, row by row (for its signs and where its button takes you)
-    Z.forEach(z => { const by = {}; z.runs.forEach(r => (by[r.row] || (by[r.row] = [])).push(r));
-      Object.keys(by).forEach(row => { const a = by[row].sort((p, q) => p.x0 - q.x0); let cur = null;
-        a.forEach(r => { if (cur && r.x0 - cur.x1 < 3.2){ cur.x1 = Math.max(cur.x1, r.x1); cur.zf = Math.max(cur.zf, r.zf); cur.zb = Math.min(cur.zb, r.zb); } else { cur = {zid:z.id, x0:r.x0, x1:r.x1, zf:r.zf, zb:r.zb}; SEG.push(cur); } }); }); });
+    // each department's stretches of floor (for its signs, its name on the floor and where its button takes you):
+    // units of one department standing side by side, or end to end, make one stretch — wherever the drawing puts them
+    Z.forEach(z => { const rs = z.runs, par = rs.map((_, i) => i), find = i => par[i] === i ? i : (par[i] = find(par[i]));
+      for (let i = 0; i < rs.length; i++) for (let j = i + 1; j < rs.length; j++){ const a = rs[i], b = rs[j],
+        gx = Math.max(a.x0, b.x0) - Math.min(a.x1, b.x1), gz = Math.max(a.zb, b.zb) - Math.min(a.zf, b.zf);   // the gaps between them (below zero: they overlap)
+        if ((gz < 1 && gx < 3.2) || (gx < .3 && gz < 1.2)) par[find(i)] = find(j); }
+      const g = {}; rs.forEach((r, i) => { const k = find(i), c = g[k]; if (c){ c.x0 = Math.min(c.x0, r.x0); c.x1 = Math.max(c.x1, r.x1); c.zf = Math.max(c.zf, r.zf); c.zb = Math.min(c.zb, r.zb); } else g[k] = {zid:z.id, x0:r.x0, x1:r.x1, zf:r.zf, zb:r.zb}; });
+      Object.values(g).sort((p, q) => p.zb - q.zb || p.x0 - q.x0).forEach(c => SEG.push(c)); });
   }
 
   // ---------- pharmacist counter (far end of the central walkway; the prescription shelves stand behind it) ----------
@@ -1568,6 +1572,26 @@ function build(renderer){
   // ---------- the lost treasure: one chest a day, hidden at the far end of an aisle; finding it shows the prize ----------
   // The prize code is the store's own coupon (made in the store's dashboard); with no code set, the find is only congratulated.
   const TCFG = CFG().treasure || {}, TREASURE = {code:String(TCFG.code || ''), note:TCFG.note === undefined ? 'استخدم الكود عند إتمام الطلب.' : String(TCFG.note)};
+  { const css = document.createElement('style'); css.textContent = '.trBtn{position:fixed;z-index:5;right:max(18px, env(safe-area-inset-right,0px));bottom:calc(env(safe-area-inset-bottom,0px) + 136px);width:46px;height:46px;border-radius:50%;border:1px solid var(--line);background:rgba(255,255,255,.92);color:#b8860b;display:flex;align-items:center;justify-content:center;cursor:pointer;box-shadow:0 6px 16px rgba(59,29,54,.14)}.trBtn.done{color:#1f9a55}body.sheet .trBtn{display:none}'
+        + '.trBox{position:fixed;z-index:40;left:50%;top:50%;transform:translate(-50%,-50%);width:min(380px,calc(100vw - 32px));background:#fff;border:1px solid var(--line);border-radius:20px;padding:22px 20px 18px;box-shadow:0 24px 60px rgba(60,20,50,.35);direction:rtl;font-family:var(--font);text-align:center}.trBox b{display:block;font-size:21px;font-weight:800;color:var(--plum);margin-bottom:6px}.trBox p{white-space:pre-line;margin:0 0 12px;font-size:15px;line-height:1.8;color:var(--muted)}'
+        + '.trCode{font:800 24px Arial,sans-serif;letter-spacing:2px;direction:ltr;border:2px dashed #f2c14e;border-radius:12px;padding:10px;margin:0 0 12px;color:var(--plum);user-select:all}.trRow{display:flex;gap:10px;justify-content:center}.trRow button{border:0;border-radius:12px;padding:10px 18px;font:800 15px var(--font);cursor:pointer}.trCopy{background:var(--pink);color:#fff}.trClose{background:#f3eef2;color:var(--plum)}'
+    + '.evBtn{position:fixed;z-index:5;right:max(18px, env(safe-area-inset-right,0px));width:46px;height:46px;border-radius:50%;border:1px solid var(--line);background:rgba(255,255,255,.92);color:var(--plum);display:flex;align-items:center;justify-content:center;cursor:pointer;box-shadow:0 6px 16px rgba(59,29,54,.14);font:800 13px Arial,sans-serif}.evBtn.done{color:#1f9a55}body.sheet .evBtn{display:none}.evBtn i{position:absolute;top:-5px;left:-5px;min-width:20px;height:20px;border-radius:10px;background:var(--pink);color:#fff;font:800 11px/20px Arial,sans-serif;font-style:normal;padding:0 4px;direction:ltr}';
+    document.head.appendChild(css); }
+  // what every event shares: the day (the store's own, UTC+3), a number drawn from it, and the prize card
+  const EVDAY = new Date(Date.now() + 3*3600e3).toISOString().slice(0, 10), evHash = salt => { let h = 7; for (const ch of EVDAY + salt) h = (h*31 + ch.charCodeAt(0)) >>> 0; return h; };
+  let evBoxEl = null;
+  const evBox = (title, text, code, note) => { if (evBoxEl) evBoxEl.remove(); const box = evBoxEl = document.createElement('div'); box.className = 'trBox'; box.setAttribute('role', 'dialog');
+    const t = document.createElement('b'); t.textContent = title; box.appendChild(t);
+    if (text){ const p = document.createElement('p'); p.textContent = text; box.appendChild(p); }
+    const row = document.createElement('div'); row.className = 'trRow';
+    if (code){ const c = document.createElement('div'); c.className = 'trCode'; c.textContent = code; box.appendChild(c);
+      if (note){ const n = document.createElement('p'); n.textContent = note; box.appendChild(n); }
+      const cp = document.createElement('button'); cp.type = 'button'; cp.className = 'trCopy'; cp.textContent = 'انسخ الكود';
+      cp.onclick = () => { const done = () => { cp.textContent = 'تم النسخ'; }; try { navigator.clipboard.writeText(code).then(done, () => { const r = document.createRange(); r.selectNodeContents(c); const sl = getSelection(); sl.removeAllRanges(); sl.addRange(r); }); } catch(e){} }; row.appendChild(cp); }
+    const cl = document.createElement('button'); cl.type = 'button'; cl.className = 'trClose'; cl.textContent = 'إغلاق'; cl.onclick = () => { box.remove(); if (evBoxEl === box) evBoxEl = null; }; row.appendChild(cl);
+    box.appendChild(row); document.body.appendChild(box); };
+  const evBtn = (bottom, label, svg) => { const b = document.createElement('button'); b.type = 'button'; b.className = 'evBtn'; b.setAttribute('aria-label', label); b.style.bottom = 'calc(env(safe-area-inset-bottom,0px) + ' + bottom + 'px)'; b.innerHTML = svg; document.body.appendChild(b); return b; };
+  const evNote = c => c.note === undefined ? 'استخدم الكود عند إتمام الطلب.' : String(c.note);
   if (SEG.length && TCFG.on !== false){
     const day = new Date(Date.now() + 3*3600e3).toISOString().slice(0, 10); let hsh = 7; for (const ch of day) hsh = (hsh*31 + ch.charCodeAt(0)) >>> 0;
     const spots = SEG.map(sg => ({zid:sg.zid, x:sg.x0 + .25, z:sg.zb - .6})).filter(s => !blockedGround(s.x, s.z) && s.z > zC + 2);
@@ -1580,10 +1604,6 @@ function build(renderer){
       const lock = new THREE.Mesh(new THREE.BoxGeometry(.07, .08, .02), gold); lock.position.set(0, .2, .16); g.add(lock);
       const ring = new THREE.Mesh(new THREE.RingGeometry(.34, .46, 40), new THREE.MeshBasicMaterial({color:0xf2c14e, transparent:true, opacity:.55, depthWrite:false, toneMapped:false, side:THREE.DoubleSide})); ring.rotation.x = -Math.PI/2; ring.position.y = .012; g.add(ring);
       g.position.set(spot.x, 0, spot.z); g.rotation.y = Math.PI; scene.add(g);
-      const css = document.createElement('style'); css.textContent = '.trBtn{position:fixed;z-index:5;right:max(18px, env(safe-area-inset-right,0px));bottom:calc(env(safe-area-inset-bottom,0px) + 136px);width:46px;height:46px;border-radius:50%;border:1px solid var(--line);background:rgba(255,255,255,.92);color:#b8860b;display:flex;align-items:center;justify-content:center;cursor:pointer;box-shadow:0 6px 16px rgba(59,29,54,.14)}.trBtn.done{color:#1f9a55}body.sheet .trBtn{display:none}'
-        + '.trBox{position:fixed;z-index:40;left:50%;top:50%;transform:translate(-50%,-50%);width:min(380px,calc(100vw - 32px));background:#fff;border:1px solid var(--line);border-radius:20px;padding:22px 20px 18px;box-shadow:0 24px 60px rgba(60,20,50,.35);direction:rtl;font-family:var(--font);text-align:center}.trBox b{display:block;font-size:21px;font-weight:800;color:var(--plum);margin-bottom:6px}.trBox p{margin:0 0 12px;font-size:15px;line-height:1.8;color:var(--muted)}'
-        + '.trCode{font:800 24px Arial,sans-serif;letter-spacing:2px;direction:ltr;border:2px dashed #f2c14e;border-radius:12px;padding:10px;margin:0 0 12px;color:var(--plum);user-select:all}.trRow{display:flex;gap:10px;justify-content:center}.trRow button{border:0;border-radius:12px;padding:10px 18px;font:800 15px var(--font);cursor:pointer}.trCopy{background:var(--pink);color:#fff}.trClose{background:#f3eef2;color:var(--plum)}';
-      document.head.appendChild(css);
       const btn = document.createElement('button'); btn.type = 'button'; btn.className = 'trBtn'; btn.setAttribute('aria-label', 'الكنز المفقود');
       btn.innerHTML = '<svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"><path d="M3 11V8a4 4 0 0 1 4-4h10a4 4 0 0 1 4 4v3"/><rect x="3" y="11" width="18" height="9" rx="1.5"/><path d="M12 11v4M10.5 15h3"/></svg>';
       document.body.appendChild(btn);
@@ -1607,6 +1627,66 @@ function build(renderer){
           if (Math.hypot(camera.position.x - spot.x, camera.position.z - spot.z) < 1.5 && camera.position.y < 2.4){ found = true; store.set('ib3d-treasure', day); open(); try { sfx.add(); } catch(e){} show(); } }
       }, 120);
       window.__treasure = {x:spot.x, z:spot.z, zone:Z[spot.zid].key, spots:spots.length};
+    }
+  }
+
+  // ---------- the missing pieces: a few glowing pieces a day, each in a different department, beside the shelves; collect them all ----------
+  const PCFG = CFG().pieces || {};
+  if (PCFG.on === true && SEG.length){
+    const want = Math.max(3, Math.min(7, Math.round(+PCFG.count || 5))), cand = [];
+    SEG.forEach((sg, k) => { const zm = (sg.zf + sg.zb) / 2; [[sg.x1 + 1.1, zm], [sg.x0 - 1.1, zm], [(sg.x0 + sg.x1) / 2, sg.zf + 2.6]].forEach(([x, z], j) => {
+      if (Math.abs(x) < Wx - .8 && z > zC + 2 && z < zF - 2.5 && !blockedGround(x, z) && !blockedGround(x + .3, z) && !blockedGround(x - .3, z)) cand.push({zid:sg.zid, x, z, o:evHash('p' + k + ':' + j)}); }); });
+    cand.sort((a, b) => a.o - b.o);
+    const picks = [], far = c => picks.every(q => Math.hypot(q.x - c.x, q.z - c.z) > 5);
+    cand.forEach(c => { if (picks.length < want && far(c) && !picks.some(q => q.zid === c.zid)) picks.push(c); });   // first one to a department…
+    cand.forEach(c => { if (picks.length < want && far(c) && !picks.includes(c)) picks.push(c); });                   // …then wherever there is room
+    if (picks.length >= 3){
+      const KEY = 'ib3d-pieces', saved = String(store.get(KEY, '')).split(':'); let got = saved[0] === EVDAY ? (+saved[1] || 0) : 0;
+      const gem = new THREE.MeshStandardMaterial({color:0xe8368f, emissive:0xb01463, emissiveIntensity:.55, roughness:.25, metalness:.2}), halo = new THREE.MeshBasicMaterial({color:0xe8368f, transparent:true, opacity:.5, depthWrite:false, toneMapped:false, side:THREE.DoubleSide});
+      const geo = new THREE.OctahedronGeometry(.13), rg = new THREE.RingGeometry(.22, .3, 32);
+      const objs = picks.map((c, k) => { const g = new THREE.Group(), m = new THREE.Mesh(geo, gem), r = new THREE.Mesh(rg, halo); m.position.y = .95; m.scale.set(1, 1.35, 1); r.rotation.x = -Math.PI/2; r.position.y = .012; g.add(m); g.add(r);
+        g.position.set(c.x, 0, c.z); g.visible = !(got >> k & 1); scene.add(g); return {g, m, r}; });
+      const n = picks.length, count = () => { let c = 0; for (let k = 0; k < n; k++) if (got >> k & 1) c++; return c; };
+      const btn = evBtn(190, 'القطع المفقودة', '<svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"><path d="M12 3l7 9-7 9-7-9z"/><path d="M5 12h14"/></svg><i></i>');
+      const badge = btn.querySelector('i'), win = () => evBox('مبروك! جمعت كل القطع', PCFG.code ? 'هذا كود جائزتك:' : 'جمعت قطع اليوم كلها من أقسام الصيدلية.', String(PCFG.code || ''), evNote(PCFG));
+      const upd = () => { const c = count(); badge.textContent = c + '/' + n; btn.classList.toggle('done', c === n); };
+      upd();
+      btn.addEventListener('click', () => { btn.blur(); if (count() === n) return win();
+        const left = [...new Set(picks.filter((c, k) => !(got >> k & 1)).map(c => SEC[Z[c.zid].key].name))];
+        toast('جمعت ' + count() + ' من ' + n + ' · الباقي بين ممرات: ' + left.slice(0, 3).join('، ')); });
+      let ph = 0;
+      setInterval(() => { if (document.hidden || count() === n) return; ph += .3;
+        objs.forEach((o, k) => { if (got >> k & 1) return; o.m.rotation.y = ph; o.m.position.y = .95 + Math.sin(ph + k) * .05; const s = 1 + Math.sin(ph + k) * .12; o.r.scale.set(s, s, 1);
+          if (Math.hypot(camera.position.x - picks[k].x, camera.position.z - picks[k].z) < 1.25 && camera.position.y < 2.4){ got |= 1 << k; o.g.visible = false; store.set(KEY, EVDAY + ':' + got); upd(); try { sfx.add(); } catch(e){}
+            if (count() === n) win(); else toast('قطعة ' + count() + ' من ' + n + ' ✓'); } });
+      }, 110);
+      window.__pieces = {spots:picks.map(c => ({x:c.x, z:c.z, zone:Z[c.zid].key})), get got(){ return got; }};
+    }
+  }
+
+  // ---------- riddle of the day: read it, then walk to the department it speaks of and stand on its question mark ----------
+  const RCFG = CFG().riddle || {}, RLIST = (Array.isArray(RCFG.list) ? RCFG.list : []).filter(r => r && r.q && Z.some(z => z.key === r.zone));
+  if (RCFG.on === true && RLIST.length && SEG.length){
+    const rd = RLIST[Math.floor(Date.parse(EVDAY) / 864e5) % RLIST.length], marks = [];
+    Z.forEach(z => { const sg = SEG.filter(g => g.zid === z.id).sort((a, b) => b.zf - a.zf)[0]; if (!sg) return;
+      const xc = (sg.x0 + sg.x1) / 2, spot = [[xc, sg.zf + 2.3], [sg.x1 + 1.1, sg.zf - 1], [sg.x0 - 1.1, sg.zf - 1]].find(([x, z2]) => Math.abs(x) < Wx - .8 && z2 < zF - 2 && !blockedGround(x, z2));
+      if (spot) marks.push({key:z.key, x:spot[0], z:spot[1], t:0}); });
+    if (marks.some(m => m.key === rd.zone)){
+      const KEY = 'ib3d-riddle'; let solved = store.get(KEY, '') === EVDAY;
+      const qTex = canvasTex(128, 128, (x, W, Hh) => { x.clearRect(0, 0, W, Hh); x.fillStyle = '#3b1d36'; x.beginPath(); x.arc(W/2, Hh/2, 56, 0, 7); x.fill(); x.fillStyle = '#ffffff'; x.font = '800 86px Arial, sans-serif'; x.textAlign = 'center'; x.textBaseline = 'middle'; x.fillText('?', W/2, Hh/2 + 6); });
+      const qMat = new THREE.SpriteMaterial({map:qTex, transparent:true, depthWrite:false, toneMapped:false}), padMat = new THREE.MeshBasicMaterial({color:0x3b1d36, transparent:true, opacity:.4, depthWrite:false, toneMapped:false, side:THREE.DoubleSide}), padGeo = new THREE.RingGeometry(.3, .42, 36);
+      const grp = new THREE.Group(); marks.forEach(m => { const sp = new THREE.Sprite(qMat); sp.scale.set(.34, .34, 1); sp.position.set(m.x, 1.05, m.z); grp.add(sp); const pad = new THREE.Mesh(padGeo, padMat); pad.rotation.x = -Math.PI/2; pad.position.set(m.x, .012, m.z); grp.add(pad); });
+      grp.visible = !solved; scene.add(grp);
+      const btn = evBtn(244, 'لغز اليوم', '<svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 9a3 3 0 1 1 4.5 2.6c-.9.6-1.5 1.2-1.5 2.4"/><path d="M12 18h.01"/></svg>');
+      const win = () => evBox('إجابة صحيحة!', RCFG.code ? 'هذا كود جائزتك:' : 'حلّيت لغز اليوم: ' + SEC[rd.zone].name + '.', String(RCFG.code || ''), evNote(RCFG));
+      if (solved) btn.classList.add('done');
+      btn.addEventListener('click', () => { btn.blur(); if (solved) return win(); evBox('لغز اليوم', rd.q + '\n\nامشِ للقسم الصحيح وقف على علامة الاستفهام فيه.', '', ''); });
+      setInterval(() => { if (document.hidden || solved) return; const now = performance.now();
+        marks.forEach(m => { if (Math.hypot(camera.position.x - m.x, camera.position.z - m.z) > 1.1 || camera.position.y > 2.4) return;
+          if (m.key === rd.zone){ solved = true; store.set(KEY, EVDAY); grp.visible = false; btn.classList.add('done'); try { sfx.add(); } catch(e){} win(); }
+          else if (now - m.t > 6000){ m.t = now; toast('مش هذا القسم… اقرأ اللغز مرة ثانية'); } });
+      }, 140);
+      window.__riddle = {q:rd.q, zone:rd.zone, marks:marks.map(m => ({key:m.key, x:m.x, z:m.z}))};
     }
   }
 
@@ -2135,7 +2215,7 @@ function build(renderer){
     $('#pCta').href = sec.url; $('#pCta').textContent = 'تسوّق ' + sec.name + ' في المتجر ←';
     panel.hidden = false; panel.scrollTop = 0; document.body.classList.add('sheet'); markChip(sec.key);
     if (fromChip && chipEls[sec.key]) chipEls[sec.key].scrollIntoView({behavior: reduceMotion ? 'auto' : 'smooth', inline:'center', block:'nearest'});
-    if (sec.focus) flyTo(sec.focus.pos, sec.focus.target);
+    if (sec.focus) goSee(sec.focus.pos, sec.focus.target);
   }
   $('#pInfoB').onclick = () => { const o = $('#pInfo').classList.toggle('open'); $('#pInfoB').textContent = o ? 'إخفاء' : 'اقرأ المزيد'; };
   const infoMemo = new Map();
@@ -2230,7 +2310,7 @@ function build(renderer){
   function goToProduct(p){
     const pl = PLACE.get(p.id); if (!pl) return;
     const n = pl.normal.clone().setY(0).normalize(), pos = pl.pos.clone().addScaledVector(n, 1.7);
-    flyTo(pos, pl.pos); showProduct(p, pl.key);
+    goSee(pos, pl.pos); showProduct(p, pl.key);
     highlight.position.copy(pl.pos).addScaledVector(n, .06); highlight.lookAt(pl.pos.clone().add(n)); highlight.visible = true; highlight.userData.t0 = performance.now();
   }
 
@@ -2244,6 +2324,17 @@ function build(renderer){
     if (reduceMotion){ camera.position.copy(p1); view.yaw += dy; view.pitch = end.pitch; return; }
     const dist = camera.position.distanceTo(p1);
     flight = {p0:camera.position.clone(), p1, y0:view.yaw, dy, pt0:view.pitch, pt1:end.pitch, start:performance.now(), dur:Math.min(2600, 900 + dist*55)};
+  }
+  // go and look at something: straight there when nothing stands in the way, otherwise on foot round the shelves
+  // (never through them), a little faster than a stroll, turning to face it on arrival
+  function goSee(pos, target){
+    const p1 = pos.clone(); p1.y = EYE; clampV(p1);
+    if (blockedGround(p1.x, p1.z)){ const d = new THREE.Vector3(p1.x - target.x, 0, p1.z - target.z).normalize(); for (let i = 0; i < 10 && blockedGround(p1.x, p1.z); i++) p1.addScaledVector(d, .3); }
+    const cx = camera.position.x, cz = camera.position.z;
+    if (reduceMotion || (droneMode && alt > 2.6) || clearLine(cx, cz, p1.x, p1.z)) return flyTo(p1, target);
+    let path = null; try { path = findPath(cx, cz, p1.x, p1.z); } catch(e){ path = null; }
+    if (!path || !path.length) return flyTo(p1, target);
+    const end = path[path.length - 1]; goal = {path, i:0, stuck:0, x:end.x, z:end.z, face:target.clone(), fast:true}; flight = null; hideHint();
   }
   const clampV = v => { v.x = Math.max(-Wx+.45, Math.min(Wx-.45, v.x)); v.z = Math.max(zB+.45, Math.min(zF-.45, v.z)); };
 
@@ -2541,9 +2632,9 @@ function build(renderer){
       if (gd < (last ? .2 : .45)){ if (last){ const f = goal.face; endGoal(); if (f) flyTo(camera.position.clone(), f); } else goal.i++; }
       else if (goal.stuck > .6){ const f = goal.face, near = f && Math.hypot(f.x - camera.position.x, f.z - camera.position.z) < 2.6; endGoal(); if (near) flyTo(camera.position.clone(), f); }
       else {
-        const rem = last ? gd : gd + 2, gs = Math.min(droneMode ? 4.3 : 3.1, rem * 2.4 + .45); tx = gx/gd*gs; tz = gz/gd*gs; driving = true;
+        const rem = last ? gd : gd + 2, gs = Math.min(goal.fast ? 6.4 : droneMode ? 4.3 : 3.1, rem * 2.4 + .45); tx = gx/gd*gs; tz = gz/gd*gs; driving = true;
         // face the way we walk (unless a finger is busy looking around)
-        if (!lookers.size && gd > .9){ const want = Math.atan2(-gx, -gz), dy = ((want - view.yaw + Math.PI*3) % (Math.PI*2)) - Math.PI; view.yaw += dy * Math.min(1, dt * 3.2); }
+        if (!lookers.size && gd > .9){ const want = Math.atan2(-gx, -gz), dy = ((want - view.yaw + Math.PI*3) % (Math.PI*2)) - Math.PI; view.yaw += dy * Math.min(1, dt * (goal.fast ? 5 : 3.2)); }
         goalRing.scale.setScalar(1 + .12 * Math.sin(performance.now() / 160));
       }
     }

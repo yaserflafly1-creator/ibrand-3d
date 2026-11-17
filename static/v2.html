@@ -1970,7 +1970,7 @@ function build(renderer){
     $('#pCta').href = sec.url; $('#pCta').textContent = 'تسوّق ' + sec.name + ' في المتجر ←';
     panel.hidden = false; panel.scrollTop = 0; document.body.classList.add('sheet'); markChip(sec.key);
     if (fromChip && chipEls[sec.key]) chipEls[sec.key].scrollIntoView({behavior: reduceMotion ? 'auto' : 'smooth', inline:'center', block:'nearest'});
-    if (sec.focus) flyTo(sec.focus.pos, sec.focus.target);
+    if (sec.focus) goSee(sec.focus.pos, sec.focus.target);
   }
   $('#pInfoB').onclick = () => { const o = $('#pInfo').classList.toggle('open'); $('#pInfoB').textContent = o ? 'إخفاء' : 'اقرأ المزيد'; };
   const infoMemo = new Map();
@@ -2065,7 +2065,7 @@ function build(renderer){
   function goToProduct(p){
     const pl = PLACE.get(p.id); if (!pl) return;
     const n = pl.normal.clone().setY(0).normalize(), pos = pl.pos.clone().addScaledVector(n, 1.7);
-    flyTo(pos, pl.pos); showProduct(p, pl.key);
+    goSee(pos, pl.pos); showProduct(p, pl.key);
     highlight.position.copy(pl.pos).addScaledVector(n, .06); highlight.lookAt(pl.pos.clone().add(n)); highlight.visible = true; highlight.userData.t0 = performance.now();
   }
 
@@ -2079,6 +2079,17 @@ function build(renderer){
     if (reduceMotion){ camera.position.copy(p1); view.yaw += dy; view.pitch = end.pitch; return; }
     const dist = camera.position.distanceTo(p1);
     flight = {p0:camera.position.clone(), p1, y0:view.yaw, dy, pt0:view.pitch, pt1:end.pitch, start:performance.now(), dur:Math.min(2600, 900 + dist*55)};
+  }
+  // go and look at something: straight there when nothing stands in the way, otherwise on foot round the shelves
+  // (never through them), a little faster than a stroll, turning to face it on arrival
+  function goSee(pos, target){
+    const p1 = pos.clone(); p1.y = EYE; clampV(p1);
+    if (blockedGround(p1.x, p1.z)){ const d = new THREE.Vector3(p1.x - target.x, 0, p1.z - target.z).normalize(); for (let i = 0; i < 10 && blockedGround(p1.x, p1.z); i++) p1.addScaledVector(d, .3); }
+    const cx = camera.position.x, cz = camera.position.z;
+    if (reduceMotion || (droneMode && alt > 2.6) || clearLine(cx, cz, p1.x, p1.z)) return flyTo(p1, target);
+    let path = null; try { path = findPath(cx, cz, p1.x, p1.z); } catch(e){ path = null; }
+    if (!path || !path.length) return flyTo(p1, target);
+    const end = path[path.length - 1]; goal = {path, i:0, stuck:0, x:end.x, z:end.z, face:target.clone(), fast:true}; flight = null; hideHint();
   }
   const clampV = v => { v.x = Math.max(-Wx+.45, Math.min(Wx-.45, v.x)); v.z = Math.max(zB+.45, Math.min(zF-.45, v.z)); };
 
@@ -2376,9 +2387,9 @@ function build(renderer){
       if (gd < (last ? .2 : .45)){ if (last){ const f = goal.face; endGoal(); if (f) flyTo(camera.position.clone(), f); } else goal.i++; }
       else if (goal.stuck > .6){ const f = goal.face, near = f && Math.hypot(f.x - camera.position.x, f.z - camera.position.z) < 2.6; endGoal(); if (near) flyTo(camera.position.clone(), f); }
       else {
-        const rem = last ? gd : gd + 2, gs = Math.min(droneMode ? 4.3 : 3.1, rem * 2.4 + .45); tx = gx/gd*gs; tz = gz/gd*gs; driving = true;
+        const rem = last ? gd : gd + 2, gs = Math.min(goal.fast ? 6.4 : droneMode ? 4.3 : 3.1, rem * 2.4 + .45); tx = gx/gd*gs; tz = gz/gd*gs; driving = true;
         // face the way we walk (unless a finger is busy looking around)
-        if (!lookers.size && gd > .9){ const want = Math.atan2(-gx, -gz), dy = ((want - view.yaw + Math.PI*3) % (Math.PI*2)) - Math.PI; view.yaw += dy * Math.min(1, dt * 3.2); }
+        if (!lookers.size && gd > .9){ const want = Math.atan2(-gx, -gz), dy = ((want - view.yaw + Math.PI*3) % (Math.PI*2)) - Math.PI; view.yaw += dy * Math.min(1, dt * (goal.fast ? 5 : 3.2)); }
         goalRing.scale.setScalar(1 + .12 * Math.sin(performance.now() / 160));
       }
     }
