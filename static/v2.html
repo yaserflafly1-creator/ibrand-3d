@@ -746,7 +746,11 @@ function build(renderer){
   function prefetchAtlas(){
     // warms the browser cache so photos are already there when you walk up: always the nearest shelves first,
     // medium pages for the whole store, full and HD pages only within reach of where the shopper is now
-    const got = new Set(), R1 = isSmall ? 16 : 34, R2 = isSmall ? 9 : 16, lite = navigator.connection && navigator.connection.saveData;
+    // …but not at the shopper's expense: on a phone only what is around them is fetched ahead (the whole store ahead of time
+    // was tens of megabytes in the first minute), and on mobile data or with data-saver on, less still. What they walk up
+    // to is always loaded when they get there, whatever was or was not fetched ahead.
+    const nc = navigator.connection || {}, cell = nc.type === 'cellular' || /(^|-)(2g|3g)$/.test(nc.effectiveType || ''), lite = !!nc.saveData || cell;
+    const got = new Set(), R0 = lite ? 12 : (isSmall ? 20 : 1e9), R1 = isSmall ? 6 : 34, R2 = isSmall ? 0 : 16;
     const skip = k => window.__skipAtlas && window.__skipAtlas.has(k);
     const next = () => {
       if (document.hidden){ setTimeout(next, 4000); return; }
@@ -756,7 +760,7 @@ function build(renderer){
         const sd = DATA.sections[pm.key], pg = sd && sd.pages && sd.pages[pm.pg]; if (!pg) continue;
         const d = Math.max(0, pm.center.distanceTo(c) - pm.radius);
         const m = sd.pagesM && sd.pagesM[pm.pg], hd = pg.hd && pg.hd[pm.q], h = hd && (pm.h ? hd.b : hd.a);
-        if (m && !got.has(m) && d < bs){ bs = d; best = m; }
+        if (m && d < R0 && !got.has(m) && d < bs){ bs = d; best = m; }
         if (!lite && d < R1 && !got.has(pg.src) && d + 5 < bs){ bs = d + 5; best = pg.src; }
         if (!lite && h && d < R2 && !got.has(h) && d + 9 < bs){ bs = d + 9; best = h; }
       }
