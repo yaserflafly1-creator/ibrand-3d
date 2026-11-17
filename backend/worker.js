@@ -40,7 +40,8 @@ async function sallaToken(env){
   let r; try { r = await (env.VAULT ? env.VAULT.fetch(q) : fetch(q)); } catch(e){ return {error:'تعذّر الوصول لخزنة المفاتيح', status:502}; }
   if (r.status === 409) return {error:'ربط سلة يحتاج إعادة تثبيت التطبيق في المتجر', status:409};
   // tell enough to compare with the saved key without showing it: its length and its two ends
-  if (r.status === 401) return {error:'الخزنة رفضت المفتاح المحفوظ في VAULT_KEY. طوله ' + key.length + ' حرف، أوله «' + key[0] + '» وآخره «' + key[key.length - 1] + '». قارنه بالمفتاح في مدير كلمات المرور.', status:502};
+  if (r.status === 401){ const said = (await r.text().catch(() => '')).replace(/\s+/g, ' ').slice(0, 90);
+    return {error:'الخزنة رفضت المفتاح المحفوظ في VAULT_KEY. طوله ' + key.length + ' حرف (قبل التنظيف ' + String(env.VAULT_KEY).length + ')، أوله «' + key[0] + '» وآخره «' + key[key.length - 1] + '». الطريق: ' + (env.VAULT ? 'ربط VAULT' : 'الرابط العام') + '. رد الخزنة: ' + said, status:502}; }
   if (r.status === 404) return {error:'الخزنة لا تعرف التطبيق أو لم يصلها مفتاح من سلة بعد', status:502};
   if (r.status === 429 || r.status === 503) return {error:'خزنة المفاتيح مشغولة الآن، حاول بعد دقيقة', status:503};
   if (!r.ok) return {error:'خزنة المفاتيح رفضت الطلب (' + r.status + ')', status:502};
