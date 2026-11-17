@@ -1336,10 +1336,13 @@ function build(renderer){
         // a fixture with none of its own range in the online store (the prescription wall, a brand not sold online) shows the department's range
         const rep = list.length ? list : own.length ? own : (z.pool || []); let g = 0, j = own.length || !z.pool ? 0 : (fx._po + k*17) % Math.max(1, z.pool.length), more = fin, miss = 0;
         const cats = new Set(); list.forEach(o => { if (o.c >= 0) cats.add(PGD.names[o.c]); });
+        // one family to a shelf: spare room on a shelf goes to waiting products of the kind already on it (oral care beside
+        // oral care, skin care beside skin care); an empty shelf takes the kind of the first one put on it
+        const fam = new Set(); list.forEach(o => { if (o.p._s) fam.add(o.p._s[0]); });
         let strict = true;
         const next = () => {
           if (strict){ for (const p of z.left){ if (tk.has(p)) continue; const cn = CATN[p._s[1]]; if ((cn && cats.has(cn)) || (fb && normB(p.brand) === fb)) return p; } strict = false; }
-          if (z.loose) for (const p of z.left){ if (tk.has(p)) continue;
+          if (z.loose) for (const p of z.left){ if (tk.has(p) || (!z.mix && fam.size && !fam.has(p._s[0]))) continue;
             if (z.loose === 4 || (z.loose === 3 && !fx.b) || (!z.home.has(p) && (z.loose === 2 || !fx.b))) return p; }
           return null; };
         while (g++ < 260){
@@ -1347,7 +1350,7 @@ function build(renderer){
           if (more){ const p = next(); if (p){ o = {p, c:-1}; extra = true; } else more = false; }
           if (!o){ if (rep.length) o = rep[j++ % rep.length]; else break; }
           if (!put(o, extra)){ if (extra || ++miss > 3) break; continue; }   // too wide for what is left: try the next few before giving the shelf up
-          if (extra) tk.add(o.p); if (!o.sw) x += .009 + Math.random()*.008;
+          if (extra){ tk.add(o.p); if (!fam.size) fam.add(o.p._s[0]); } if (!o.sw) x += .009 + Math.random()*.008;
         }
       }
       return {bays, dropped:carry.length, tk, carry};
@@ -1388,12 +1391,14 @@ function build(renderer){
         z.home = new Set(z.left.filter(homed)); fxs.forEach(fx => { fx._bays = pgBays(fx, nOf(fx), GOf(fx), z, 1); }); z.lim = lim.concat(loose); return !z.left.length; };
       // 0: only its own category's shelf or its brand's stand · 1: one with no such shelf may use a shared shelf · 2: or any stand
       // 3: shared shelves take whatever of the department is still waiting · 4: so does every stand. Facings are cut before packs are made smaller.
-      const F3 = [[4, 1], [2, 1], [1, 1]]; let ok = false;
+      const F3 = [[4, 1], [2, 1], [1, 1]]; let ok = false; z.mix = false;
       for (const lim of F3){ for (let lv = 0; lv < 3 && !ok; lv++) ok = attempt(lim, lv); if (ok) break; }
       for (let lv = 3; lv < 5 && !ok; lv++) for (const lim of F3){ if ((ok = attempt(lim, lv))) break; }
+      // only when the department cannot seat everything that way may a shelf carry more than one family, and only after that are packs made smaller
+      if (!ok){ z.mix = true; for (const lim of F3){ if ((ok = attempt(lim, 4))) break; } }
       if (!ok) for (const lim of [[1, .9], [1, .82], [1, .74], [1, .66], [1, .58], [1, .5]]){ if ((ok = attempt(lim, 4))) break; }
     });
-    window.__pgStats.byZone = Z.map(z => z.key + ' ' + z.lim.join('/') + ' left ' + z.left.length);
+    window.__pgStats.byZone = Z.map(z => z.key + ' ' + z.lim.join('/') + (z.mix ? ' mixed' : '') + ' left ' + z.left.length);
     order.forEach(fx => {
       const zid = zidOf(fx.z), z = Z[zid], G = fx.w ? GWALL : GONDOLA;
       const mods = modsOf(fx), bays = fx._bays; let o = 0;
