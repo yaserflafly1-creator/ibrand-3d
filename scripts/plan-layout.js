@@ -98,10 +98,12 @@
         // a product the planogram gives a width to takes exactly that much of the shelf (so a shelf holds what the planogram
         // says it holds); its pack is drawn as large as fits inside that slot
         const slot = o => { const b = szOf(o.p)(o.p, sh.maxH, 1); let w0 = b[0], h0 = b[1], turn = false;
-          let k = Math.max(.3, Math.min(1.5, (o.sw - .004) / w0, sh.maxH / h0));
+          // never drawn smaller than KMIN of its real size (a pack shrunk to fit a too-narrow place reads as a toy): where the
+          // planogram's width is tighter than that, the pack takes the room it needs and the shelf holds a little less
+          const KMIN = .62; let k = Math.max(Math.min(KMIN, sh.maxH / h0), Math.min(1.5, (o.sw - .004) / w0, sh.maxH / h0));
           // a long carton (toothpaste, a tube in its box) given a narrow place stands on its end there, as it does on the
           // real shelf, instead of lying across its neighbours
-          if (w0 > h0 * 1.3 && (o.sw - .004) / w0 < .6){ const k2 = Math.min(1.5, (o.sw - .004) / h0, sh.maxH / w0); if (k2 > k * 1.15){ k = Math.max(.3, k2); turn = true; w0 = b[1]; h0 = b[0]; } }
+          if (w0 > h0 * 1.3 && (o.sw - .004) / w0 < .6){ const k2 = Math.min(1.5, (o.sw - .004) / h0, sh.maxH / w0); if (k2 > k * 1.15 || (o.sw - .004) / w0 < KMIN * .8){ k = Math.max(Math.min(KMIN, sh.maxH / w0), k2); turn = true; w0 = b[1]; h0 = b[0]; } }
           const w = w0*k, sw = Math.max(o.sw, w + .004);   // never narrower than the pack drawn in it: packs do not overlap
           let bi = Math.floor((x + 1e-6) / BW);
           if (x + sw > (bi + 1)*BW + .003){ bi++; x = bi*BW; }

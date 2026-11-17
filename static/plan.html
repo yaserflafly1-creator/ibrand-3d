@@ -1304,10 +1304,12 @@ function build(renderer){
         // a product the planogram gives a width to takes exactly that much of the shelf (so a shelf holds what the planogram
         // says it holds); its pack is drawn as large as fits inside that slot
         const slot = o => { const b = szOf(o.p)(o.p, sh.maxH, 1); let w0 = b[0], h0 = b[1], turn = false;
-          let k = Math.max(.3, Math.min(1.5, (o.sw - .004) / w0, sh.maxH / h0));
+          // never drawn smaller than KMIN of its real size (a pack shrunk to fit a too-narrow place reads as a toy): where the
+          // planogram's width is tighter than that, the pack takes the room it needs and the shelf holds a little less
+          const KMIN = .62; let k = Math.max(Math.min(KMIN, sh.maxH / h0), Math.min(1.5, (o.sw - .004) / w0, sh.maxH / h0));
           // a long carton (toothpaste, a tube in its box) given a narrow place stands on its end there, as it does on the
           // real shelf, instead of lying across its neighbours
-          if (w0 > h0 * 1.3 && (o.sw - .004) / w0 < .6){ const k2 = Math.min(1.5, (o.sw - .004) / h0, sh.maxH / w0); if (k2 > k * 1.15){ k = Math.max(.3, k2); turn = true; w0 = b[1]; h0 = b[0]; } }
+          if (w0 > h0 * 1.3 && (o.sw - .004) / w0 < .6){ const k2 = Math.min(1.5, (o.sw - .004) / h0, sh.maxH / w0); if (k2 > k * 1.15 || (o.sw - .004) / w0 < KMIN * .8){ k = Math.max(Math.min(KMIN, sh.maxH / w0), k2); turn = true; w0 = b[1]; h0 = b[0]; } }
           const w = w0*k, sw = Math.max(o.sw, w + .004);   // never narrower than the pack drawn in it: packs do not overlap
           let bi = Math.floor((x + 1e-6) / BW);
           if (x + sw > (bi + 1)*BW + .003){ bi++; x = bi*BW; }
@@ -2522,6 +2524,8 @@ function build(renderer){
     const mdx = e.clientX - Lk.x, mdy = e.clientY - Lk.y, touch = e.pointerType !== 'mouse';
     const dy = -mdx * sens, dp = touch ? (Math.abs(mdx) > Math.abs(mdy) * 1.4 ? 0 : -mdy * sens * .3) : -mdy * sens * .8;
     view.yaw += dy; view.pitch = clampPitch(view.pitch + dp);
+    // …and a sideways swipe levels the view as it turns (about a quarter turn brings it fully level)
+    if (touch && dp === 0) view.pitch += (0 - view.pitch) * Math.min(1, Math.abs(dy) * 1.1);
     // remember the flick speed so the view keeps gliding after the finger lifts (game feel)
     if (e.pointerType !== 'mouse'){
       const nowT = performance.now(), dtm = Math.max(8, nowT - (Lk.t || nowT - 16));
@@ -2650,6 +2654,8 @@ function build(renderer){
     const jx = Math.abs(joy.x) < .16 ? 0 : Math.sign(joy.x) * Math.pow((Math.abs(joy.x) - .16) / .84, 1.25);
     let mv = joy.y + keys.f - keys.b, st = keys.sr - keys.sl;
     const turn = keys.tl - keys.tr - jx * 1.15; if (turn) view.yaw += turn * 1.9 * dt;
+    // turning with the stick or the keys brings the view back level: a turn sweeps along the shelves, not across the floor or ceiling
+    if (turn && !lookers.size) view.pitch += (0 - view.pitch) * Math.min(1, Math.abs(turn) * 2.6 * dt);
     let len = Math.hypot(mv, st);
     if (len > 1){ mv /= len; st /= len; len = 1; }
     const fx = -Math.sin(view.yaw), fz = -Math.cos(view.yaw), rx = Math.cos(view.yaw), rz = -Math.sin(view.yaw);
