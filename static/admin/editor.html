@@ -1142,6 +1142,7 @@ async function processImage(src,op,name){ // src: File|url ; op: undefined|'rot'
   }
   return storeCanvas(c,name);
 }
+window.PG_HOOK={items:()=>{const o=[];for(const k in S.fx)(S.fx[k].it||[]).forEach((it,ix)=>o.push([k,ix,it]));return o},openImg:(k,ix)=>imgDlg(k,ix)};
 function imgDlg(fid,ix,preFile){
   const f=S.fx[fid];if(!f)return;const it=f.it[ix];if(!it)return;const name=it[1];
   const had=!!S.img[name];

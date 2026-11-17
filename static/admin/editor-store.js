@@ -93,6 +93,53 @@
       }).catch(function(){ why = 'تعذّر الوصول للخادم'; b.textContent = '🛒 سلة: تعذّر الفحص'; b.title = why; }); };
     b.onclick = function(){ alert(why || 'جاري الفحص…'); check(); }; document.body.appendChild(b); check(); }
   ready.then(function(){ if (document.body) sallaSign(); else addEventListener('DOMContentLoaded', sallaSign); }).catch(function(){});
+  // ---- pictures worth replacing: the hourly build looks at every store photo; this lists its findings ----
+  var FLAG = {s:'المنتج صغير في الصورة', b:'المنتج مالي الصورة للحافة', l:'صورة صغيرة (مغبّشة)', g:'الخلفية مش بيضاء', w:'شعار أو علامة في الصورة'};
+  var FIXED = {}; try { FIXED = JSON.parse(localStorage.getItem('ib3d-photo-fixed') || '{}'); } catch(e){}
+  var markFixed = function(id){ FIXED[id] = 1; try { localStorage.setItem('ib3d-photo-fixed', JSON.stringify(FIXED)); } catch(e){} };
+  var esc = function(x){ return String(x == null ? '' : x).replace(/[&<>"']/g, function(c){ return '&#' + c.charCodeAt(0) + ';'; }); };
+  async function photoList(){
+    var au = await fetch('../data/photo-audit.json', {cache:'no-cache'}).then(function(r){ return r.ok ? r.json() : null; }).catch(function(){ return null; });
+    if (!au) return null;
+    var map = await getMap(), by = await getProducts(), where = {};
+    ((window.PG_HOOK && window.PG_HOOK.items()) || []).forEach(function(e){ var it = e[2], id = it[8] ? String(it[8]) : null;
+      if (!id){ var c = (map.ids[String(it[1]).trim().slice(0, 48)] || []).filter(function(q){ return by[q[0]]; }), b = String(it[2] || '').toLowerCase(), pk = c.find(function(q){ return q[1] === b; }) || (c.length === 1 ? c[0] : null); id = pk ? pk[0] : null; }
+      if (id && !where[id]) where[id] = [e[0], e[1]]; });
+    var rows = []; Object.keys(au.bad || {}).forEach(function(id){ var q = by[id], v = au.bad[id]; if (!q || FIXED[id] || q.img.slice(-24) !== v[1]) return; rows.push({id:id, name:q.name || '', img:q.img, f:v[0], at:where[id] || null}); });
+    rows.sort(function(a, b){ return (b.at ? 1 : 0) - (a.at ? 1 : 0) || b.f.length - a.f.length || a.name.localeCompare(b.name, 'ar'); });
+    return {rows:rows, total:au.total, checked:au.checked};
+  }
+  function photoPanel(){
+    var old = document.getElementById('phPanel'); if (old){ old.remove(); return; }
+    var box = document.createElement('div'); box.id = 'phPanel'; box.dir = 'rtl';
+    box.style.cssText = 'position:fixed;inset:0;z-index:60;background:rgba(20,30,40,.45);display:flex;justify-content:center;align-items:flex-start;padding:24px 12px;font:13px/1.5 Tahoma,Arial,sans-serif';
+    box.innerHTML = '<div style="background:#fff;border-radius:14px;width:min(760px,100%);max-height:calc(100vh - 48px);display:flex;flex-direction:column;box-shadow:0 12px 40px rgba(0,0,0,.3)">' +
+      '<div style="display:flex;align-items:center;gap:10px;padding:12px 16px;border-bottom:1px solid #e0e6ea"><b style="font-size:15px">🖼 صور تحتاج تعديل</b><span id="phN" style="color:#607d8b"></span><button id="phX" type="button" style="margin-inline-start:auto;border:1px solid #cfd8dc;background:#fff;border-radius:8px;padding:4px 10px;cursor:pointer">إغلاق</button></div>' +
+      '<div id="phF" style="display:flex;flex-wrap:wrap;gap:6px;padding:10px 16px;border-bottom:1px solid #eef2f4"></div><div id="phL" style="overflow:auto;padding:6px 10px 12px">⏳ جاري التحميل…</div></div>';
+    document.body.appendChild(box);
+    box.addEventListener('click', function(e){ if (e.target === box) box.remove(); }); box.querySelector('#phX').onclick = function(){ box.remove(); };
+    var L = box.querySelector('#phL'), F = box.querySelector('#phF'), on = {}, shown = 150, data = null;
+    var draw = function(){ var act = Object.keys(on).filter(function(k){ return on[k]; }), rows = data.rows.filter(function(r){ return !act.length || act.some(function(k){ return r.f.indexOf(k) >= 0; }); });
+      box.querySelector('#phN').textContent = rows.length + ' صورة' + (data.checked < data.total ? ' · اتفحص ' + data.checked + ' من ' + data.total + ' لحد دلوقتي' : '');
+      F.innerHTML = Object.keys(FLAG).map(function(k){ var n = data.rows.filter(function(r){ return r.f.indexOf(k) >= 0; }).length; return '<button type="button" data-k="' + k + '" style="border:1px solid ' + (on[k] ? '#1565c0' : '#cfd8dc') + ';background:' + (on[k] ? '#e3f2fd' : '#fff') + ';color:#263238;border-radius:999px;padding:5px 11px;cursor:pointer;font:inherit">' + FLAG[k] + ' · ' + n + '</button>'; }).join('');
+      L.innerHTML = rows.length ? rows.slice(0, shown).map(function(r){ return '<div style="display:flex;gap:10px;align-items:center;padding:7px 6px;border-bottom:1px solid #f0f3f5">' +
+        '<img src="' + esc(r.img) + '" loading="lazy" width="56" height="56" style="flex:none;object-fit:contain;border:1px solid #e0e6ea;border-radius:8px;background:#fff">' +
+        '<div style="min-width:0;flex:1"><div style="font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">' + esc(r.name) + '</div><div style="color:#b26a00;font-size:12px">' + r.f.split('').map(function(k){ return FLAG[k]; }).join(' · ') + '</div></div>' +
+        (r.at ? '<button type="button" data-open="' + r.id + '" style="flex:none;border:0;background:#1565c0;color:#fff;border-radius:8px;padding:6px 12px;cursor:pointer;font:inherit">تعديل الصورة</button>'
+              : '<a href="https://s.salla.sa/products/' + r.id + '" target="_blank" rel="noopener" style="flex:none;color:#1565c0;font-size:12px">مش على رف · افتحه في سلة</a>') + '</div>'; }).join('') +
+        (rows.length > shown ? '<div style="text-align:center;padding:12px"><button type="button" id="phMore" style="border:1px solid #cfd8dc;background:#fff;border-radius:8px;padding:6px 16px;cursor:pointer;font:inherit">عرض المزيد (' + (rows.length - shown) + ')</button></div>' : '')
+        : '<div style="padding:24px;text-align:center;color:#607d8b">مفيش صور في القائمة دي.</div>';
+      var more = L.querySelector('#phMore'); if (more) more.onclick = function(){ shown += 300; draw(); }; };
+    F.onclick = function(e){ var b = e.target.closest('[data-k]'); if (b && data){ on[b.dataset.k] = !on[b.dataset.k]; shown = 150; draw(); } };
+    L.onclick = function(e){ var b = e.target.closest('[data-open]'); if (!b || !data) return; var r = data.rows.find(function(x){ return x.id === b.dataset.open; }); if (r && r.at && window.PG_HOOK){ box.remove(); window.PG_HOOK.openImg(r.at[0], r.at[1]); } };
+    photoList().then(function(d){ if (!d){ L.innerHTML = '<div style="padding:24px;text-align:center;color:#607d8b">الفحص لسه ما اشتغلش. بيتعمل تلقائي مع تحديث المتجر كل ساعة، جرّب بعد شوية.</div>'; return; } data = d; draw(); })
+      .catch(function(){ L.innerHTML = '<div style="padding:24px;text-align:center;color:#b71c1c">تعذّر تحميل القائمة.</div>'; });
+  }
+  function photoButton(){ var b = document.createElement('button'); b.type = 'button'; b.textContent = '🖼 صور تحتاج تعديل';
+    b.style.cssText = 'position:fixed;left:326px;bottom:12px;z-index:50;font:600 12px/1 Tahoma,Arial,sans-serif;padding:8px 12px;border-radius:999px;border:1px solid #ffb74d;background:#fff8e1;color:#e65100;cursor:pointer';
+    b.onclick = photoPanel; document.body.appendChild(b); }
+  ready.then(function(){ if (document.body) photoButton(); else addEventListener('DOMContentLoaded', photoButton); }).catch(function(){});
+
   window.PG_STORE = {
     name:'ibrand-3d', online:true,
     init:function(){ return ready.then(function(){ return true; }); },
@@ -161,6 +208,7 @@
         var blob = await new Promise(function(r){ sq.toBlob(r, 'image/jpeg', .92); });
         var r = await call('/salla/image/' + p.id, {method:'POST', headers:{'content-type':'image/jpeg'}, body:blob}), d = await r.json().catch(function(){ return null; });
         if (!r.ok || !d || !d.ok) throw fail(r, d);
+        markFixed(String(p.id));
         say('✅ اتنشرت في سلة — هتظهر في الصيدلية خلال ساعة');
       } catch(e){ say('تعذّر النشر في سلة: ' + (e && e.message || e)); }
     },
