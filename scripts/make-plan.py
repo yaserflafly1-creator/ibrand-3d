@@ -175,7 +175,7 @@ rep('<button class="goCart" id="goCart"',
     '<button class="steps" id="steps" type="button" aria-label="عداد الخطوات والمكافآت"><span class="s-row"><span>👣</span><b id="stN">0</b><small>خطوة</small><i class="s-sep"></i><span>⏱</span><b id="stT">0:00</b><span id="stM"></span></span><span class="s-bar"><i id="stB"></i></span><small id="stL"></small></button>\n'
     '<button class="goCart" id="goCart"')
 rep('.aisles{position:fixed;',
-    '.steps{position:fixed;z-index:6;top:calc(env(safe-area-inset-top,0px) + 66px);left:50%;transform:translateX(-50%);display:flex;flex-direction:column;align-items:center;gap:4px;padding:7px 14px 8px;border-radius:16px;border:1px solid var(--line);background:rgba(255,255,255,.93);box-shadow:0 8px 22px rgba(59,29,54,.14);font-family:inherit;color:var(--plum,#3b1d36);cursor:pointer;min-width:190px}\n'
+    '.steps{position:fixed;z-index:6;top:calc(env(safe-area-inset-top,0px) + 102px);left:50%;transform:translateX(-50%);display:flex;flex-direction:column;align-items:center;gap:4px;padding:7px 14px 8px;border-radius:16px;border:1px solid var(--line);background:rgba(255,255,255,.93);box-shadow:0 8px 22px rgba(59,29,54,.14);font-family:inherit;color:var(--plum,#3b1d36);cursor:pointer;min-width:190px}\n'
     '.steps .s-row{display:flex;align-items:center;gap:6px;font-size:14px;direction:rtl}\n'
     '.steps b{font-weight:800;font-variant-numeric:tabular-nums}\n'
     '.steps small{font-size:11.5px;color:var(--muted)}\n'

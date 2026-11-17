@@ -52,6 +52,11 @@ button{font-family:var(--font)}
 .hint.gone{opacity:0}
 #mini{position:fixed;z-index:5;top:calc(env(safe-area-inset-top,0px) + 78px);right:max(16px, env(safe-area-inset-right,0px));border:1px solid var(--line);border-radius:14px;box-shadow:0 10px 26px rgba(59,29,54,.18);background:#fff;cursor:pointer;touch-action:none}
 .sndBtn{position:fixed;z-index:5;right:max(18px, env(safe-area-inset-right,0px));bottom:calc(env(safe-area-inset-bottom,0px) + 82px + var(--lift, 0px));width:46px;height:46px;border-radius:50%;border:1px solid var(--line);background:rgba(255,255,255,.92);color:var(--plum);display:flex;align-items:center;justify-content:center;cursor:pointer;box-shadow:0 6px 16px rgba(59,29,54,.14)}
+/* whose stock the shopper is looking at: always in view, one tap to choose or change the branch */
+.brPill{position:fixed;z-index:6;top:calc(env(safe-area-inset-top,0px) + 64px);left:50%;transform:translateX(-50%);max-width:calc(100vw - 24px);display:flex;align-items:center;gap:6px;padding:6px 13px;border-radius:999px;border:1px solid var(--line);background:rgba(255,255,255,.95);color:var(--plum);font:700 12.5px var(--font);cursor:pointer;box-shadow:0 6px 16px rgba(59,29,54,.12);white-space:nowrap}
+.brPill span{overflow:hidden;text-overflow:ellipsis} .brPill i{font-style:normal;color:var(--pink);font-weight:800;flex:none}
+.brPill.none{background:var(--pink);color:#fff;border-color:transparent} .brPill.none i{color:#fff}
+body.sheet .brPill{display:none}
 .sndBtn[aria-pressed="false"]{color:var(--muted)} .sndBtn[aria-pressed="false"] .wave{display:none} .sndBtn[aria-pressed="true"] .off{display:none}
 body.sheet .sndBtn{display:none}
 @media (max-width:640px){
@@ -309,6 +314,7 @@ body.sheet .altBtns{display:none}
 <div class="tip" id="tip" hidden></div>
 <div class="toast" id="toast" hidden></div>
 <canvas id="mini" hidden aria-label="خريطة الصيدلية: اضغط على مكان لتمشي إليه"></canvas>
+<button class="brPill none" id="brPill" type="button" aria-label="فرع التسوق"></button>
 <button class="sndBtn" id="sndBtn" type="button" aria-pressed="true" aria-label="تشغيل أو كتم الصوت"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 9v6h4l5 4V5L8 9H4z"/><path class="wave" d="M16.5 8.5a5 5 0 0 1 0 7M19 6a8.5 8.5 0 0 1 0 12"/><path class="off" d="M17 9l5 6M22 9l-5 6"/></svg></button>
 <button class="joyBtn" id="joyBtn" type="button" aria-pressed="false" aria-label="إظهار أو إخفاء عصا التحرك"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M12 2v4M12 18v4M2 12h4M18 12h4"/></svg></button>
 <div class="joy" id="joy" aria-label="عصا التحرك: اسحبها للمشي"><div class="knob"></div><small>تحرّك</small></div>
@@ -1868,6 +1874,11 @@ function build(renderer){
     saveCart(); if (a){ announceAlloc(); checkCart(); } else toast('تعرض الآن كل المنتجات دون تحديد فرع');
     if (current && !panel.hidden) showProduct(current, curKey);
   }
+  function paintBranch(){ const b = $('#brPill'); if (!b) return; b.textContent = ''; b.classList.toggle('none', !ALLOC);
+    const t = document.createElement('span'), c = document.createElement('i');
+    t.textContent = !ALLOC ? '📍 اختر فرعك لتعرف المتوفر فيه' : ALLOC.type === 'address' ? '📍 تتسوق من مخزون الأقرب لعنوانك' : '📍 تتسوق من: ' + (branchName ? 'فرع ' + branchName : 'فرعك المحدد');
+    c.textContent = ALLOC ? 'تغيير' : 'اختر'; b.appendChild(t); b.appendChild(c); b.onclick = openBranches; }
+  paintBranch();
   async function openBranches(){
     closeAll(); const box = $('#branch'), list = $('#bres'), q = $('#bq'); box.hidden = false; q.value = ''; list.innerHTML = '<div class="none">جارٍ تحميل الفروع…</div>';
     const all = await branches();
@@ -1910,7 +1921,7 @@ function build(renderer){
     if (!cartCount()){ toast('سلتك فاضية، أضف منتجات من الرفوف'); return; } window.open(checkoutUrl(), '_blank', 'noopener'); toast('فتحنا سلتك في المتجر'); }
   function renderCart(){
     const box = $('#cartItems'); box.innerHTML = '';
-    const br = $('#cBranch'); if (br){ br.textContent = !ALLOC ? 'لم تحدد فرعاً بعد' : ALLOC.type === 'address' ? 'توصيل لعنوانك' : (branchName ? 'فرع ' + branchName : 'فرعك المحدد'); const c = document.createElement('b'); c.textContent = ALLOC ? 'تغيير' : 'اختر فرعك'; br.appendChild(c); br.onclick = openBranches; }
+    const br = $('#cBranch'); if (br){ br.textContent = !ALLOC ? 'لم تحدد فرعاً بعد' : ALLOC.type === 'address' ? 'توصيل لعنوانك' : (branchName ? 'فرع ' + branchName : 'فرعك المحدد'); const c = document.createElement('b'); c.textContent = ALLOC ? 'تغيير' : 'اختر فرعك'; br.appendChild(c); br.onclick = openBranches; } paintBranch();
     const items = Object.values(cart);
     if (!items.length){ box.innerHTML = '<div class="empty">سلتك فاضية.<br>اضغط على أي منتج في الرفوف واختر «أضف للسلة».</div>'; }
     items.forEach(it => {
@@ -2447,7 +2458,7 @@ function build(renderer){
   // ---------- speed readout (?perf=1): what this device really gets, to read off the screen or copy and send ----------
   const PERF = /[?&]perf=1\b/.test(location.search) ? (() => {
     const box = document.createElement('div'); box.dir = 'ltr';
-    box.style.cssText = 'position:fixed;z-index:60;left:8px;top:calc(env(safe-area-inset-top,0px) + 76px);background:rgba(20,10,20,.86);color:#fff;font:11px/1.45 ui-monospace,Menlo,Consolas,monospace;padding:8px 10px;border-radius:10px;white-space:pre;max-width:calc(100vw - 16px);overflow:hidden';
+    box.style.cssText = 'position:fixed;z-index:60;left:8px;top:calc(env(safe-area-inset-top,0px) + 176px);background:rgba(20,10,20,.86);color:#fff;font:11px/1.45 ui-monospace,Menlo,Consolas,monospace;padding:8px 10px;border-radius:10px;white-space:pre;max-width:calc(100vw - 16px);overflow:hidden';
     const pre = document.createElement('div'), cp = document.createElement('button'); cp.type = 'button'; cp.textContent = 'نسخ التقرير'; cp.style.cssText = 'margin-top:6px;border:0;border-radius:8px;padding:5px 10px;font:700 12px Arial,sans-serif;background:#e8368f;color:#fff;cursor:pointer';
     box.appendChild(pre); box.appendChild(cp); document.body.appendChild(box);
     const dts = [], S = {ready:0, last:0, t:0, worst:0, text:''}; let gpu = '';
