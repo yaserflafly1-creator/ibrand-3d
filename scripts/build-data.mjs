@@ -612,6 +612,9 @@ async function main(){
     for (const sec of Object.values(result.sections)) for (const p of sec.products || []){ const o = offer.get(String(p.id)); if (o){ p.of = o.of; if (o.oe) p.oe = o.oe; marked++; } }
     console.log('offer products', offer.size, 'marked on shelves', marked, 'labels', [...new Set([...offer.values()].map(o => o.of))].join(' '));
   } catch (e){ console.log('offers skipped:', e.message); }
+  // what only the build needs (photo fingerprints used to spot placeholder photos and to cache the cut-outs) stays out of
+  // the published file: random-looking text does not compress, and it was a third of what every visitor downloads
+  try { for (const sec of Object.values(result.sections || {})) for (const p of sec.products || []){ delete p.sig; delete p.psig; delete p.ah; delete p.pk; delete p.ai; delete p.aiNo; } } catch (e){ console.warn('trim skipped:', e.message); }
   await fs.writeFile(`${OUT}/data/products.json`, JSON.stringify(result));
 }
 
