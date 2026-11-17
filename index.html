@@ -51,7 +51,7 @@ button{font-family:var(--font)}
   background:rgba(59,29,54,.82);color:#fff;font-size:13px;border-radius:999px;padding:9px 16px;white-space:nowrap;pointer-events:none;transition:opacity .6s}
 .hint.gone{opacity:0}
 #mini{position:fixed;z-index:5;top:calc(env(safe-area-inset-top,0px) + 78px);right:max(16px, env(safe-area-inset-right,0px));border:1px solid var(--line);border-radius:14px;box-shadow:0 10px 26px rgba(59,29,54,.18);background:#fff;cursor:pointer;touch-action:none}
-.sndBtn{position:fixed;z-index:5;right:max(18px, env(safe-area-inset-right,0px));bottom:calc(env(safe-area-inset-bottom,0px) + 82px);width:46px;height:46px;border-radius:50%;border:1px solid var(--line);background:rgba(255,255,255,.92);color:var(--plum);display:flex;align-items:center;justify-content:center;cursor:pointer;box-shadow:0 6px 16px rgba(59,29,54,.14)}
+.sndBtn{position:fixed;z-index:5;right:max(18px, env(safe-area-inset-right,0px));bottom:calc(env(safe-area-inset-bottom,0px) + 82px + var(--lift, 0px));width:46px;height:46px;border-radius:50%;border:1px solid var(--line);background:rgba(255,255,255,.92);color:var(--plum);display:flex;align-items:center;justify-content:center;cursor:pointer;box-shadow:0 6px 16px rgba(59,29,54,.14)}
 .sndBtn[aria-pressed="false"]{color:var(--muted)} .sndBtn[aria-pressed="false"] .wave{display:none} .sndBtn[aria-pressed="true"] .off{display:none}
 body.sheet .sndBtn{display:none}
 @media (max-width:640px){
@@ -83,6 +83,8 @@ body.sheet .sndBtn{display:none}
 .goCart svg{width:17px;height:17px}
 @media (max-width:640px){
   /* phones: a compact corner pill that never covers the cart or the move stick */
+  body.hasCart{--lift:44px}   /* …and the round buttons above it move up to make room */
+  .toast{white-space:normal;width:max-content;max-width:calc(100vw - 24px);text-align:center;border-radius:20px;line-height:1.6}
   .goCart{left:auto;right:10px;transform:none;bottom:calc(env(safe-area-inset-bottom,0px) + 68px);padding:8px 13px;font-size:12px;gap:6px;box-shadow:0 8px 20px rgba(201,81,139,.35)}
   .goCart b{font-size:11px;padding:2px 7px}
   .goCart svg{width:13px;height:13px}
@@ -1891,7 +1893,7 @@ function build(renderer){
   function saveCart(){
     store.set('ib3d-cart', cart); const n = cartCount(), b = $('#cartCount'); b.textContent = n; b.hidden = !n; renderCart();
     try{ cartItemsSync(); }catch(e){}
-    const go = $('#goCart'); if (go){ go.hidden = !n; const s = go.querySelector('b'); if (s) s.textContent = money(cartTotal()); }
+    const go = $('#goCart'); if (go){ go.hidden = !n; document.body.classList.toggle('hasCart', !!n); const s = go.querySelector('b'); if (s) s.textContent = money(cartTotal()); }
   }
   function addToCart(p, qty){
     try { sfx.add(); } catch(e){}

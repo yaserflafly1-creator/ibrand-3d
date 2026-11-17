@@ -318,7 +318,7 @@
   // ---------- the lost treasure: one chest a day, hidden at the far end of an aisle; finding it shows the prize ----------
   // The prize code is the store's own coupon (made in the store's dashboard); with no code set, the find is only congratulated.
   const TCFG = CFG().treasure || {}, TREASURE = {code:String(TCFG.code || ''), note:TCFG.note === undefined ? 'استخدم الكود عند إتمام الطلب.' : String(TCFG.note)};
-  { const css = document.createElement('style'); css.textContent = '.trBtn{position:fixed;z-index:5;right:max(18px, env(safe-area-inset-right,0px));bottom:calc(env(safe-area-inset-bottom,0px) + 136px);width:46px;height:46px;border-radius:50%;border:1px solid var(--line);background:rgba(255,255,255,.92);color:#b8860b;display:flex;align-items:center;justify-content:center;cursor:pointer;box-shadow:0 6px 16px rgba(59,29,54,.14)}.trBtn.done{color:#1f9a55}body.sheet .trBtn{display:none}'
+  { const css = document.createElement('style'); css.textContent = '.trBtn{position:fixed;z-index:5;right:max(18px, env(safe-area-inset-right,0px));bottom:calc(env(safe-area-inset-bottom,0px) + 136px + var(--lift, 0px));width:46px;height:46px;border-radius:50%;border:1px solid var(--line);background:rgba(255,255,255,.92);color:#b8860b;display:flex;align-items:center;justify-content:center;cursor:pointer;box-shadow:0 6px 16px rgba(59,29,54,.14)}.trBtn.done{color:#1f9a55}body.sheet .trBtn{display:none}'
         + '.trBox{position:fixed;z-index:40;left:50%;top:50%;transform:translate(-50%,-50%);width:min(380px,calc(100vw - 32px));background:#fff;border:1px solid var(--line);border-radius:20px;padding:22px 20px 18px;box-shadow:0 24px 60px rgba(60,20,50,.35);direction:rtl;font-family:var(--font);text-align:center}.trBox b{display:block;font-size:21px;font-weight:800;color:var(--plum);margin-bottom:6px}.trBox p{white-space:pre-line;margin:0 0 12px;font-size:15px;line-height:1.8;color:var(--muted)}'
         + '.trCode{font:800 24px Arial,sans-serif;letter-spacing:2px;direction:ltr;border:2px dashed #f2c14e;border-radius:12px;padding:10px;margin:0 0 12px;color:var(--plum);user-select:all}.trRow{display:flex;gap:10px;justify-content:center}.trRow button{border:0;border-radius:12px;padding:10px 18px;font:800 15px var(--font);cursor:pointer}.trCopy{background:var(--pink);color:#fff}.trClose{background:#f3eef2;color:var(--plum)}'
     + '.evBtn{position:fixed;z-index:5;right:max(18px, env(safe-area-inset-right,0px));width:46px;height:46px;border-radius:50%;border:1px solid var(--line);background:rgba(255,255,255,.92);color:var(--plum);display:flex;align-items:center;justify-content:center;cursor:pointer;box-shadow:0 6px 16px rgba(59,29,54,.14);font:800 13px Arial,sans-serif}.evBtn.done{color:#1f9a55}body.sheet .evBtn{display:none}.evBtn i{position:absolute;top:-5px;left:-5px;min-width:20px;height:20px;border-radius:10px;background:var(--pink);color:#fff;font:800 11px/20px Arial,sans-serif;font-style:normal;padding:0 4px;direction:ltr}';
@@ -336,7 +336,7 @@
       cp.onclick = () => { const done = () => { cp.textContent = 'تم النسخ'; }; try { navigator.clipboard.writeText(code).then(done, () => { const r = document.createRange(); r.selectNodeContents(c); const sl = getSelection(); sl.removeAllRanges(); sl.addRange(r); }); } catch(e){} }; row.appendChild(cp); }
     const cl = document.createElement('button'); cl.type = 'button'; cl.className = 'trClose'; cl.textContent = 'إغلاق'; cl.onclick = () => { box.remove(); if (evBoxEl === box) evBoxEl = null; }; row.appendChild(cl);
     box.appendChild(row); document.body.appendChild(box); };
-  const evBtn = (bottom, label, svg) => { const b = document.createElement('button'); b.type = 'button'; b.className = 'evBtn'; b.setAttribute('aria-label', label); b.style.bottom = 'calc(env(safe-area-inset-bottom,0px) + ' + bottom + 'px)'; b.innerHTML = svg; document.body.appendChild(b); return b; };
+  const evBtn = (bottom, label, svg) => { const b = document.createElement('button'); b.type = 'button'; b.className = 'evBtn'; b.setAttribute('aria-label', label); b.style.bottom = 'calc(env(safe-area-inset-bottom,0px) + ' + bottom + 'px + var(--lift, 0px))'; b.innerHTML = svg; document.body.appendChild(b); return b; };
   const evNote = c => c.note === undefined ? 'استخدم الكود عند إتمام الطلب.' : String(c.note);
   if (SEG.length && TCFG.on !== false){
     const day = new Date(Date.now() + 3*3600e3).toISOString().slice(0, 10); let hsh = 7; for (const ch of day) hsh = (hsh*31 + ch.charCodeAt(0)) >>> 0;
@@ -505,6 +505,9 @@
 
   // ---------- step counter: steps walked and time in the store; rewards unlock with time ----------
   const REWARDS = [{min:2, icon:'🥉', name:'المكافأة البرونزية'}, {min:5, icon:'🥈', name:'المكافأة الفضية'}, {min:10, icon:'🥇', name:'المكافأة الذهبية'}];
+  // shown or not, and the store's own code for each level, are set in the control panel
+  const SCFG = CFG().steps || {}, STEPS_ON = SCFG.on !== false, SCODES = Array.isArray(SCFG.codes) ? SCFG.codes.map(c => String(c || '').trim()) : [];
+  if (!STEPS_ON) $('#steps').hidden = true;
   const stepSt = {dist:0, sec:0, got:0};
   try { const sv = JSON.parse(localStorage.getItem('ib3d-steps') || 'null'); if (sv && sv.day === new Date().toDateString()){ stepSt.dist = +sv.dist || 0; stepSt.sec = +sv.sec || 0; stepSt.got = +sv.got || 0; } } catch(e){}
   let stepLast = null, stepClock = performance.now(), stepUi = 0, stepSave = 0;
@@ -517,14 +520,15 @@
     $('#stL').textContent = nx ? 'باقي ' + mmss(Math.max(0, nx.min*60 - stepSt.sec)) + ' على ' + nx.name : 'حصلت على كل مكافآت اليوم 🎉';
   }
   function stepTick(){
+    if (!STEPS_ON) return;
     const now = performance.now(), dt = Math.min(1, (now - stepClock) / 1000); stepClock = now; if (document.hidden) return;
     const p = camera.position;
     if (stepLast && !droneMode && !flight){ const d = Math.hypot(p.x - stepLast.x, p.z - stepLast.z); if (d < 1.2) stepSt.dist += d; }
     stepLast = {x:p.x, z:p.z}; stepSt.sec += dt;
     const nx = REWARDS[stepSt.got];
-    if (nx && stepSt.sec >= nx.min*60){ stepSt.got++; toast('🎁 ' + nx.icon + ' فتحت ' + nx.name + '!'); stepUi = 0; stepSave = 0; }
+    if (nx && stepSt.sec >= nx.min*60){ const code = SCODES[stepSt.got]; stepSt.got++; toast('🎁 ' + nx.icon + ' فتحت ' + nx.name + '!'); if (code){ try { sfx.add(); } catch(e){} evBox(nx.icon + ' ' + nx.name, 'هذا كود جائزتك:', code, evNote(SCFG)); } stepUi = 0; stepSave = 0; }
     if (now > stepUi){ stepUi = now + 500; stepPaint(); }
     if (now > stepSave){ stepSave = now + 5000; try { localStorage.setItem('ib3d-steps', JSON.stringify({day:new Date().toDateString(), dist:Math.round(stepSt.dist), sec:Math.round(stepSt.sec), got:stepSt.got})); } catch(e){} }
   }
-  $('#steps').addEventListener('click', () => { const nx = REWARDS[stepSt.got]; toast(nx ? 'تجوّل في الصيدلية: ' + nx.name + ' بعد ' + nx.min + ' دقائق' : 'حصلت على كل مكافآت اليوم 🎉'); });
+  $('#steps').addEventListener('click', () => { const nx = REWARDS[stepSt.got], lastCode = stepSt.got ? SCODES[stepSt.got - 1] : ''; if (lastCode) return evBox(REWARDS[stepSt.got - 1].icon + ' ' + REWARDS[stepSt.got - 1].name, 'هذا كود جائزتك:', lastCode, evNote(SCFG)); toast(nx ? 'تجوّل في الصيدلية: ' + nx.name + ' بعد ' + nx.min + ' دقائق' : 'حصلت على كل مكافآت اليوم 🎉'); });
   stepPaint();

@@ -130,6 +130,12 @@ td,th{padding:6px 8px;border-bottom:1px solid var(--line);text-align:right}
         <label>الملاحظة تحت الكود</label><input type="text" id="rdNote" maxlength="120">
       </div>
     </div>
+    <div class="card"><h2>عدّاد الخطوات والمكافآت</h2>
+      <label class="chk"><input type="checkbox" id="stOn"> العدّاد ظاهر أعلى الشاشة</label>
+      <p class="note">يعدّ خطوات الزائر ووقته في الصيدلية، ويعلن «المكافأة البرونزية» بعد دقيقتين، و«الفضية» بعد 5 دقائق، و«الذهبية» بعد 10 دقائق. إذا تركت خانة الكود فارغة يظهر للزائر إعلان المكافأة بدون أي كود، فإمّا تكتب كوداً لكل مستوى أو توقف العدّاد حتى لا يُوعَد الزائر بمكافأة غير موجودة.</p>
+      <div class="grid"><div><label>كود البرونزية</label><input type="text" id="stC0" dir="ltr" maxlength="40"></div><div><label>كود الفضية</label><input type="text" id="stC1" dir="ltr" maxlength="40"></div><div><label>كود الذهبية</label><input type="text" id="stC2" dir="ltr" maxlength="40"></div></div>
+      <label>الملاحظة تحت الكود</label><input type="text" id="stNote" maxlength="120">
+    </div>
     <div class="row"><button class="btn" id="saveEv">حفظ الفعاليات</button><span class="note" id="evState"></span></div>
   </section>
 
@@ -277,11 +283,13 @@ function riddleRow(r){ const d = el('div', {class:'rdRow'}); d.style.cssText = '
 function fillEvents(){
   const p = CFG.pieces || {}; $('#pcOn').checked = p.on === true; $('#pcCount').value = Math.max(3, Math.min(7, +p.count || 5)); $('#pcCode').value = p.code || ''; $('#pcNote').value = p.note === undefined ? NOTE0 : p.note;
   const r = CFG.riddle || {}; $('#rdOn').checked = r.on === true; $('#rdCode').value = r.code || ''; $('#rdNote').value = r.note === undefined ? NOTE0 : r.note;
+  const st = CFG.steps || {}, sc = Array.isArray(st.codes) ? st.codes : []; $('#stOn').checked = st.on !== false; [0, 1, 2].forEach(k => { $('#stC' + k).value = sc[k] || ''; }); $('#stNote').value = st.note === undefined ? NOTE0 : st.note;
   const L = $('#rdList'); L.textContent = ''; (Array.isArray(r.list) ? r.list : []).forEach(x => L.appendChild(riddleRow(x)));
 }
 function readEvents(){
   CFG.pieces = {on:$('#pcOn').checked, count:Math.max(3, Math.min(7, Math.round(+$('#pcCount').value || 5))), code:$('#pcCode').value.trim(), note:$('#pcNote').value.trim()};
   const list = [...document.querySelectorAll('#rdList .rdRow')].map(d => ({q:d.querySelector('input').value.trim(), zone:d.querySelector('select').value})).filter(x => x.q);
+  CFG.steps = {on:$('#stOn').checked, codes:[0, 1, 2].map(k => $('#stC' + k).value.trim()), note:$('#stNote').value.trim()};
   CFG.riddle = {on:$('#rdOn').checked, code:$('#rdCode').value.trim(), note:$('#rdNote').value.trim(), list};
 }
 function readSettings(){
