@@ -1291,6 +1291,7 @@ function build(renderer){
   // takes extra products of the department, then more facings of its own. Fewer facings, then slightly smaller packs,
   // are tried until nothing of the fixture is left over.
   const normB = s => String(s || '').toLowerCase().replace(/[^a-z0-9\u0600-\u06ff]/g, '');
+  const LOW = ((location.search.match(/[?&]low=([^&]+)/) || [])[1] || '').toUpperCase(), LOWK = 1.45;
   function pgBays(fx, n, G, z, phase, lim){
     const shelves = shelvesOf(G), rows = shelves.map(() => []);
     fx.it.forEach(i => { const p = pid.get(i[1]); if (p && i[0] >= 1 && !(fx._skip && fx._skip.has(p))) rows[Math.min(shelves.length, i[0]) - 1].push({p, fc:i[2], c:i[3], sw:i[4] > 0 ? i[4] / Math.max(1, i[2]) / 100 : 0}); });
@@ -1299,19 +1300,22 @@ function build(renderer){
       const bays = []; for (let b = 0; b < n; b++) bays.push({items:[], hdr:null, kind:fx.k || 0, cats:{}});
       let carry = []; const tk = new Set(), fb = fx.b ? normB(fx.b) : '';
       for (let k = 0; k < shelves.length; k++){
+        // test (?low=<stand code> or ?low=all): the bottom shelf, far below the shopper's eyes, shows its packs larger
+        const big = LOW && (LOW === 'ALL' || String(fx.c).toUpperCase().startsWith(LOW)) && k === shelves.length - 1, MH = big ? shelves[k].maxH + .045 : shelves[k].maxH, KS = big ? ks * LOWK : ks;
         const sh = shelves[k], list = carry.concat(rows[k]); carry = [];
         let x = list.length && list[0].sw ? 0 : .015, full = false;
         // a product the planogram gives a width to takes exactly that much of the shelf (so a shelf holds what the planogram
         // says it holds); its pack is drawn as large as fits inside that slot
         // how a product with a planogram width is drawn on this shelf: its size, whether it stands on end, the room it takes
-        const fitOf = o => { const b = szOf(o.p)(o.p, sh.maxH, 1); let w0 = b[0], h0 = b[1], turn = false;
+        const fitOf = o => { const b = szOf(o.p)(o.p, MH, 1); let w0 = b[0], h0 = b[1], turn = false;
           // never drawn smaller than KMIN of its real size (a pack shrunk to fit a too-narrow place reads as a toy): where the
           // planogram's width is tighter than that, the pack takes the room it needs and the shelf holds a little less
-          const KMIN = .62; let k = Math.max(Math.min(KMIN, sh.maxH / h0), Math.min(1.5, (o.sw - .004) / w0, sh.maxH / h0));
+          const KMIN = .62; let k = Math.max(Math.min(KMIN, MH / h0), Math.min(1.5, (o.sw - .004) / w0, MH / h0));
+          if (big) k = Math.min(Math.max(k, 1) * LOWK, 1.9, MH / h0);   // the test: larger than its slot, the shelf shows fewer facings instead
           // a long carton (toothpaste, a tube in its box) given a narrow place stands on its end there, as it does on the
           // real shelf, instead of lying across its neighbours
           // (only a really long one, more than twice as wide as tall: a jar or a tub is never turned on its side)
-          if (w0 > h0 * 2.2 && (o.sw - .004) / w0 < .6){ const k2 = Math.min(1.5, (o.sw - .004) / h0, sh.maxH / w0); if (k2 > k * 1.15 || (o.sw - .004) / w0 < KMIN * .8){ k = Math.max(Math.min(KMIN, sh.maxH / w0), k2); turn = true; w0 = b[1]; h0 = b[0]; } }
+          if (w0 > h0 * 2.2 && (o.sw - .004) / w0 < .6){ const k2 = Math.min(1.5, (o.sw - .004) / h0, MH / w0); if (k2 > k * 1.15 || (o.sw - .004) / w0 < KMIN * .8){ k = Math.max(Math.min(KMIN, MH / w0), k2); turn = true; w0 = b[1]; h0 = b[0]; } }
           const w = w0*k, sw = Math.max(o.sw, w + .004);   // never narrower than the pack drawn in it: packs do not overlap
           return {b, k, turn, w, h:h0*k, sw}; };
         const slot = o => { const {b, k, turn, w, h, sw} = o._fit || fitOf(o);
@@ -1321,7 +1325,7 @@ function build(renderer){
           bays[bi].items.push({p:o.p, x:x - bi*BW + sw/2, s:k0, y:sh.y, w, h, d:b[2]*Math.min(1, k), yaw:(Math.random()-.5)*.05, back:Math.random()*.006, first:o._first, turn});
           if (o.c >= 0) bays[bi].cats[o.c] = (bays[bi].cats[o.c] || 0) + sw; x += sw; return true; };
         const k0 = k;
-        const put = (o, first) => { if (o.sw){ o._first = first; return slot(o); } const [w, h, d] = szOf(o.p)(o.p, sh.maxH, ks); let bi = Math.floor(x / BW);
+        const put = (o, first) => { if (o.sw){ o._first = first; return slot(o); } const [w, h, d] = szOf(o.p)(o.p, MH, KS); let bi = Math.floor(x / BW);
           if (x + w > (bi + 1)*BW - .01){ bi++; x = bi*BW + .015; }
           if (bi >= n || x + w > n*BW - .01) return false;
           const b = bays[bi]; b.items.push({p:o.p, x:x - bi*BW + w/2, s:k, y:sh.y, w, h, d, yaw:(Math.random()-.5)*.07, back:Math.random() < .14 ? .015 + Math.random()*.03 : Math.random()*.006, first});
@@ -1330,10 +1334,10 @@ function build(renderer){
         // a shelf too tight for everything the planogram puts on it shows fewer of each (a display, not a stock room): the
         // products with the most facings give one up at a time, down to one each, before anything moves to another shelf
         const fcs = list.map(o => { if (!o.sw) return 0; o._fit = fitOf(o); return o.fc || 1; });
-        { const room = n*BW*.97; let need = 0; list.forEach((o, i) => { need += o.sw ? o._fit.sw * fcs[i] : szOf(o.p)(o.p, sh.maxH, ks)[0] + .012; });
+        { const room = n*BW*.97; let need = 0; list.forEach((o, i) => { need += o.sw ? o._fit.sw * fcs[i] : szOf(o.p)(o.p, MH, KS)[0] + .012; });
           while (need > room){ let bi = -1; for (let i = 0; i < list.length; i++) if (fcs[i] > 1 && (bi < 0 || fcs[i] > fcs[bi] || (fcs[i] === fcs[bi] && list[i]._fit.sw > list[bi]._fit.sw))) bi = i; if (bi < 0) break; fcs[bi]--; need -= list[bi]._fit.sw; } }
         for (let i = 0; i < list.length; i++){
-          const o = list[i], w0 = szOf(o.p)(o.p, sh.maxH, ks)[0], f = o.sw ? fcs[i] : Math.min(cap, Math.max(o.fc || 1, w0 < .075 ? 2 : 1));
+          const o = list[i], w0 = szOf(o.p)(o.p, MH, KS)[0], f = o.sw ? fcs[i] : Math.min(cap, Math.max(o.fc || 1, w0 < .075 ? 2 : 1));
           let placed = 0; for (let j = 0; j < f; j++){ if (!put(o, j === 0)){ full = true; break; } placed++; }
           if (full){ carry = list.slice(placed ? i + 1 : i); break; }
           if (!o.sw) x += .009 + Math.random()*.008;
