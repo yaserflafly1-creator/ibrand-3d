@@ -72,6 +72,7 @@ export default {
     const url = new URL(req.url), path = url.pathname.replace(/\/+$/, '') || '/', M = req.method;
     try {
       // ---- public: what the 3D store reads ----
+      if (M === 'GET' && path === '/public/photos'){ const m = await getJ(env, 'photos', {}), now = Date.now(), out = {}; for (const k of Object.keys(m)) if (now - (m[k].at || 0) <= 6*3600e3) out[k] = m[k].img; return json(out, 200, {'cache-control':'no-store'}); }
       if (M === 'GET' && path === '/public/config') return json(await getJ(env, 'config', {}), 200, {'cache-control':'public, max-age=60'});
       if (M === 'GET' && path === '/public/pg'){ const v = await env.KV.get('pg'); return v ? new Response(v, {headers:{'content-type':'application/json; charset=utf-8', 'cache-control':'public, max-age=60', ...CORS}}) : json({error:'no planogram saved'}, 404); }
       if (M === 'GET' && path.startsWith('/public/img/')){ const id = path.slice(12); if (!/^[a-f0-9]{16,64}$/.test(id)) return json({error:'غير موجود'}, 404);
@@ -135,6 +136,11 @@ export default {
         const d = await r.json().catch(() => null);
         if (!r.ok || !d || d.success === false){ const m = d && d.error && (d.error.message || (d.error.fields && JSON.stringify(d.error.fields))) || ''; return json({error:'سلة رفضت الصورة (' + r.status + ')' + (m ? ': ' + m : '')}, 502); }
         await log(env, me.u, 'نشر صورة في سلة للمنتج ' + id);
+        // the store's own listings keep showing the old picture for a while (they are cached on its side), so the address of the
+        // new one is noted here for the pharmacy's build to use meanwhile; the note is dropped after six hours
+        try { const g = await fetch(SALLA(env) + '/products/' + id, {headers:{authorization:'Bearer ' + t.token, accept:'application/json'}}), j = await g.json();
+          const th = j && j.data && (j.data.thumbnail || j.data.main_image) || '';
+          if (/^https:\/\/cdn\.salla\.sa\/[\w\-./%]+$/.test(th)){ const m = await getJ(env, 'photos', {}), now = Date.now(); for (const k of Object.keys(m)) if (now - (m[k].at || 0) > 6*3600e3) delete m[k]; m[id] = {img:th, at:now}; await env.KV.put('photos', JSON.stringify(m)); } } catch(e){}
         const b = await startBuild(env);   // the pharmacy picks the new picture up with this build, minutes from now
         const im = d.data && d.data.image || {}; return json({ok:true, build:b.ok, url:(im.original && im.original.url) || (d.data && d.data.url) || ''});
       }

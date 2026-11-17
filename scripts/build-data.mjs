@@ -138,18 +138,29 @@ async function listAll0(query, cap = Infinity){
 }
 const catQuery = id => `source=categories&source_value[]=${id}&per_page=50`;
 
+// Pictures just published from the editor: the store's listings (cached on its side) can keep the old picture for a while,
+// so the control panel's backend notes the new address and the build uses it until the listings catch up.
+const PHOTOFIX = {}; let photoFixed = 0;
+async function loadPhotoFix(){
+  try { const cfg = JSON.parse(await fs.readFile('static/config.json', 'utf8')), api = String(cfg.api || '').replace(/\/+$/, ''); if (!/^https:\/\//.test(api)) return;
+    const r = await fetch(api + '/public/photos', { signal: AbortSignal.timeout(8000) }); if (!r.ok) return;
+    const m = await r.json(); for (const [id, u] of Object.entries(m || {})) if (/^https:\/\/cdn\.salla\.sa\//.test(String(u))) PHOTOFIX[String(id)] = String(u);
+    console.log('PHOTO NOTES from the editor:', Object.keys(PHOTOFIX).length);
+  } catch (e){ console.warn('photo notes not read:', e.message); }
+}
 // barcodes (the store's SKU), for the editor only: kept in their own small file so shoppers do not download them
 const SKU = {};
 function toItem(p){
   { const sk = p.sku || p.gtin; if (sk && p.id) SKU[String(p.id)] = String(sk).trim(); }
   return {
     id: String(p.id), name: p.name, url: short(p.url, 'https://ibrand.com.sa/ar/'),
-    img: short(p.image && p.image.url, 'https://cdn.salla.sa/yKErG/'),
+    img: short(fixedImg(p), 'https://cdn.salla.sa/yKErG/'),
     brand: (p.brand && p.brand.name || '').trim(), brandId: p.brand && p.brand.id ? String(p.brand.id) : '',
     price: priceOf(p), regular: num(p.regular_price) || num(p.price) || null, onSale: !!p.is_on_sale,
     sold: num(p.sold_quantity) || 0,
   };
 }
+function fixedImg(p){ const u = p.image && p.image.url, f = PHOTOFIX[String(p.id)]; if (f && f !== u){ photoFixed++; return f; } return u; }
 const fullImg = s => s.startsWith('http') ? s : 'https://cdn.salla.sa/yKErG/' + s;
 
 // ---------- image cut-out (cached by image URL) ----------
@@ -382,6 +393,7 @@ async function packSection(key, items, opts = {}){
 }
 
 async function main(){
+  await loadPhotoFix();
   await fs.mkdir(`${OUT}/atlas`, { recursive: true });
   await fs.mkdir(BCACHE, { recursive: true });
   await fs.mkdir(`${OUT}/data`, { recursive: true });
@@ -618,6 +630,7 @@ async function main(){
   // what only the build needs (photo fingerprints used to spot placeholder photos and to cache the cut-outs) stays out of
   // the published file: random-looking text does not compress, and it was a third of what every visitor downloads
   try { for (const sec of Object.values(result.sections || {})) for (const p of sec.products || []){ delete p.sig; delete p.psig; delete p.ah; delete p.pk; delete p.ai; delete p.aiNo; } } catch (e){ console.warn('trim skipped:', e.message); }
+  if (Object.keys(PHOTOFIX).length) console.log('PHOTO NOTES used (records):', photoFixed);
   await fs.writeFile(`${OUT}/data/products.json`, JSON.stringify(result));
   try { await fs.writeFile(`${OUT}/data/sku.json`, JSON.stringify(SKU)); console.log('BARCODES', Object.keys(SKU).length); } catch (e){ console.warn('barcodes not written:', e.message); }
 }
