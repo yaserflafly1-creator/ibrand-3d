@@ -655,13 +655,14 @@ function build(renderer){
       for (let s2 = 0; s2 < RC; s2++) quadN(T, [top[s2].v, top[s2+1].v, ctr, ctr], [up, up, up, up], c, place, [...cu, ...cu, ...cu, ...cu]); }
   }
   // put one product at local (cx, y, cz) of frame F (its front faces local +z)
-  function putProduct(key, F, cx, y, cz, w, h, d, p, rowsDeep=1, yaw=0){
+  function putProduct(key, F, cx, y, cz, w, h, d, p, rowsDeep=1, yaw=0, turn=false){
     if (yaw){ const c0 = F.at(cx, 0, cz); F = frame(c0[0], c0[2], F.yaw + yaw); cx = 0; cz = 0; }
     const sd = DATA.sections[key], C2 = sd.cols || 16;
     // mesh granularity = one HD piece: two rows × half the page width (512 px close-up photos)
     const bk = key + ':' + p.pg + ':' + Math.floor(p.tile / (C2 * 2)) + ':' + ((p.tile % C2) < C2 / 2 ? 0 : 1);
     const T = frontBuckets[bk] || (frontBuckets[bk] = Bucket(true)), S = sideBuckets[key] || (sideBuckets[key] = Bucket(false));
-    const [u0,u1,vb,vt] = tileUV(sd, p), hw = w/2, a = F.at, n = F.n, uv = [u0,vb, u1,vb, u1,vt, u0,vt];
+    // turn: the pack stands on its end (a long carton in a narrow place on the shelf), its photo turned a quarter with it
+    const [u0,u1,vb,vt] = tileUV(sd, p), hw = w/2, a = F.at, n = F.n, uv = turn ? [u0,vt, u0,vb, u1,vb, u1,vt] : [u0,vb, u1,vb, u1,vt, u0,vt];
     const c = rgb(p.c || '#dddddd'), dk = k => [c[0]*k, c[1]*k, c[2]*k];
     const place = {p, key};
     const sh = shapeOf(p);
@@ -1195,7 +1196,7 @@ function build(renderer){
       if (!bay) return;
       const bx = x0 + b*BW;
       bay.items.forEach(it => {
-        putProduct(key, F, bx + it.x, it.y, d/2 - .1 - (it.back || 0), it.w, it.h, it.d, it.p, isBox(it.p) ? ROWS : 1, it.yaw || 0);
+        putProduct(key, F, bx + it.x, it.y, d/2 - .1 - (it.back || 0), it.w, it.h, it.d, it.p, isBox(it.p) ? ROWS : 1, it.yaw || 0, !!it.turn);
         if (it.first !== false) priceTag(F, bx + it.x, it.y, d/2 - .025, it.p, tagW(bay, it));
       });
     });

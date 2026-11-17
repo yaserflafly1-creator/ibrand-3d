@@ -24,13 +24,14 @@
     window.__pgJoined = moved; }
   // wider aisles than the drawing (1.6 m → 2.2 m): every block of gondolas moves outwards from the central walkway by the
   // extra width of the aisles between it and the walkway; the walls and what stands on them move with the room
-  if (!PGD._wide){ PGD._wide = 1; const AE = .6, CS = 6*AE;
+  // …and the central walkway is wider too (7 m → 9.4 m): the offer islands stand down its middle and need room each side
+  if (!PGD._wide){ PGD._wide = 1; const AE = .6, CS = 6*AE, CW = 1.2;
     PGD.f.forEach(fx => fx.r.forEach(r => { const v = r[3] > r[2];
-      if (!v) r[0] += CS;                                                      // along the front or back wall, the cashier unit: stays with the entrance
-      else if (fx.w) r[0] += r[0] > PGD.W/2 ? 2*CS : 0;                        // side walls
+      if (!v) r[0] += CS + CW;                                                      // along the front or back wall, the cashier unit: stays with the entrance
+      else if (fx.w) r[0] += r[0] > PGD.W/2 ? 2*CS + 2*CW : 0;                        // side walls
       else if (r[0] < PGD.W/2) r[0] += CS - (6 - Math.floor((r[0] - 1.9 + .05) / 2.6)) * AE;
-      else r[0] += CS + Math.floor((r[0] - 25.5 + .05) / 2.6) * AE; }));
-    PGD.W += 2*CS; }
+      else r[0] += CS + 2*CW + Math.floor((r[0] - 25.5 + .05) / 2.6) * AE; }));
+    PGD.W += 2*CS + 2*CW; }
   const mainKeys = SECTIONS.filter(s=>s.main).map(s=>s.key).filter(k=>SD(k));
   // departments of the planogram (its letters), each with its colour
   const ZINFO = [{key:'z_makeup', L:'B', hex:'#e0447f', old:4}, {key:'z_derma', L:'CA', hex:'#9c27b0', old:4}, {key:'z_hair', L:'D', hex:'#3f51b5', old:4}, {key:'z_care', L:'E', hex:'#0097a7', old:3},
@@ -96,11 +97,17 @@
         let x = list.length && list[0].sw ? 0 : .015, full = false;
         // a product the planogram gives a width to takes exactly that much of the shelf (so a shelf holds what the planogram
         // says it holds); its pack is drawn as large as fits inside that slot
-        const slot = o => { const b = szOf(o.p)(o.p, sh.maxH, 1), k = Math.max(.3, Math.min(1.5, (o.sw - .004) / b[0], sh.maxH / b[1])); let bi = Math.floor((x + 1e-6) / BW);
-          if (x + o.sw > (bi + 1)*BW + .003){ bi++; x = bi*BW; }
-          if (bi >= n || x + o.sw > n*BW + .003) return false;
-          bays[bi].items.push({p:o.p, x:x - bi*BW + o.sw/2, s:k0, y:sh.y, w:b[0]*k, h:b[1]*k, d:b[2]*Math.min(1, k), yaw:(Math.random()-.5)*.05, back:Math.random()*.006, first:o._first});
-          if (o.c >= 0) bays[bi].cats[o.c] = (bays[bi].cats[o.c] || 0) + o.sw; x += o.sw; return true; };
+        const slot = o => { const b = szOf(o.p)(o.p, sh.maxH, 1); let w0 = b[0], h0 = b[1], turn = false;
+          let k = Math.max(.3, Math.min(1.5, (o.sw - .004) / w0, sh.maxH / h0));
+          // a long carton (toothpaste, a tube in its box) given a narrow place stands on its end there, as it does on the
+          // real shelf, instead of lying across its neighbours
+          if (w0 > h0 * 1.3 && (o.sw - .004) / w0 < .6){ const k2 = Math.min(1.5, (o.sw - .004) / h0, sh.maxH / w0); if (k2 > k * 1.15){ k = Math.max(.3, k2); turn = true; w0 = b[1]; h0 = b[0]; } }
+          const w = w0*k, sw = Math.max(o.sw, w + .004);   // never narrower than the pack drawn in it: packs do not overlap
+          let bi = Math.floor((x + 1e-6) / BW);
+          if (x + sw > (bi + 1)*BW + .003){ bi++; x = bi*BW; }
+          if (bi >= n || x + sw > n*BW + .003) return false;
+          bays[bi].items.push({p:o.p, x:x - bi*BW + sw/2, s:k0, y:sh.y, w, h:h0*k, d:b[2]*Math.min(1, k), yaw:(Math.random()-.5)*.05, back:Math.random()*.006, first:o._first, turn});
+          if (o.c >= 0) bays[bi].cats[o.c] = (bays[bi].cats[o.c] || 0) + sw; x += sw; return true; };
         const k0 = k;
         const put = (o, first) => { if (o.sw){ o._first = first; return slot(o); } const [w, h, d] = szOf(o.p)(o.p, sh.maxH, ks); let bi = Math.floor(x / BW);
           if (x + w > (bi + 1)*BW - .01){ bi++; x = bi*BW + .015; }

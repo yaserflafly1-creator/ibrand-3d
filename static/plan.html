@@ -675,14 +675,15 @@ function build(renderer){
       for (let s2 = 0; s2 < RC; s2++) quadN(T, [top[s2].v, top[s2+1].v, ctr, ctr], [up, up, up, up], c, place, [...cu, ...cu, ...cu, ...cu]); }
   }
   // put one product at local (cx, y, cz) of frame F (its front faces local +z)
-  function putProduct(key, F, cx, y, cz, w, h, d, p, rowsDeep=1, yaw=0){
+  function putProduct(key, F, cx, y, cz, w, h, d, p, rowsDeep=1, yaw=0, turn=false){
     if (yaw){ const c0 = F.at(cx, 0, cz); F = frame(c0[0], c0[2], F.yaw + yaw); cx = 0; cz = 0; }
     const ak = p._ak && p._k === key ? p._ak : key, sd = DATA.sections[ak], C2 = sd.cols || 16, pp = ak !== key ? {pg:p._apg, tile:p._atile, card:p.card, aspect:p.aspect} : p;
     // mesh granularity = one HD piece: two rows × half the page width (512 px close-up photos)
     // + a coarse floor cell, so a repeat of the same product far away (fill facings, end caps) gets its own small mesh
     const wp0 = F.at(cx, 0, cz), bk = ak + ':' + pp.pg + ':' + Math.floor(pp.tile / (C2 * 2)) + ':' + ((pp.tile % C2) < C2 / 2 ? 0 : 1) + (ak !== key ? ':' + Math.round(wp0[0] / 8) + '_' + Math.round(wp0[2] / 8) : '');
     const T = frontBuckets[bk] || (frontBuckets[bk] = Bucket(true)), S = sideBuckets[key] || (sideBuckets[key] = Bucket(false));
-    const [u0,u1,vb,vt] = tileUV(sd, pp), hw = w/2, a = F.at, n = F.n, uv = [u0,vb, u1,vb, u1,vt, u0,vt];
+    // turn: the pack stands on its end (a long carton in a narrow place on the shelf), its photo turned a quarter with it
+    const [u0,u1,vb,vt] = tileUV(sd, pp), hw = w/2, a = F.at, n = F.n, uv = turn ? [u0,vt, u0,vb, u1,vb, u1,vt] : [u0,vb, u1,vb, u1,vt, u0,vt];
     const c = rgb(p.c || '#dddddd'), dk = k => [c[0]*k, c[1]*k, c[2]*k];
     const place = {p, key};
     const sh = shapeOf(p);
@@ -923,13 +924,14 @@ function build(renderer){
     window.__pgJoined = moved; }
   // wider aisles than the drawing (1.6 m → 2.2 m): every block of gondolas moves outwards from the central walkway by the
   // extra width of the aisles between it and the walkway; the walls and what stands on them move with the room
-  if (!PGD._wide){ PGD._wide = 1; const AE = .6, CS = 6*AE;
+  // …and the central walkway is wider too (7 m → 9.4 m): the offer islands stand down its middle and need room each side
+  if (!PGD._wide){ PGD._wide = 1; const AE = .6, CS = 6*AE, CW = 1.2;
     PGD.f.forEach(fx => fx.r.forEach(r => { const v = r[3] > r[2];
-      if (!v) r[0] += CS;                                                      // along the front or back wall, the cashier unit: stays with the entrance
-      else if (fx.w) r[0] += r[0] > PGD.W/2 ? 2*CS : 0;                        // side walls
+      if (!v) r[0] += CS + CW;                                                      // along the front or back wall, the cashier unit: stays with the entrance
+      else if (fx.w) r[0] += r[0] > PGD.W/2 ? 2*CS + 2*CW : 0;                        // side walls
       else if (r[0] < PGD.W/2) r[0] += CS - (6 - Math.floor((r[0] - 1.9 + .05) / 2.6)) * AE;
-      else r[0] += CS + Math.floor((r[0] - 25.5 + .05) / 2.6) * AE; }));
-    PGD.W += 2*CS; }
+      else r[0] += CS + 2*CW + Math.floor((r[0] - 25.5 + .05) / 2.6) * AE; }));
+    PGD.W += 2*CS + 2*CW; }
   const mainKeys = SECTIONS.filter(s=>s.main).map(s=>s.key).filter(k=>SD(k));
   // departments of the planogram (its letters), each with its colour
   const ZINFO = [{key:'z_makeup', L:'B', hex:'#e0447f', old:4}, {key:'z_derma', L:'CA', hex:'#9c27b0', old:4}, {key:'z_hair', L:'D', hex:'#3f51b5', old:4}, {key:'z_care', L:'E', hex:'#0097a7', old:3},
@@ -1250,7 +1252,7 @@ function build(renderer){
       if (!bay) return;
       const bx = x0 + b*BW;
       bay.items.forEach(it => {
-        putProduct(it.p._k || key, F, bx + it.x, it.y, d/2 - .1 - (it.back || 0), it.w, it.h, it.d, it.p, isBox(it.p) ? ROWS : 1, it.yaw || 0);
+        putProduct(it.p._k || key, F, bx + it.x, it.y, d/2 - .1 - (it.back || 0), it.w, it.h, it.d, it.p, isBox(it.p) ? ROWS : 1, it.yaw || 0, !!it.turn);
         if (it.first !== false) priceTag(F, bx + it.x, it.y, d/2 - .025, it.p, tagW(bay, it));
       });
     });
@@ -1295,11 +1297,17 @@ function build(renderer){
         let x = list.length && list[0].sw ? 0 : .015, full = false;
         // a product the planogram gives a width to takes exactly that much of the shelf (so a shelf holds what the planogram
         // says it holds); its pack is drawn as large as fits inside that slot
-        const slot = o => { const b = szOf(o.p)(o.p, sh.maxH, 1), k = Math.max(.3, Math.min(1.5, (o.sw - .004) / b[0], sh.maxH / b[1])); let bi = Math.floor((x + 1e-6) / BW);
-          if (x + o.sw > (bi + 1)*BW + .003){ bi++; x = bi*BW; }
-          if (bi >= n || x + o.sw > n*BW + .003) return false;
-          bays[bi].items.push({p:o.p, x:x - bi*BW + o.sw/2, s:k0, y:sh.y, w:b[0]*k, h:b[1]*k, d:b[2]*Math.min(1, k), yaw:(Math.random()-.5)*.05, back:Math.random()*.006, first:o._first});
-          if (o.c >= 0) bays[bi].cats[o.c] = (bays[bi].cats[o.c] || 0) + o.sw; x += o.sw; return true; };
+        const slot = o => { const b = szOf(o.p)(o.p, sh.maxH, 1); let w0 = b[0], h0 = b[1], turn = false;
+          let k = Math.max(.3, Math.min(1.5, (o.sw - .004) / w0, sh.maxH / h0));
+          // a long carton (toothpaste, a tube in its box) given a narrow place stands on its end there, as it does on the
+          // real shelf, instead of lying across its neighbours
+          if (w0 > h0 * 1.3 && (o.sw - .004) / w0 < .6){ const k2 = Math.min(1.5, (o.sw - .004) / h0, sh.maxH / w0); if (k2 > k * 1.15){ k = Math.max(.3, k2); turn = true; w0 = b[1]; h0 = b[0]; } }
+          const w = w0*k, sw = Math.max(o.sw, w + .004);   // never narrower than the pack drawn in it: packs do not overlap
+          let bi = Math.floor((x + 1e-6) / BW);
+          if (x + sw > (bi + 1)*BW + .003){ bi++; x = bi*BW; }
+          if (bi >= n || x + sw > n*BW + .003) return false;
+          bays[bi].items.push({p:o.p, x:x - bi*BW + sw/2, s:k0, y:sh.y, w, h:h0*k, d:b[2]*Math.min(1, k), yaw:(Math.random()-.5)*.05, back:Math.random()*.006, first:o._first, turn});
+          if (o.c >= 0) bays[bi].cats[o.c] = (bays[bi].cats[o.c] || 0) + sw; x += sw; return true; };
         const k0 = k;
         const put = (o, first) => { if (o.sw){ o._first = first; return slot(o); } const [w, h, d] = szOf(o.p)(o.p, sh.maxH, ks); let bi = Math.floor(x / BW);
           if (x + w > (bi + 1)*BW - .01){ bi++; x = bi*BW + .015; }
