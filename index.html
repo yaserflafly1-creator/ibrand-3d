@@ -2437,7 +2437,32 @@ function build(renderer){
       return;
     }
   }
+  // ---------- speed readout (?perf=1): what this device really gets, to read off the screen or copy and send ----------
+  const PERF = /[?&]perf=1\b/.test(location.search) ? (() => {
+    const box = document.createElement('div'); box.dir = 'ltr';
+    box.style.cssText = 'position:fixed;z-index:60;left:8px;top:calc(env(safe-area-inset-top,0px) + 76px);background:rgba(20,10,20,.86);color:#fff;font:11px/1.45 ui-monospace,Menlo,Consolas,monospace;padding:8px 10px;border-radius:10px;white-space:pre;max-width:calc(100vw - 16px);overflow:hidden';
+    const pre = document.createElement('div'), cp = document.createElement('button'); cp.type = 'button'; cp.textContent = 'نسخ التقرير'; cp.style.cssText = 'margin-top:6px;border:0;border-radius:8px;padding:5px 10px;font:700 12px Arial,sans-serif;background:#e8368f;color:#fff;cursor:pointer';
+    box.appendChild(pre); box.appendChild(cp); document.body.appendChild(box);
+    const dts = [], S = {ready:0, last:0, t:0, worst:0, text:''}; let gpu = '';
+    try { const gl = renderer.getContext(), ex = gl.getExtension('WEBGL_debug_renderer_info'); gpu = ex ? String(gl.getParameter(ex.UNMASKED_RENDERER_WEBGL)).replace(/ANGLE \(|\)$/g, '').slice(0, 46) : ''; } catch(e){}
+    cp.onclick = () => { try { navigator.clipboard.writeText(S.text).then(() => { cp.textContent = 'تم النسخ'; }, () => {}); } catch(e){} };
+    const draw = () => {
+      const a = dts.slice().sort((x, y) => x - y), n = a.length; if (!n) return;
+      const avg = a.reduce((x, y) => x + y, 0) / n, p99 = a[Math.min(n - 1, Math.floor(n * .99))], i = renderer.info;
+      let mb = 0, files = 0; try { performance.getEntriesByType('resource').forEach(r => { mb += r.transferSize || r.encodedBodySize || 0; files++; }); } catch(e){}
+      const nav = navigator, c = nav.connection || {}, mem = performance.memory;
+      S.text = ['iBrand 3D speed  ' + new Date().toISOString().slice(0, 16).replace('T', ' '),
+        'fps avg ' + (1000 / avg).toFixed(0) + '   slowest 1% ' + (1000 / p99).toFixed(0) + '   worst frame ' + S.worst.toFixed(0) + ' ms',
+        'ready in ' + (S.ready / 1000).toFixed(1) + ' s   loaded ' + (mb / 1048576).toFixed(1) + ' MB in ' + files + ' files' + (inflight ? '   (loading ' + inflight + ')' : ''),
+        'draw calls ' + i.render.calls + '   triangles ' + Math.round(i.render.triangles / 1000) + 'k   textures ' + i.memory.textures,
+        'resolution x' + renderer.getPixelRatio().toFixed(2) + ' (screen x' + devicePixelRatio.toFixed(2) + ', step ' + qIdx + ')   ' + innerWidth + 'x' + innerHeight,
+        'memory ' + (mem ? Math.round(mem.usedJSHeapSize / 1048576) + ' MB js' : 'n/a') + '   device ' + (nav.deviceMemory || '?') + ' GB, ' + (nav.hardwareConcurrency || '?') + ' cores   net ' + (c.effectiveType || '?'),
+        gpu].filter(Boolean).join('\n');
+      pre.textContent = S.text; };
+    return {ready(){ S.ready = performance.now(); }, f(now){ if (S.last){ const d = now - S.last; if (d < 2000){ dts.push(d); if (dts.length > 900) dts.shift(); if (now - S.ready > 4000 && d > S.worst) S.worst = d; } } S.last = now; if (now - S.t > 1000){ S.t = now; draw(); } }};
+  })() : null;
   function fpsTick(now){
+    if (PERF) PERF.f(now);
     fpsN++;
     if (now - fpsT < 700) return;
     const fps = fpsN * 1000 / (now - fpsT); fpsN = 0; fpsT = now;
@@ -2597,6 +2622,7 @@ function build(renderer){
     applyView();
     renderer.render(scene, camera);
   });
+  if (PERF) PERF.ready();
   $('#loading').classList.add('done');
   // first visit: four short cards on how to walk and buy
   (function(){ let seen = false; try { seen = localStorage.getItem('ib3d-tour') === '1'; } catch(e){}

@@ -39,17 +39,26 @@ rep("  {key:'quick', name:'مشتريات سريعة',",
     "  {key:'z_rx', zone:true, name:'الدواء والصيدلية', en:'Pharmacy', url:cat('الأدوية',1199189212), size:1, eyebrow:'قسم', desc:'الأدوية بدون وصفة أمام كاونتر الصيدلي، وأدوية الوصفة خلفه.', cta:'تسوق القسم'},\n"
     "  {key:'quick', name:'مشتريات سريعة',")
 
-# merchandising file, loaded with the product data
+# everything the store needs to open (products, merchandising file, settings, planogram, shelf pattern) is asked for
+# at once instead of one after another: on a phone network each wait in a row costs a round trip
+rep("  try { const r = await fetch('data/products.json?t=' + Date.now(), {cache:'no-store'}); if (r.ok) DATA = normalize(await r.json()); } catch(e){}",
+    "  { const J = async (u, o) => { try { const r = await fetch(u, o); return r.ok ? await r.json() : null; } catch(e){ return null; } };\n"
+    "    const get = async u => { const c = new AbortController(), tm = setTimeout(() => c.abort(), 6000); try { const r = await fetch(u, {signal:c.signal}); return r.ok ? await r.json() : null; } catch(e){ return null; } finally { clearTimeout(tm); } };\n"
+    "    // settings and planogram: the control panel's saved copy when its backend is set and answers, else the files published with the store\n"
+    "    const cfgP = J('config.json', {cache:'no-cache'}).then(async c => { if (c) window.__CFG = c; const api = c && c.api; if (!api) return null;\n"
+    "      const [c2, p2] = await Promise.all([get(api + '/public/config'), get(api + '/public/pg')]); if (c2) window.__CFG = Object.assign({}, window.__CFG, c2, {api}); return p2 && Array.isArray(p2.f) ? p2 : null; });\n"
+    "    const [d, imf, pg, pat] = await Promise.all([J('data/products.json', {cache:'no-cache'}), J('plan/imf.json'), cfgP, J('data/plan.json?t=' + Math.floor(Date.now() / 600000))]);\n"
+    "    if (d) DATA = normalize(d); if (imf) window.__IMF = imf; if (pat) window.__PAT = pat;\n"
+    "    window.__PG = pg || await J('plan/pg.json'); }")
+# open the connections the store will need while the page is still being read
+import json as _json
+_api = (_json.load(open(os.path.join(root, 'static', 'config.json'), encoding='utf-8')).get('api') or '').rstrip('/')
+rep('<link rel="preconnect" href="https://fonts.googleapis.com">',
+    '<link rel="preconnect" href="https://fonts.googleapis.com">\n<link rel="preconnect" href="https://cdnjs.cloudflare.com" crossorigin>\n<link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin>'
+    + ('\n<link rel="preconnect" href="' + _api + '" crossorigin>' if _api.startswith('https://') else ''))
 rep("  AV = DATA && DATA.build ? '?v=' + DATA.build : '';",
     "  AV = DATA && DATA.build ? '?v=' + DATA.build : '';\n"
-    "  try { const r = await fetch('plan/imf.json'); if (r.ok) window.__IMF = await r.json(); } catch(e){}\n"
-    "  // settings and planogram: the control panel's saved copy when its backend is set and answers, else the files published with the store\n"
-    "  try { const r = await fetch('config.json', {cache:'no-cache'}); if (r.ok) window.__CFG = await r.json(); } catch(e){}\n"
-    "  { const api = window.__CFG && window.__CFG.api, get = async u => { const c = new AbortController(), tm = setTimeout(() => c.abort(), 6000); try { const r = await fetch(u, {signal:c.signal}); return r.ok ? await r.json() : null; } catch(e){ return null; } finally { clearTimeout(tm); } };\n"
-    "    if (api){ const c2 = await get(api + '/public/config'); if (c2) window.__CFG = Object.assign({}, window.__CFG, c2, {api}); const p2 = await get(api + '/public/pg'); if (p2 && Array.isArray(p2.f)) window.__PG = p2; } }\n"
-    "  if (!window.__PG) try { const r = await fetch('plan/pg.json'); if (r.ok) window.__PG = await r.json(); } catch(e){}\n"
-    "  if (window.__CFG && 'season' in window.__CFG) SEASON = window.__CFG.season;\n"
-    "  try { const r = await fetch('data/plan.json?t=' + Math.floor(Date.now() / 600000)); if (r.ok) window.__PAT = await r.json(); } catch(e){}")
+    "  if (window.__CFG && 'season' in window.__CFG) SEASON = window.__CFG.season;")
 
 # plan pages have their own photo atlas (ordered like these shelves): products address it instead of their store-category atlas
 rep("    const sd = DATA.sections[key], C2 = sd.cols || 16;\n",

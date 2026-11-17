@@ -13,6 +13,9 @@
 <meta name="apple-mobile-web-app-title" content="اي براند 3D">
 <title>صيدلية اي براند 3D</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://cdnjs.cloudflare.com" crossorigin>
+<link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin>
+<link rel="preconnect" href="https://ibrand-3d-panel.ibrandsales.workers.dev" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Almarai:wght@400;700;800&display=swap">
 <style>
 /* Layout: eye-level walk-in 3D store filling the screen; brand bar + tools on top, sheets and drawers float over the scene, aisle chips at the bottom. One bright retail look in iBrand pink by choice. */
@@ -412,17 +415,17 @@ function normalize(d){
   try { await Promise.race([Promise.all([document.fonts.load('800 80px "Almarai"'), document.fonts.load('400 40px "Almarai"')]), new Promise(r=>setTimeout(r,2500))]); } catch(e){}
   let renderer;
   try { renderer = new THREE.WebGLRenderer({antialias:!isSmall || devicePixelRatio < 2, powerPreference:'high-performance'}); } catch(e){ return showFallback(); }
-  try { const r = await fetch('data/products.json?t=' + Date.now(), {cache:'no-store'}); if (r.ok) DATA = normalize(await r.json()); } catch(e){}
+  { const J = async (u, o) => { try { const r = await fetch(u, o); return r.ok ? await r.json() : null; } catch(e){ return null; } };
+    const get = async u => { const c = new AbortController(), tm = setTimeout(() => c.abort(), 6000); try { const r = await fetch(u, {signal:c.signal}); return r.ok ? await r.json() : null; } catch(e){ return null; } finally { clearTimeout(tm); } };
+    // settings and planogram: the control panel's saved copy when its backend is set and answers, else the files published with the store
+    const cfgP = J('config.json', {cache:'no-cache'}).then(async c => { if (c) window.__CFG = c; const api = c && c.api; if (!api) return null;
+      const [c2, p2] = await Promise.all([get(api + '/public/config'), get(api + '/public/pg')]); if (c2) window.__CFG = Object.assign({}, window.__CFG, c2, {api}); return p2 && Array.isArray(p2.f) ? p2 : null; });
+    const [d, imf, pg, pat] = await Promise.all([J('data/products.json', {cache:'no-cache'}), J('plan/imf.json'), cfgP, J('data/plan.json?t=' + Math.floor(Date.now() / 600000))]);
+    if (d) DATA = normalize(d); if (imf) window.__IMF = imf; if (pat) window.__PAT = pat;
+    window.__PG = pg || await J('plan/pg.json'); }
   // pin every atlas image to this data build, so a cached image can never mix with newer data (or the reverse)
   AV = DATA && DATA.build ? '?v=' + DATA.build : '';
-  try { const r = await fetch('plan/imf.json'); if (r.ok) window.__IMF = await r.json(); } catch(e){}
-  // settings and planogram: the control panel's saved copy when its backend is set and answers, else the files published with the store
-  try { const r = await fetch('config.json', {cache:'no-cache'}); if (r.ok) window.__CFG = await r.json(); } catch(e){}
-  { const api = window.__CFG && window.__CFG.api, get = async u => { const c = new AbortController(), tm = setTimeout(() => c.abort(), 6000); try { const r = await fetch(u, {signal:c.signal}); return r.ok ? await r.json() : null; } catch(e){ return null; } finally { clearTimeout(tm); } };
-    if (api){ const c2 = await get(api + '/public/config'); if (c2) window.__CFG = Object.assign({}, window.__CFG, c2, {api}); const p2 = await get(api + '/public/pg'); if (p2 && Array.isArray(p2.f)) window.__PG = p2; } }
-  if (!window.__PG) try { const r = await fetch('plan/pg.json'); if (r.ok) window.__PG = await r.json(); } catch(e){}
   if (window.__CFG && 'season' in window.__CFG) SEASON = window.__CFG.season;
-  try { const r = await fetch('data/plan.json?t=' + Math.floor(Date.now() / 600000)); if (r.ok) window.__PAT = await r.json(); } catch(e){}
   try { build(renderer); } catch(e){ console.error(e); showFallback(); }
 })();
 
@@ -2701,7 +2704,32 @@ function build(renderer){
       return;
     }
   }
+  // ---------- speed readout (?perf=1): what this device really gets, to read off the screen or copy and send ----------
+  const PERF = /[?&]perf=1\b/.test(location.search) ? (() => {
+    const box = document.createElement('div'); box.dir = 'ltr';
+    box.style.cssText = 'position:fixed;z-index:60;left:8px;top:calc(env(safe-area-inset-top,0px) + 76px);background:rgba(20,10,20,.86);color:#fff;font:11px/1.45 ui-monospace,Menlo,Consolas,monospace;padding:8px 10px;border-radius:10px;white-space:pre;max-width:calc(100vw - 16px);overflow:hidden';
+    const pre = document.createElement('div'), cp = document.createElement('button'); cp.type = 'button'; cp.textContent = 'نسخ التقرير'; cp.style.cssText = 'margin-top:6px;border:0;border-radius:8px;padding:5px 10px;font:700 12px Arial,sans-serif;background:#e8368f;color:#fff;cursor:pointer';
+    box.appendChild(pre); box.appendChild(cp); document.body.appendChild(box);
+    const dts = [], S = {ready:0, last:0, t:0, worst:0, text:''}; let gpu = '';
+    try { const gl = renderer.getContext(), ex = gl.getExtension('WEBGL_debug_renderer_info'); gpu = ex ? String(gl.getParameter(ex.UNMASKED_RENDERER_WEBGL)).replace(/ANGLE \(|\)$/g, '').slice(0, 46) : ''; } catch(e){}
+    cp.onclick = () => { try { navigator.clipboard.writeText(S.text).then(() => { cp.textContent = 'تم النسخ'; }, () => {}); } catch(e){} };
+    const draw = () => {
+      const a = dts.slice().sort((x, y) => x - y), n = a.length; if (!n) return;
+      const avg = a.reduce((x, y) => x + y, 0) / n, p99 = a[Math.min(n - 1, Math.floor(n * .99))], i = renderer.info;
+      let mb = 0, files = 0; try { performance.getEntriesByType('resource').forEach(r => { mb += r.transferSize || r.encodedBodySize || 0; files++; }); } catch(e){}
+      const nav = navigator, c = nav.connection || {}, mem = performance.memory;
+      S.text = ['iBrand 3D speed  ' + new Date().toISOString().slice(0, 16).replace('T', ' '),
+        'fps avg ' + (1000 / avg).toFixed(0) + '   slowest 1% ' + (1000 / p99).toFixed(0) + '   worst frame ' + S.worst.toFixed(0) + ' ms',
+        'ready in ' + (S.ready / 1000).toFixed(1) + ' s   loaded ' + (mb / 1048576).toFixed(1) + ' MB in ' + files + ' files' + (inflight ? '   (loading ' + inflight + ')' : ''),
+        'draw calls ' + i.render.calls + '   triangles ' + Math.round(i.render.triangles / 1000) + 'k   textures ' + i.memory.textures,
+        'resolution x' + renderer.getPixelRatio().toFixed(2) + ' (screen x' + devicePixelRatio.toFixed(2) + ', step ' + qIdx + ')   ' + innerWidth + 'x' + innerHeight,
+        'memory ' + (mem ? Math.round(mem.usedJSHeapSize / 1048576) + ' MB js' : 'n/a') + '   device ' + (nav.deviceMemory || '?') + ' GB, ' + (nav.hardwareConcurrency || '?') + ' cores   net ' + (c.effectiveType || '?'),
+        gpu].filter(Boolean).join('\n');
+      pre.textContent = S.text; };
+    return {ready(){ S.ready = performance.now(); }, f(now){ if (S.last){ const d = now - S.last; if (d < 2000){ dts.push(d); if (dts.length > 900) dts.shift(); if (now - S.ready > 4000 && d > S.worst) S.worst = d; } } S.last = now; if (now - S.t > 1000){ S.t = now; draw(); } }};
+  })() : null;
   function fpsTick(now){
+    if (PERF) PERF.f(now);
     fpsN++;
     if (now - fpsT < 700) return;
     const fps = fpsN * 1000 / (now - fpsT); fpsN = 0; fpsT = now;
@@ -2861,6 +2889,7 @@ function build(renderer){
     applyView();
     renderer.render(scene, camera);
   });
+  if (PERF) PERF.ready();
   $('#loading').classList.add('done');
   // first visit: four short cards on how to walk and buy
   (function(){ let seen = false; try { seen = localStorage.getItem('ib3d-tour') === '1'; } catch(e){}
