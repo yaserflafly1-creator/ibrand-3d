@@ -39,7 +39,8 @@ async function sallaToken(env){
   const q = new Request(env.VAULT_URL || 'https://ibrand-vault.ibrandsales.workers.dev/token?app=brand-offers', {headers:{authorization:'Bearer ' + key, accept:'application/json'}});
   let r; try { r = await (env.VAULT ? env.VAULT.fetch(q) : fetch(q)); } catch(e){ return {error:'تعذّر الوصول لخزنة المفاتيح', status:502}; }
   if (r.status === 409) return {error:'ربط سلة يحتاج إعادة تثبيت التطبيق في المتجر', status:409};
-  if (r.status === 401) return {error:'مفتاح الخزنة في الخادم غير صحيح', status:502};
+  // tell enough to compare with the saved key without showing it: its length and its two ends
+  if (r.status === 401) return {error:'الخزنة رفضت المفتاح المحفوظ في VAULT_KEY. طوله ' + key.length + ' حرف، أوله «' + key[0] + '» وآخره «' + key[key.length - 1] + '». قارنه بالمفتاح في مدير كلمات المرور.', status:502};
   if (r.status === 404) return {error:'الخزنة لا تعرف التطبيق أو لم يصلها مفتاح من سلة بعد', status:502};
   if (r.status === 429 || r.status === 503) return {error:'خزنة المفاتيح مشغولة الآن، حاول بعد دقيقة', status:503};
   if (!r.ok) return {error:'خزنة المفاتيح رفضت الطلب (' + r.status + ')', status:502};
