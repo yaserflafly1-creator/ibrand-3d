@@ -95,6 +95,10 @@ td,th{padding:6px 8px;border-bottom:1px solid var(--line);text-align:right}
         <label>اسم الموسم</label><input type="text" id="seLine" maxlength="40">
         <label>اللونان</label><div class="row"><input type="color" id="seA"><input type="color" id="seB"></div>
       </div>
+      <div class="card"><h2>تحديث الصيدلية</h2>
+        <p class="note">الصيدلية تعيد قراءة المنتجات والصور والأسعار من سلة ثم تُنشر من جديد. يبدأ التحديث تلقائياً بعد كل نشر صورة من المحرر، وتقدر تبدأه بيدك بعد أي تعديل في سلة. يأخذ من 5 إلى 10 دقائق غالباً.</p>
+        <div class="row"><button class="btn" type="button" id="buildNow">🔄 حدّث الصيدلية من سلة الآن</button><span class="note" id="buildState"></span></div>
+      </div>
       <div class="card"><h2>تجربة الزائر</h2>
         <label class="chk"><input type="checkbox" id="tour"> الجولة الترحيبية في أول زيارة</label>
         <label class="chk"><input type="checkbox" id="sound"> الصوت مفعّل افتراضياً</label>
@@ -301,6 +305,7 @@ $('#t-settings').addEventListener('input', dirtyCfg); $('#t-promo').addEventList
 $('#t-events').addEventListener('input', dirtyCfg); $('#rdAdd').addEventListener('click', () => { $('#rdList').appendChild(riddleRow(null)); dirtyCfg(); });
 async function saveCfg(){ readSettings(); readEvents(); readPromo(); if (DEMO){ cfgDirty = false; mark(); return say('نسخة عرض: التعديل لا يُحفظ'); } const out = Object.assign({}, CFG); delete out.api;
   try { await call('/config', {method:'PUT', body:JSON.stringify(out)}); cfgDirty = false; mark(); say('تم حفظ الإعدادات'); } catch(e){ say(e.message, true); } }
+$('#buildNow').onclick = async () => { if (DEMO) return say('نسخة عرض'); const st = $('#buildState'); st.textContent = '…'; try { await call('/build', {method:'POST'}); st.textContent = 'بدأ التحديث ✓ يظهر في الصيدلية خلال 5 إلى 10 دقائق'; } catch(e){ st.textContent = ''; say(e.message, true); } };
 $('#saveCfg').onclick = saveCfg; $('#saveCfg2').onclick = saveCfg; $('#saveEv').onclick = saveCfg;
 
 // ---------- promo and screens ----------

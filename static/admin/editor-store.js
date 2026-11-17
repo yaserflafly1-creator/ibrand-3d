@@ -231,7 +231,7 @@
         var r = await call('/salla/image/' + p.id, {method:'POST', headers:{'content-type':'image/jpeg'}, body:blob}), d = await r.json().catch(function(){ return null; });
         if (!r.ok || !d || !d.ok) throw fail(r, d);
         markFixed(String(p.id));
-        say('✅ اتنشرت في سلة — هتظهر في الصيدلية خلال ساعة');
+        say(d.build ? '✅ اتنشرت في سلة — وبدأ تحديث الصيدلية، هتظهر فيها خلال 10 دقايق تقريباً' : '✅ اتنشرت في سلة — هتظهر في الصيدلية مع التحديث الجاي');
       } catch(e){ say('تعذّر النشر في سلة: ' + (e && e.message || e)); }
     },
     imageUrl:function(ref){ return !ref ? '' : /^(data:|blob:|https?:)/.test(ref) ? ref : ref.indexOf('/public/img/') === 0 ? API + ref : ''; }

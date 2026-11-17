@@ -11,6 +11,10 @@
 //   VAULT_KEY       secret: the key the vault asks for
 //   VAULT_URL       (only if it moves) the vault's token address
 //   VAULT           service binding to the vault Worker (needed when both Workers are on the same account)
+// Optional, so a change shows in the pharmacy in minutes instead of waiting for the next scheduled build:
+//   GH_TOKEN        secret: a GitHub token allowed to start workflows of the store's repository (Actions: read and write)
+//   GH_REPO         (only if it moves) owner/name of that repository
+// With a Cron Trigger on this Worker, the same build is also started on that schedule (GitHub's own timer is often hours late).
 const CORS = {'access-control-allow-origin':'*', 'access-control-allow-headers':'authorization,content-type', 'access-control-allow-methods':'GET,PUT,POST,DELETE,OPTIONS', 'access-control-max-age':'86400'};
 const json = (d, status = 200, h = {}) => new Response(JSON.stringify(d), {status, headers:{'content-type':'application/json; charset=utf-8', ...CORS, ...h}});
 const enc = new TextEncoder();
@@ -29,6 +33,17 @@ async function readToken(env, req){
 const getJ = async (env, key, dflt) => { const v = await env.KV.get(key); if (!v) return dflt; try { return JSON.parse(v); } catch(e){ return dflt; } };
 // (the same person repeating the same thing within ten minutes — the editor's auto-save — is logged once)
 async function log(env, who, what){ const l = await getJ(env, 'log', []); if (l[0] && l[0].who === who && l[0].what === what && Date.now() - Date.parse(l[0].t) < 600000) return; l.unshift({t:new Date().toISOString(), who, what}); await env.KV.put('log', JSON.stringify(l.slice(0, 200))); }
+
+// start the store's build now (it re-reads the products from Salla and republishes the pharmacy)
+async function startBuild(env){
+  if (!env.GH_TOKEN) return {ok:false, why:'لم يُضبط مفتاح GitHub في الخادم'};
+  const tok = String(env.GH_TOKEN).replace(/[\s\u200b-\u200f\u202a-\u202e\u2066-\u2069\ufeff]/g, ''), repo = env.GH_REPO || 'yaserflafly1-creator/ibrand-3d';
+  try { const r = await fetch((env.GH_API || 'https://api.github.com') + '/repos/' + repo + '/actions/workflows/refresh.yml/dispatches', {method:'POST',
+      headers:{authorization:'Bearer ' + tok, accept:'application/vnd.github+json', 'x-github-api-version':'2022-11-28', 'user-agent':'ibrand-3d-panel', 'content-type':'application/json'}, body:JSON.stringify({ref:env.GH_REF || 'ibrand-dashboard'})});
+    if (r.status === 204) return {ok:true};
+    return {ok:false, why:r.status === 401 ? 'مفتاح GitHub غير صحيح أو منتهي' : r.status === 403 || r.status === 404 ? 'مفتاح GitHub لا يملك صلاحية تشغيل البناء (Actions: Read and write) على المستودع' : 'GitHub رفض الطلب (' + r.status + ')'}; }
+  catch(e){ return {ok:false, why:'تعذّر الوصول إلى GitHub'}; }
+}
 
 const SALLA = env => String(env.SALLA_API || 'https://api.salla.dev/admin/v2').replace(/\/+$/, '');
 async function sallaToken(env){
@@ -50,7 +65,8 @@ async function sallaToken(env){
 }
 
 export default {
-  async fetch(req, env){
+  async scheduled(event, env, ctx){ ctx.waitUntil(startBuild(env)); },
+  async fetch(req, env, ctx){
     if (req.method === 'OPTIONS') return new Response(null, {status:204, headers:CORS});
     if (!env.KV || !env.TOKEN_SECRET || !env.ADMIN_PASSWORD) return json({error:'الخادم غير مهيأ: KV و TOKEN_SECRET و ADMIN_PASSWORD مطلوبة'}, 500);
     const url = new URL(req.url), path = url.pathname.replace(/\/+$/, '') || '/', M = req.method;
@@ -106,6 +122,8 @@ export default {
         const id = hex(await crypto.subtle.digest('SHA-256', buf)).slice(0, 32); await env.KV.put('img:' + id, buf, {metadata:{type}}); return json({ref:'/public/img/' + id});
       }
       // ---- Salla: put a picture on a product as its main picture (the product's other pictures stay) ----
+      if (M === 'POST' && path === '/build'){ const b = await startBuild(env); if (b.ok) await log(env, me.u, 'طلب تحديث الصيدلية الآن'); return json(b.ok ? {ok:true} : {error:b.why}, b.ok ? 200 : 503); }
+      if (M === 'GET' && path === '/build'){ return json({ready:!!env.GH_TOKEN}); }
       if (M === 'GET' && path === '/salla/status'){ const t = await sallaToken(env); return json(t.token ? {linked:true} : {linked:false, why:t.error}); }
       if (M === 'POST' && path.startsWith('/salla/image/')){
         const id = path.slice(13); if (!/^\d{3,15}$/.test(id)) return json({error:'رقم منتج غير صحيح'}, 400);
@@ -117,7 +135,8 @@ export default {
         const d = await r.json().catch(() => null);
         if (!r.ok || !d || d.success === false){ const m = d && d.error && (d.error.message || (d.error.fields && JSON.stringify(d.error.fields))) || ''; return json({error:'سلة رفضت الصورة (' + r.status + ')' + (m ? ': ' + m : '')}, 502); }
         await log(env, me.u, 'نشر صورة في سلة للمنتج ' + id);
-        const im = d.data && d.data.image || {}; return json({ok:true, url:(im.original && im.original.url) || (d.data && d.data.url) || ''});
+        const b = await startBuild(env);   // the pharmacy picks the new picture up with this build, minutes from now
+        const im = d.data && d.data.image || {}; return json({ok:true, build:b.ok, url:(im.original && im.original.url) || (d.data && d.data.url) || ''});
       }
       if (M === 'POST' && path === '/pg/undo'){ const prev = await env.KV.get('pg:prev'); if (!prev) return json({error:'لا توجد نسخة سابقة'}, 404); const cur = await env.KV.get('pg'); await env.KV.put('pg', prev); if (cur) await env.KV.put('pg:prev', cur); await log(env, me.u, 'تراجع عن آخر حفظ للمخطط'); return json({ok:true}); }
       // ---- admin only ----
