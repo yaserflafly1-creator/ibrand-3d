@@ -33,7 +33,10 @@ async function log(env, who, what){ const l = await getJ(env, 'log', []); if (l[
 const SALLA = env => String(env.SALLA_API || 'https://api.salla.dev/admin/v2').replace(/\/+$/, '');
 async function sallaToken(env){
   if (!env.VAULT_KEY) return {error:'الربط مع سلة غير مهيأ في الخادم بعد', status:503};
-  const q = new Request(env.VAULT_URL || 'https://ibrand-vault.ibrandsales.workers.dev/token?app=brand-offers', {headers:{authorization:'Bearer ' + env.VAULT_KEY, accept:'application/json'}});
+  // a key pasted from a right-to-left screen can carry spaces, line ends or invisible direction marks: drop them
+  const key = String(env.VAULT_KEY).replace(/[\s\u200b-\u200f\u202a-\u202e\u2066-\u2069\ufeff]/g, '');
+  if (!key || /[^\x21-\x7e]/.test(key)) return {error:'مفتاح الخزنة في الخادم فيه حروف غير إنجليزية: امسحه والصقه من جديد بزر النسخ', status:503};
+  const q = new Request(env.VAULT_URL || 'https://ibrand-vault.ibrandsales.workers.dev/token?app=brand-offers', {headers:{authorization:'Bearer ' + key, accept:'application/json'}});
   let r; try { r = await (env.VAULT ? env.VAULT.fetch(q) : fetch(q)); } catch(e){ return {error:'تعذّر الوصول لخزنة المفاتيح', status:502}; }
   if (r.status === 409) return {error:'ربط سلة يحتاج إعادة تثبيت التطبيق في المتجر', status:409};
   if (r.status === 401) return {error:'مفتاح الخزنة في الخادم غير صحيح', status:502};
