@@ -752,7 +752,7 @@ function build(renderer){
     // was tens of megabytes in the first minute), and on mobile data or with data-saver on, less still. What they walk up
     // to is always loaded when they get there, whatever was or was not fetched ahead.
     const nc = navigator.connection || {}, cell = nc.type === 'cellular' || /(^|-)(2g|3g)$/.test(nc.effectiveType || ''), lite = !!nc.saveData || cell;
-    const got = new Set(), R0 = lite ? 12 : (isSmall ? 20 : 1e9), R1 = isSmall ? 6 : 34, R2 = isSmall ? 0 : 16;
+    const got = new Set(), R0 = lite ? 12 : (isSmall ? 20 : 40), R1 = isSmall ? 6 : 18, R2 = isSmall ? 0 : 8;   // a computer too: the store around the shopper, not all of it (the whole store was 270 MB)
     const skip = k => window.__skipAtlas && window.__skipAtlas.has(k);
     const next = () => {
       if (document.hidden){ setTimeout(next, 4000); return; }
