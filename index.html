@@ -1023,8 +1023,10 @@ function build(renderer){
   sentinel = titleCanvas; REDRAW.push(() => { titleCanvas.width = TC * 1024; drawTitles(); titleTex.needsUpdate = true; });
   const titleUV = label => { const i = Math.max(0, LABELS.indexOf(label)), c = i % TC, r = Math.floor(i / TC), R = titleCanvas.height / TRH, v1 = 1 - r/R, v0 = 1 - (r+1)/R, u0 = c/TC, u1 = (c+1)/TC; return [u0,v0, u1,v0, u1,v1, u0,v1]; };
   const BA = DATA && DATA.brandAtlas;
-  function header(F, x0, x1, y, z, hdr, key){
+  function header(F, x0, x1, y, z, hdr, key, ends){
     const w = x1 - x0 - .04, cx = (x0 + x1)/2, hh = .42, a = F.at, n = F.n;
+    // ends: [left, right] — is this board at an end of its row? (inside a row the boards meet with no gap)
+    const eL = !ends || ends[0], eR = !ends || ends[1], ox0 = x0 + (eL ? .02 : 0), ox1 = x1 - (eR ? .02 : 0);
     quad(HDR, [a(cx-w/2,y,z), a(cx+w/2,y,z), a(cx+w/2,y+hh,z), a(cx-w/2,y+hh,z)], n(0,0,1), C_WHITE);
     quad(HDR, [a(cx-w/2,y-.001,z+.002), a(cx+w/2,y-.001,z+.002), a(cx+w/2,y+.035,z+.002), a(cx-w/2,y+.035,z+.002)], n(0,0,1), C_PINK);
     boxInto(STRUCT, F, cx, y + hh/2, z - .05, w, hh, .09, '#f3f3f3');
@@ -1239,7 +1241,7 @@ function build(renderer){
       for (let b=1; b<=n; b++){
         const prev = bays[b-1] && bays[b-1].hdr, curH = b < n && bays[b] && bays[b].hdr;
         const same = curH && prev && prev.id === curH.id;
-        if (!same){ if (prev) header(F, x0 + s0*BW, x0 + b*BW, G.h + .06, -d/2 + .1, opts.titleKey && !prev.big ? {...prev, force:opts.titleKey} : prev, key); s0 = b; }
+        if (!same){ if (prev) header(F, x0 + s0*BW, x0 + b*BW, G.h + .06, -d/2 + .1, opts.titleKey && !prev.big ? {...prev, force:opts.titleKey} : prev, key, [s0 === 0 || !bays[s0 - 1] || !bays[s0 - 1].hdr, b === n || !curH]); s0 = b; }
       }
     }
     // collision box in world space

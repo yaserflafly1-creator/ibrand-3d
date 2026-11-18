@@ -76,7 +76,7 @@ region('  // ---------- store plan (sized from the real product count) ---------
 # fixtures: zone colours, peg-hook bays, products keep their own photo atlas
 rep("C_PINK = rgb('#e873a8');", "C_PINK = rgb('#e873a8');\n  let HDR_C = C_PINK;")
 rep("quad(HDR, [a(cx-w/2,y-.001,z+.002), a(cx+w/2,y-.001,z+.002), a(cx+w/2,y+.035,z+.002), a(cx-w/2,y+.035,z+.002)], n(0,0,1), C_PINK);",
-    "quad(HDR, [a(cx-w/2,y-.001,z+.002), a(cx+w/2,y-.001,z+.002), a(cx+w/2,y+.035,z+.002), a(cx-w/2,y+.035,z+.002)], n(0,0,1), HDR_C);")
+    "quad(HDR, [a(ox0,y-.001,z+.002), a(ox1,y-.001,z+.002), a(ox1,y+.035,z+.002), a(ox0,y+.035,z+.002)], n(0,0,1), HDR_C);")
 rep("    const G = opts.G || GONDOLA, n = bays.length, Wd = n * BW, d = G.d, x0 = -Wd/2;",
     "    const G = opts.G || GONDOLA, n = bays.length, Wd = n * BW, d = G.d, x0 = -Wd/2; HDR_C = opts.zc ? opts.zc.c : C_PINK;\n"
     "    const hooked = bays.some(b => b && b.kind);\n"
@@ -108,10 +108,13 @@ rep("        putProduct(key, F, bx + it.x, it.y, d/2 - .1 - (it.back || 0),", " 
 
 # real branch fixtures: 1.2 m bays, 60 cm deep, 4 shelves, 30 cm header boards
 rep("    const w = x1 - x0 - .04, cx = (x0 + x1)/2, hh = .42, a = F.at, n = F.n;", "    const w = x1 - x0 - .04, cx = (x0 + x1)/2, hh = .30, a = F.at, n = F.n;")
+# the boards of one row form one band: the department-colour frame runs along the whole row (no gap or frame per metre),
+# each metre's white label sits in it, parted from the next by a thin line of the same colour
+rep("    boxInto(STRUCT, F, cx, y + hh/2, z - .05, w, hh, .09, '#f3f3f3');", "    boxInto(STRUCT, F, (ox0 + ox1)/2, y + hh/2, z - .05, ox1 - ox0, hh, .09, '#f3f3f3');")
 # Blender look: the sign above each bay is a frame in the department colour round a white label
 rep("    quad(HDR, [a(cx-w/2,y,z), a(cx+w/2,y,z), a(cx+w/2,y+hh,z), a(cx-w/2,y+hh,z)], n(0,0,1), C_WHITE);",
-    "    quad(HDR, [a(cx-w/2,y,z), a(cx+w/2,y,z), a(cx+w/2,y+hh,z), a(cx-w/2,y+hh,z)], n(0,0,1), HDR_C);\n"
-    "    quad(HDR, [a(cx-w/2+.045,y+.04,z+.003), a(cx+w/2-.045,y+.04,z+.003), a(cx+w/2-.045,y+hh-.035,z+.003), a(cx-w/2+.045,y+hh-.035,z+.003)], n(0,0,1), C_WHITE);")
+    "    quad(HDR, [a(ox0,y,z), a(ox1,y,z), a(ox1,y+hh,z), a(ox0,y+hh,z)], n(0,0,1), HDR_C);\n"
+    "    { const ix0 = x0 + (eL ? .065 : .012), ix1 = x1 - (eR ? .065 : .012); quad(HDR, [a(ix0,y+.04,z+.003), a(ix1,y+.04,z+.003), a(ix1,y+hh-.035,z+.003), a(ix0,y+hh-.035,z+.003)], n(0,0,1), C_WHITE); }")
 rep("const tw = Math.min(w - .1, (hh - .12) * 1024/TRH)", "const tw = Math.min(w - .16, (hh - .13) * 1024/TRH)")
 # the band above the wall shelving is iBrand plum instead of wood
 rep("g.addColorStop(0,'#b7875a'); g.addColorStop(.5,'#c89a6b'); g.addColorStop(1,'#9c7048');", "g.addColorStop(0,'#3b1d36'); g.addColorStop(.5,'#45233f'); g.addColorStop(1,'#35192f');")
