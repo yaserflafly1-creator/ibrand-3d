@@ -2561,7 +2561,7 @@ function build(renderer){
     box.style.cssText = 'position:fixed;z-index:60;left:8px;top:calc(env(safe-area-inset-top,0px) + 176px);background:rgba(20,10,20,.86);color:#fff;font:11px/1.45 ui-monospace,Menlo,Consolas,monospace;padding:8px 10px;border-radius:10px;white-space:pre;max-width:calc(100vw - 16px);overflow:hidden';
     const pre = document.createElement('div'), cp = document.createElement('button'); cp.type = 'button'; cp.textContent = 'نسخ التقرير'; cp.style.cssText = 'margin-top:6px;border:0;border-radius:8px;padding:5px 10px;font:700 12px Arial,sans-serif;background:#e8368f;color:#fff;cursor:pointer';
     box.appendChild(pre); box.appendChild(cp); document.body.appendChild(box);
-    const dts = [], S = {ready:0, last:0, t:0, worst:0, text:''}; let gpu = '';
+    const dts = [], S = {ready:0, last:0, t:0, worst:0, text:'', boot:''}; let gpu = '';
     try { const gl = renderer.getContext(), ex = gl.getExtension('WEBGL_debug_renderer_info'); gpu = ex ? String(gl.getParameter(ex.UNMASKED_RENDERER_WEBGL)).replace(/ANGLE \(|\)$/g, '').slice(0, 46) : ''; } catch(e){}
     cp.onclick = () => { try { navigator.clipboard.writeText(S.text).then(() => { cp.textContent = 'تم النسخ'; }, () => {}); } catch(e){} };
     const draw = () => {
@@ -2575,9 +2575,17 @@ function build(renderer){
         'draw calls ' + i.render.calls + '   triangles ' + Math.round(i.render.triangles / 1000) + 'k   textures ' + i.memory.textures,
         'resolution x' + renderer.getPixelRatio().toFixed(2) + ' (screen x' + devicePixelRatio.toFixed(2) + ', step ' + qIdx + ')   ' + innerWidth + 'x' + innerHeight,
         'memory ' + (mem ? Math.round(mem.usedJSHeapSize / 1048576) + ' MB js' : 'n/a') + '   device ' + (nav.deviceMemory || '?') + ' GB, ' + (nav.hardwareConcurrency || '?') + ' cores   net ' + (c.effectiveType || '?'),
-        gpu].filter(Boolean).join('\n');
+        S.boot, gpu].filter(Boolean).join('\n');
       pre.textContent = S.text; };
-    return {ready(){ S.ready = performance.now(); }, f(now){ if (S.last){ const d = now - S.last; if (d < 2000){ dts.push(d); if (dts.length > 900) dts.shift(); if (now - S.ready > 4000 && d > S.worst) S.worst = d; } } S.last = now; if (now - S.t > 1000){ S.t = now; draw(); } }};
+    // where the first seconds went: when the product data arrived, and the slowest files fetched before the store was ready
+    const bootLine = () => { try {
+      const es = performance.getEntriesByType('resource').filter(r => r.startTime < S.ready), nm = u => u.split('?')[0].split('/').slice(-2).join('/');
+      const dataE = es.find(r => /data\/products\.json/.test(r.name)), threeE = es.find(r => /three(\.min)?\.js/.test(r.name));
+      const slow = es.slice().sort((x, y) => y.duration - x.duration).slice(0, 3).map(r => nm(r.name) + ' ' + (r.duration / 1000).toFixed(1) + 's');
+      const kb = es.reduce((x, r) => x + (r.transferSize || 0), 0) / 1024;
+      S.boot = 'boot: data ' + (dataE ? (dataE.responseEnd / 1000).toFixed(1) + 's' : '?') + (threeE ? '   3d engine ' + (threeE.responseEnd / 1000).toFixed(1) + 's' : '') + '   before ready ' + es.length + ' files ' + (kb / 1024).toFixed(1) + ' MB\nslowest: ' + slow.join(', ');
+    } catch(e){} };
+    return {ready(){ S.ready = performance.now(); setTimeout(bootLine, 50); }, f(now){ if (S.last){ const d = now - S.last; if (d < 2000){ dts.push(d); if (dts.length > 900) dts.shift(); if (now - S.ready > 4000 && d > S.worst) S.worst = d; } } S.last = now; if (now - S.t > 1000){ S.t = now; draw(); } }};
   })() : null;
   function fpsTick(now){
     if (PERF) PERF.f(now);

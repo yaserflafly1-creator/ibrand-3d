@@ -41,15 +41,19 @@ rep("  {key:'quick', name:'مشتريات سريعة',",
 
 # everything the store needs to open (products, merchandising file, settings, planogram, shelf pattern) is asked for
 # at once instead of one after another: on a phone network each wait in a row costs a round trip
-rep("  try { const r = await fetch('data/products.json?t=' + Date.now(), {cache:'no-store'}); if (r.ok) DATA = normalize(await r.json()); } catch(e){}",
-    "  { const J = async (u, o) => { try { const r = await fetch(u, o); return r.ok ? await r.json() : null; } catch(e){ return null; } };\n"
+# …and asked for before waiting on the fonts, not after (a slow font could hold the data back by up to 2.5 s)
+rep("  try { await Promise.race([Promise.all([document.fonts.load('800 80px \"Almarai\"'), document.fonts.load('400 40px \"Almarai\"')]), new Promise(r=>setTimeout(r,2500))]); } catch(e){}",
+    "  const BOOTP = (async () => { const J = async (u, o) => { try { const r = await fetch(u, o); return r.ok ? await r.json() : null; } catch(e){ return null; } };\n"
     "    const get = async u => { const c = new AbortController(), tm = setTimeout(() => c.abort(), 6000); try { const r = await fetch(u, {signal:c.signal}); return r.ok ? await r.json() : null; } catch(e){ return null; } finally { clearTimeout(tm); } };\n"
     "    // settings and planogram: the control panel's saved copy when its backend is set and answers, else the files published with the store\n"
     "    const cfgP = J('config.json', {cache:'no-cache'}).then(async c => { if (c) window.__CFG = c; const api = c && c.api; if (!api) return null;\n"
     "      const [c2, p2] = await Promise.all([get(api + '/public/config'), get(api + '/public/pg')]); if (c2) window.__CFG = Object.assign({}, window.__CFG, c2, {api}); return p2 && Array.isArray(p2.f) ? p2 : null; });\n"
     "    const [d, imf, pg, pat] = await Promise.all([J('data/products.json', {cache:'no-cache'}), J('plan/imf.json'), cfgP, J('data/plan.json?t=' + Math.floor(Date.now() / 600000))]);\n"
     "    if (d) DATA = normalize(d); if (imf) window.__IMF = imf; if (pat) window.__PAT = pat;\n"
-    "    window.__PG = pg || await J('plan/pg.json'); }")
+    "    window.__PG = pg || await J('plan/pg.json'); })();\n"
+    "  try { await Promise.race([Promise.all([document.fonts.load('800 80px \"Almarai\"'), document.fonts.load('400 40px \"Almarai\"')]), new Promise(r=>setTimeout(r,2500))]); } catch(e){}")
+rep("  try { const r = await fetch('data/products.json?t=' + Date.now(), {cache:'no-store'}); if (r.ok) DATA = normalize(await r.json()); } catch(e){}",
+    "  await BOOTP;")
 # open the connections the store will need while the page is still being read
 import json as _json
 _api = (_json.load(open(os.path.join(root, 'static', 'config.json'), encoding='utf-8')).get('api') or '').rstrip('/')
