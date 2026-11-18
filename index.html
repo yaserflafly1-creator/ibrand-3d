@@ -1924,7 +1924,7 @@ function build(renderer){
   }
   function paintBranch(){ const b = $('#brPill'); if (!b) return; b.textContent = ''; b.classList.toggle('none', !ALLOC);
     const t = document.createElement('span'), c = document.createElement('i');
-    t.textContent = !ALLOC ? '📍 اختر فرعك لتعرف المتوفر فيه' : ALLOC.type === 'address' ? '📍 تتسوق من مخزون الأقرب لعنوانك' : '📍 تتسوق من: ' + (branchName ? 'فرع ' + branchName : 'فرعك المحدد');
+    t.textContent = !ALLOC ? '📍 تعرّف على المتوفر في فرعك' : ALLOC.type === 'address' ? '📍 تتسوق من مخزون الأقرب لعنوانك' : '📍 تتسوق من: ' + (branchName ? 'فرع ' + branchName : 'فرعك المحدد');
     c.textContent = ALLOC ? 'تغيير' : 'اختر'; b.appendChild(t); b.appendChild(c); b.onclick = openBranches; }
   paintBranch();
   async function openBranches(){

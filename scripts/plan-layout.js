@@ -290,7 +290,7 @@
       const g = x.createLinearGradient(0, 0, 0, Hh); g.addColorStop(0, z.zc.hi); g.addColorStop(1, z.zc.lo); x.fillStyle = g; x.fillRect(0, 0, W, Hh);
       x.fillStyle = 'rgba(255,255,255,.10)'; for (let i = 0; i < 6; i++){ x.beginPath(); x.arc(W * (i % 2 ? .12 : .88), 120 + i * 150, 70 + i * 10, 0, 7); x.fill(); }
       const R = W * .27, cy = Hh * .2; x.fillStyle = '#ffffff'; x.beginPath(); x.arc(W/2, cy, R + 10, 0, 7); x.fill();
-      if (logoOk) x.drawImage(capLogo, W/2 - R, cy - R, 2*R, 2*R);
+      if (logoOk){ x.save(); x.beginPath(); x.arc(W/2, cy, R, 0, 7); x.clip(); x.drawImage(capLogo, W/2 - R*1.08, cy - R*1.08, 2.16*R, 2.16*R); x.restore(); }
       x.textAlign = 'center'; x.textBaseline = 'middle'; x.direction = 'rtl'; x.fillStyle = '#ffffff';
       const nm = (SEC[z.key] && SEC[z.key].name) || '', words = nm.split(' '), lines = []; let cur = '';
       words.forEach(w => { const t2 = cur ? cur + ' ' + w : w; x.font = '800 ' + Math.round(W * .125) + 'px "Almarai", Tahoma'; if (x.measureText(t2).width > W - W * .12 && cur){ lines.push(cur); cur = w; } else cur = t2; }); if (cur) lines.push(cur);
