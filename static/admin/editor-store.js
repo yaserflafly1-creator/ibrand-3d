@@ -127,26 +127,75 @@
     var norm = function(t){ return String(t).toLowerCase().replace(/[أإآ]/g, 'ا').replace(/ة/g, 'ه').replace(/ى/g, 'ي').replace(/[\u064b-\u0652\u0640]/g, '').replace(/\s+/g, ' ').trim(); }, qv = '';
     var draw = function(){ var act = Object.keys(on).filter(function(k){ return on[k]; }), words = norm(qv).split(' ').filter(Boolean);
       var rows = (words.length ? data.all.filter(function(r){ var n = r._n || (r._n = norm(r.name)); return words.every(function(w){ return n.indexOf(w) >= 0 || r.sku.indexOf(w) >= 0; }); }) : data.rows).filter(function(r){ return !act.length || act.some(function(k){ return r.f.indexOf(k) >= 0; }); });
-      box.querySelector('#phN').textContent = rows.length + ' صورة' + (data.checked < data.total ? ' · اتفحص ' + data.checked + ' من ' + data.total + ' لحد دلوقتي' : '');
+      box.querySelector('#phN').textContent = rows.length + ' صورة' + (data.checked < data.total ? ' · اتفحص ' + data.checked + ' من ' + data.total + ' ' : '');
       F.innerHTML = Object.keys(FLAG).map(function(k){ var n = data.rows.filter(function(r){ return r.f.indexOf(k) >= 0; }).length; return '<button type="button" data-k="' + k + '" style="border:1px solid ' + (on[k] ? '#1565c0' : '#cfd8dc') + ';background:' + (on[k] ? '#e3f2fd' : '#fff') + ';color:#263238;border-radius:999px;padding:5px 11px;cursor:pointer;font:inherit">' + FLAG[k] + ' · ' + n + '</button>'; }).join('');
       L.innerHTML = rows.length ? rows.slice(0, shown).map(function(r){ return '<div style="display:flex;gap:10px;align-items:center;padding:7px 6px;border-bottom:1px solid #f0f3f5">' +
         '<img src="' + esc(r.img) + '" loading="lazy" width="56" height="56" style="flex:none;object-fit:contain;border:1px solid #e0e6ea;border-radius:8px;background:#fff">' +
         '<div style="min-width:0;flex:1"><div style="font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">' + esc(r.name) + '</div><div style="color:' + (r.f ? '#b26a00' : '#78909c') + ';font-size:12px">' + (r.f ? r.f.split('').map(function(k){ return FLAG[k]; }).join(' · ') : 'لا ملاحظات على صورته') + (r.sku ? ' · <span dir="ltr">' + esc(r.sku) + '</span>' : '') + '</div></div>' +
         (r.at ? '<button type="button" data-open="' + r.id + '" style="flex:none;border:0;background:#1565c0;color:#fff;border-radius:8px;padding:6px 12px;cursor:pointer;font:inherit">تعديل الصورة</button>'
-              : '<a href="https://s.salla.sa/products/' + r.id + '" target="_blank" rel="noopener" style="flex:none;color:#1565c0;font-size:12px">مش على رف · افتحه في سلة</a>') + '</div>'; }).join('') +
+              : '<a href="https://s.salla.sa/products/' + r.id + '" target="_blank" rel="noopener" style="flex:none;color:#1565c0;font-size:12px">مو على رف · افتحه في سلة</a>') + '</div>'; }).join('') +
         (rows.length > shown ? '<div style="text-align:center;padding:12px"><button type="button" id="phMore" style="border:1px solid #cfd8dc;background:#fff;border-radius:8px;padding:6px 16px;cursor:pointer;font:inherit">عرض المزيد (' + (rows.length - shown) + ')</button></div>' : '')
-        : '<div style="padding:24px;text-align:center;color:#607d8b">مفيش صور في القائمة دي.</div>';
+        : '<div style="padding:24px;text-align:center;color:#607d8b">ما فيه صور في هذي القائمة.</div>';
       var more = L.querySelector('#phMore'); if (more) more.onclick = function(){ shown += 300; draw(); }; };
     var qi = box.querySelector('#phQ'), qt = 0; qi.oninput = function(){ clearTimeout(qt); qt = setTimeout(function(){ qv = qi.value; shown = 150; if (data) draw(); }, 160); }; setTimeout(function(){ qi.focus(); }, 60);
     F.onclick = function(e){ var b = e.target.closest('[data-k]'); if (b && data){ on[b.dataset.k] = !on[b.dataset.k]; shown = 150; draw(); } };
     L.onclick = function(e){ var b = e.target.closest('[data-open]'); if (!b || !data) return; var r = data.all.find(function(x){ return x.id === b.dataset.open; }) || data.rows.find(function(x){ return x.id === b.dataset.open; }); if (r && r.at && window.PG_HOOK){ box.remove(); window.PG_HOOK.openImg(r.at[0], r.at[1]); } };
-    photoList().then(function(d){ if (!d){ L.innerHTML = '<div style="padding:24px;text-align:center;color:#607d8b">الفحص لسه ما اشتغلش. بيتعمل تلقائي مع تحديث المتجر كل ساعة، جرّب بعد شوية.</div>'; return; } data = d; draw(); })
+    photoList().then(function(d){ if (!d){ L.innerHTML = '<div style="padding:24px;text-align:center;color:#607d8b">الفحص ما اشتغل للحين. يشتغل لحاله مع تحديث الصيدلية، جرّب بعد شوي.</div>'; return; } data = d; draw(); })
       .catch(function(){ L.innerHTML = '<div style="padding:24px;text-align:center;color:#b71c1c">تعذّر تحميل القائمة.</div>'; });
   }
   function photoButton(){ var b = document.createElement('button'); b.type = 'button'; b.textContent = '🖼 الصور: بحث وتعديل';
     b.style.cssText = 'position:fixed;left:326px;bottom:12px;z-index:50;font:600 12px/1 Tahoma,Arial,sans-serif;padding:8px 12px;border-radius:999px;border:1px solid #ffb74d;background:#fff8e1;color:#e65100;cursor:pointer';
     b.onclick = photoPanel; document.body.appendChild(b); }
-  ready.then(function(){ if (document.body) photoButton(); else addEventListener('DOMContentLoaded', photoButton); }).catch(function(){});
+  // stands that hold products of several different categories (skin care beside oral care…), worst first, for tidying;
+  // a click opens the stand in the editor
+  var imfP = null;
+  async function mixList(){
+    if (!imfP) imfP = fetch('../plan/imf.json', {cache:'no-cache'}).then(function(r){ return r.ok ? r.json() : null; }).catch(function(){ return null; });
+    var imf = await imfP; if (!imf || !imf.p) return null;
+    var map = await getMap(), by = await getProducts(), fx = {}, lbl = {};
+    ((window.PG_HOOK && window.PG_HOOK.items()) || []).forEach(function(e){ var it = e[2], id = it[8] ? String(it[8]) : null;
+      if (!id){ var c = (map.ids[String(it[1]).trim().slice(0, 48)] || []).filter(function(q){ return by[q[0]]; }), b = String(it[2] || '').toLowerCase(), pk = c.find(function(q){ return q[1] === b; }) || (c.length === 1 ? c[0] : null); id = pk ? pk[0] : null; }
+      // the category written on the item itself; its Arabic name and its department (family) from the merchandising file when the product is known
+      var m = id && imf.p[id], ck = String(it[6] || '').trim() || (m ? 'c' + m[2] : ''); if (!ck) return;
+      var f = fx[e[0]] || (fx[e[0]] = {k:e[0], n:0, cat:{}, fam:{}}); f.n++; f.cat[ck] = (f.cat[ck] || 0) + 1;
+      if (m){ f.fam[m[1]] = (f.fam[m[1]] || 0) + 1; if (!lbl[ck] && imf.c && imf.c[m[2]]) lbl[ck] = imf.c[m[2]]; } });
+    var rows = [];
+    Object.keys(fx).forEach(function(k){ var f = fx[k]; if (f.n < 4) return; var nm = window.PG_HOOK.name ? window.PG_HOOK.name(k) : ''; if (/كاشير/.test(nm)) return;   // the till is mixed on purpose
+      var cats = Object.keys(f.cat).filter(function(c){ return f.cat[c] >= Math.max(2, f.n * .1); }).sort(function(a, b){ return f.cat[b] - f.cat[a]; });
+      var fams = Object.keys(f.fam).filter(function(c){ return f.fam[c] >= Math.max(2, f.n * .1); });
+      if (cats.length < 3 && fams.length < 2) return;
+      rows.push({k:k, n:f.n, fams:fams.length, cats:cats.map(function(c){ return {t:lbl[c] || (c.charAt(0) === 'c' && /^c\d+$/.test(c) ? 'فئة ' + c.slice(1) : c), n:f.cat[c]}; })}); });
+    rows.sort(function(a, b){ return b.fams - a.fams || b.cats.length - a.cats.length || a.k.localeCompare(b.k); });
+    return rows;
+  }
+  function mixPanel(){
+    var old = document.getElementById('mxPanel'); if (old){ old.remove(); return; }
+    var box = document.createElement('div'); box.id = 'mxPanel'; box.dir = 'rtl';
+    box.style.cssText = 'position:fixed;inset:0;z-index:60;background:rgba(20,30,40,.45);display:flex;justify-content:center;align-items:flex-start;padding:24px 12px;font:13px/1.5 Tahoma,Arial,sans-serif';
+    box.innerHTML = '<div style="background:#fff;border-radius:14px;width:min(680px,100%);max-height:calc(100vh - 48px);display:flex;flex-direction:column;box-shadow:0 12px 40px rgba(0,0,0,.3)">' +
+      '<div style="display:flex;align-items:center;gap:10px;padding:12px 16px;border-bottom:1px solid #e0e6ea"><b style="font-size:15px">🧩 استاندات مختلطة</b><span id="mxN" style="color:#607d8b"></span><button id="mxX" type="button" style="margin-inline-start:auto;border:1px solid #cfd8dc;background:#fff;border-radius:8px;padding:4px 10px;cursor:pointer">✕</button></div>' +
+      '<div style="padding:8px 16px;color:#607d8b;border-bottom:1px solid #eef2f4">استاندات فيها منتجات من أقسام مختلفة (مثل عناية بالبشرة مع عناية بالفم) أو من فئات كثيرة. الأحمر فيه أكثر من قسم رئيسي، رتبه أول. اضغط «افتح» يفتح لك الاستاند في المحرر.</div>' +
+      '<div id="mxL" style="overflow:auto;padding:6px 10px 12px">⏳ جاري التحميل…</div></div>';
+    document.body.appendChild(box);
+    box.addEventListener('click', function(e){ if (e.target === box) box.remove(); }); box.querySelector('#mxX').onclick = function(){ box.remove(); };
+    var L = box.querySelector('#mxL');
+    L.onclick = function(e){ var b = e.target.closest('[data-fx]'); if (b && window.PG_HOOK && window.PG_HOOK.openFx){ box.remove(); window.PG_HOOK.openFx(b.dataset.fx); } };
+    mixList().then(function(rows){
+      if (!rows){ L.innerHTML = '<div style="padding:24px;text-align:center;color:#b71c1c">تعذّر تحميل بيانات الفئات.</div>'; return; }
+      box.querySelector('#mxN').textContent = rows.length + ' استاند';
+      L.innerHTML = rows.length ? rows.map(function(r){ var nm = window.PG_HOOK.name ? window.PG_HOOK.name(r.k) : '';
+        return '<div style="display:flex;gap:10px;align-items:center;padding:8px 6px;border-bottom:1px solid #f0f3f5">' +
+          '<span style="flex:none;width:10px;height:10px;border-radius:50%;background:' + (r.fams > 1 ? '#e53935' : '#ffb300') + '"></span>' +
+          '<div style="min-width:0;flex:1"><div style="font-weight:600">' + esc(nm || r.k) + ' <span style="color:#78909c;font-weight:400">(' + r.n + ' منتج)</span></div>' +
+          '<div style="color:#546e7a;font-size:12px">' + r.cats.map(function(c){ return esc(c.t) + ' ' + c.n; }).join(' · ') + '</div></div>' +
+          '<button type="button" data-fx="' + esc(r.k) + '" style="flex:none;border:0;background:#1565c0;color:#fff;border-radius:8px;padding:6px 12px;cursor:pointer;font:inherit">افتح</button></div>'; }).join('')
+        : '<div style="padding:24px;text-align:center;color:#2e7d32">كل الاستاندات مرتبة ✓</div>'; })
+      .catch(function(){ L.innerHTML = '<div style="padding:24px;text-align:center;color:#b71c1c">تعذّر تحميل القائمة.</div>'; });
+  }
+  function mixButton(){ var b = document.createElement('button'); b.type = 'button'; b.textContent = '🧩 استاندات مختلطة';
+    b.style.cssText = 'position:fixed;left:478px;bottom:12px;z-index:50;font:600 12px/1 Tahoma,Arial,sans-serif;padding:8px 12px;border-radius:999px;border:1px solid #90caf9;background:#e3f2fd;color:#0d47a1;cursor:pointer';
+    b.onclick = mixPanel; document.body.appendChild(b); }
+  ready.then(function(){ if (document.body) { photoButton(); mixButton(); } else addEventListener('DOMContentLoaded', function(){ photoButton(); mixButton(); }); }).catch(function(){});
 
   window.PG_STORE = {
     name:'ibrand-3d', online:true,
