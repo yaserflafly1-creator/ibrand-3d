@@ -778,7 +778,7 @@ function build(renderer){
     if (!t.isCompressedTexture){
       // HD pieces are only ever viewed close (magnified), so skip mipmap generation:
       // halves their upload cost and desktops stop hitching while they stream in
-      const mips = !isSmall && !hd;
+      const mips = !isSmall && !weakGPU && !hd;   // phones and built-in laptop graphics: no mipmaps (about half the upload)
       t.generateMipmaps = mips; if (!mips) t.minFilter = THREE.LinearFilter;
     }
     try{ renderer.initTexture(t); }catch(_){}
@@ -2694,7 +2694,8 @@ function build(renderer){
       // motion-aware streaming: trickle GPU uploads while walking/looking (no hitches),
       // burst-fill the moment the shopper pauses
       const busy = Math.hypot(vel.x, vel.z) > .3 || Math.abs(lookV.y) + Math.abs(lookV.p) > .4 || lookers.size > 0;
-      if (now - lastTexUp > (busy ? 130 : 25)){ lastTexUp = now; texQ.shift()(); }
+      // a laptop's built-in graphics needs longer between two photo uploads, or walking stutters
+      if (now - lastTexUp > (busy ? (weakGPU && !isSmall ? 220 : 130) : (weakGPU && !isSmall ? 70 : 25))){ lastTexUp = now; texQ.shift()(); }
     }
     if (!lookers.size && (Math.abs(lookV.y) > .02 || Math.abs(lookV.p) > .02)){
       view.yaw += lookV.y * dt; view.pitch = clampPitch(view.pitch + lookV.p * dt);
