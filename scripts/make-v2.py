@@ -70,8 +70,8 @@ rep("  const floor = new THREE.Mesh(new THREE.PlaneGeometry(fw, fl), new THREE.M
 
 
 # 11) governor: v2 desktop dpr steps + mirror/composer degrade stages + composer resize hook
-rep('const DPRS = isSmall ? [1.5, 1.25, 1.0, .85] : (weakGPU ? [1.5, 1.25, 1.05, .9] : [2, 1.6, 1.35, 1.1]);',
-    'const DPRS = isSmall ? [1.5, 1.25, 1.0, .85] : (weakGPU ? [1.4, 1.2, 1.0, .9] : [1.75, 1.45, 1.2, 1]);')
+rep('const DPRS = isSmall ? [1.5, 1.25, 1.0, .85] : (weakGPU ? [1.5, 1.25, 1.05, .9, .8, .7] : [2, 1.6, 1.35, 1.1, .95]);',
+    'const DPRS = isSmall ? [1.5, 1.25, 1.0, .85] : (weakGPU ? [1.4, 1.2, 1.0, .9, .8, .7] : [1.75, 1.45, 1.2, 1, .9]);')
 rep('    /*V2_PP_RESIZE*/', '    if (ppResize) ppResize();')
 rep('    /*V2_EXTRA_DEGRADE*/',
     '''    if (floorMirror && floorMirror.visible){ floorMirror.visible = false; floor.material.transparent = false; floor.material.opacity = 1; floor.material.needsUpdate = true; return; }
