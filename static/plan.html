@@ -53,7 +53,7 @@ button{font-family:var(--font)}
 .hint{position:fixed;z-index:4;left:50%;transform:translateX(-50%);top:calc(env(safe-area-inset-top,0px) + 78px);
   background:rgba(59,29,54,.82);color:#fff;font-size:13px;border-radius:999px;padding:9px 16px;white-space:nowrap;pointer-events:none;transition:opacity .6s}
 .hint.gone{opacity:0}
-#mini{position:fixed;z-index:5;top:calc(env(safe-area-inset-top,0px) + 78px);right:max(16px, env(safe-area-inset-right,0px));border:1px solid var(--line);border-radius:14px;box-shadow:0 10px 26px rgba(59,29,54,.18);background:#fff;cursor:pointer;touch-action:none}
+#mini{position:fixed;z-index:8;top:calc(env(safe-area-inset-top,0px) + 78px);right:max(16px, env(safe-area-inset-right,0px));border:1px solid var(--line);border-radius:14px;box-shadow:0 10px 26px rgba(59,29,54,.18);background:#fff;cursor:pointer;touch-action:none}
 .sndBtn{position:fixed;z-index:5;right:max(18px, env(safe-area-inset-right,0px));bottom:calc(env(safe-area-inset-bottom,0px) + 82px + var(--lift, 0px));width:46px;height:46px;border-radius:50%;border:1px solid var(--line);background:rgba(255,255,255,.92);color:var(--plum);display:flex;align-items:center;justify-content:center;cursor:pointer;box-shadow:0 6px 16px rgba(59,29,54,.14)}
 /* whose stock the shopper is looking at: always in view, one tap to choose or change the branch */
 .brPill{position:fixed;z-index:6;top:calc(env(safe-area-inset-top,0px) + 64px);left:50%;transform:translateX(-50%);max-width:calc(100vw - 24px);display:flex;align-items:center;gap:6px;padding:6px 13px;border-radius:999px;border:1px solid var(--line);background:rgba(255,255,255,.95);color:var(--plum);font:700 12.5px var(--font);cursor:pointer;box-shadow:0 6px 16px rgba(59,29,54,.12);white-space:nowrap}
@@ -2902,7 +2902,20 @@ function build(renderer){
       x.fillStyle = '#1f9a55'; x.fillRect(X(DOOR_IN - 1.2), base.height - 6, X(DOOR_IN + 1.2) - X(DOOR_IN - 1.2), 6);
       x.fillStyle = '#d92b3a'; x.fillRect(X(DOOR_OUT - 1.2), base.height - 6, X(DOOR_OUT + 1.2) - X(DOOR_OUT - 1.2), 6);
       x.font = '700 ' + (isSmall ? 19 : 18) + 'px "Almarai", Tahoma, sans-serif'; x.textAlign = 'center'; x.textBaseline = 'middle'; x.direction = 'rtl'; x.lineJoin = 'round';
-      labels.forEach(l => { const px = Math.max(44, Math.min(base.width - 44, X(l.x))), pz = Math.max(14, Math.min(base.height - 14, Z(l.z))); x.strokeStyle = 'rgba(255,255,255,.92)'; x.lineWidth = 6; x.strokeText(l.t, px, pz); x.fillStyle = '#3b1d36'; x.fillText(l.t, px, pz); }); }
+      // every name whole inside the map (measured, so a long one is never cut at the edge), shrunk if it is too long,
+      // and moved up or down off a name already placed so two never overlap; a soft white pill keeps it readable
+      const fs0 = isSmall ? 19 : 18, placed = [], M = 8;
+      labels.sort((a, b) => Z(a.z) - Z(b.z)).forEach(l => {
+        let fs = fs0; x.font = '700 ' + fs + 'px "Almarai", Tahoma, sans-serif';
+        while (x.measureText(l.t).width > base.width * .46 && fs > 12){ fs--; x.font = '700 ' + fs + 'px "Almarai", Tahoma, sans-serif'; }
+        const w = x.measureText(l.t).width + 14, h = fs + 10;
+        const px = Math.max(w / 2 + M, Math.min(base.width - w / 2 - M, X(l.x)));
+        let pz = Math.max(h / 2 + M, Math.min(base.height - h / 2 - M - 6, Z(l.z)));
+        const hit = z => placed.find(q => Math.abs(q.x - px) < (q.w + w) / 2 + 4 && Math.abs(q.z - z) < (q.h + h) / 2 + 2);
+        for (let k = 1, z0 = pz; hit(pz) && k < 12; k++){ const t = z0 + Math.ceil(k / 2) * (h * .6) * (k % 2 ? 1 : -1); if (t > h / 2 + M && t < base.height - h / 2 - M - 6) pz = t; }
+        placed.push({x:px, z:pz, w, h});
+        x.fillStyle = 'rgba(255,255,255,.86)'; x.beginPath(); if (x.roundRect) x.roundRect(px - w / 2, pz - h / 2, w, h, h / 2); else x.rect(px - w / 2, pz - h / 2, w, h); x.fill();
+        x.fillStyle = '#3b1d36'; x.fillText(l.t, px, pz + 1); }); }
     function draw(){ const x = mm.getContext('2d'); x.drawImage(base, 0, 0);
       if (goal){ x.fillStyle = '#2fbcb2'; x.beginPath(); x.arc(X(goal.x), Z(goal.z), 7, 0, 7); x.fill(); }
       const px = X(camera.position.x), pz = Z(camera.position.z), a = Math.atan2(-Math.cos(view.yaw), -Math.sin(view.yaw));
