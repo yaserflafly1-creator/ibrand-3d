@@ -743,8 +743,8 @@ function build(renderer){
   // lazy texture pages: load the pages nearest the shopper, release far ones on phones
   // Three levels of photo quality, chosen by distance: HD (256 px per product) for the shelves right next to you,
   // normal (128 px) for the aisle around you, light (64 px, phones only) further away.
-  const MAX_PAGES = isIOS ? 20 : (isSmall ? 30 : (weakGPU ? 36 : 56)), LOAD_R = isIOS ? 16 : (isSmall ? 20 : 24);
-  const HD_N = isIOS ? 5 : (isSmall ? 8 : (weakGPU ? 10 : 20)), HD_R = isIOS ? 4.5 : (isSmall ? 5 : 7), FULL_N = isIOS ? 9 : (isSmall ? 16 : (weakGPU ? 18 : 30)), FULL_R = isIOS ? 8 : (isSmall ? 10 : 14);
+  const MAX_PAGES = isIOS ? 20 : (isSmall ? 30 : (weakGPU ? 28 : 56)), LOAD_R = isIOS ? 16 : (isSmall ? 20 : 24);
+  const HD_N = isIOS ? 5 : (isSmall ? 8 : (weakGPU ? 6 : 20)), HD_R = isIOS ? 4.5 : (isSmall ? 5 : 7), FULL_N = isIOS ? 9 : (isSmall ? 16 : (weakGPU ? 12 : 30)), FULL_R = isIOS ? 8 : (isSmall ? 10 : 14);
   let inflight = 0;
   // phones: decode images off the main thread and upload to the GPU one per frame,
   // so new shelf photos never freeze the walk (game-engine style streaming)
@@ -786,7 +786,7 @@ function build(renderer){
     // was tens of megabytes in the first minute), and on mobile data or with data-saver on, less still. What they walk up
     // to is always loaded when they get there, whatever was or was not fetched ahead.
     const nc = navigator.connection || {}, cell = nc.type === 'cellular' || /(^|-)(2g|3g)$/.test(nc.effectiveType || ''), lite = !!nc.saveData || cell;
-    const got = new Set(), R0 = lite ? 12 : (isSmall ? 20 : 40), R1 = isSmall ? 6 : 18, R2 = isSmall ? 0 : 8;   // a computer too: the store around the shopper, not all of it (the whole store was 270 MB)
+    const got = new Set(), R0 = lite ? 12 : (isSmall ? 20 : (weakGPU ? 24 : 40)), R1 = isSmall || weakGPU ? 6 : 18, R2 = isSmall || weakGPU ? 0 : 8;   // a computer too: the store around the shopper, not all of it (the whole store was 270 MB)
     const skip = k => window.__skipAtlas && window.__skipAtlas.has(k);
     const next = () => {
       if (document.hidden){ setTimeout(next, 4000); return; }
@@ -2816,7 +2816,7 @@ function build(renderer){
   droneBtn.addEventListener('click', () => { droneBtn.blur(); setDrone(!droneMode); });
 
   // ---------- adaptive quality: step the resolution down until the device runs smoothly ----------
-  const DPRS = isSmall ? [1.5, 1.25, 1.0, .85] : (weakGPU ? [1.5, 1.25, 1.05, .9] : [2, 1.6, 1.35, 1.1]);
+  const DPRS = isSmall ? [1.5, 1.25, 1.0, .85] : (weakGPU ? [1.5, 1.25, 1.05, .9, .8, .7] : [2, 1.6, 1.35, 1.1, .95]);   // laptops with built-in graphics may go lower on a big screen
   let qIdx = 0, fpsN = 0, fpsT = performance.now(), slowRuns = 0, goodRuns = 0, qMin = 0, lastUp = -1e9;
   const bootT = performance.now();
   function applyDpr(){
