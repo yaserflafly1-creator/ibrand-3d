@@ -21,11 +21,12 @@ jobs:
           BOARDS: ${{ inputs.boards }}
         run: |
           mkdir -p static/assets/endcaps
+          python3 -m pip install --quiet pillow
           echo "$BOARDS" | jq -r 'to_entries[] | "\(.key) \(.value)"' | while read -r key url; do
             case "$key" in z_[a-z]*) ;; *) echo "skip $key"; continue;; esac
             case "$url" in https://*.canva.com/*|https://*.canva-export.com/*|https://*.amazonaws.com/*) ;; *) echo "skip url for $key"; continue;; esac
             curl -fsSL "$url" -o "/tmp/$key.img" || { echo "download failed $key"; continue; }
-            convert "/tmp/$key.img" -resize 720x -strip -quality 84 -sampling-factor 4:2:0 "static/assets/endcaps/$key.jpg"
+            python3 -c "import sys; from PIL import Image; im = Image.open(sys.argv[1]).convert('RGB'); w = 720; im = im.resize((w, round(im.height * w / im.width)), Image.LANCZOS); im.save(sys.argv[2], 'JPEG', quality=84, optimize=True, progressive=True)" "/tmp/$key.img" "static/assets/endcaps/$key.jpg"
             ls -l "static/assets/endcaps/$key.jpg"
           done
           ls static/assets/endcaps/*.jpg 2>/dev/null | xargs -n1 basename | sed 's/\.jpg$//' | jq -R . | jq -s . > static/assets/endcaps/list.json
