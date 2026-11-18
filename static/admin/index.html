@@ -96,11 +96,11 @@ td,th{padding:6px 8px;border-bottom:1px solid var(--line);text-align:right}
         <label>اللونان</label><div class="row"><input type="color" id="seA"><input type="color" id="seB"></div>
       </div>
       <div class="card"><h2>تحديث الصيدلية</h2>
-        <p class="note">الصيدلية تعيد قراءة المنتجات والصور والأسعار من سلة ثم تُنشر من جديد. يبدأ التحديث تلقائياً بعد كل نشر صورة من المحرر، وتقدر تبدأه بيدك بعد أي تعديل في سلة. يأخذ من 5 إلى 10 دقائق غالباً.</p>
+        <p class="note">الصيدلية تعيد قراءة المنتجات والصور والأسعار من سلة ثم تُنشر من جديد. يبدأ التحديث تلقائياً بعد كل نشر صورة من المحرر، ويمكنك بدؤه يدوياً بعد أي تعديل في سلة. يستغرق نحو 20 دقيقة غالباً.</p>
         <div class="row"><button class="btn" type="button" id="buildNow">🔄 حدّث الصيدلية من سلة الآن</button><span class="note" id="buildState"></span></div>
       </div>
       <div class="card"><h2>دقة الأسعار والتوفر</h2>
-        <p class="note">يقارن عينة من المنتجات اللي تعرضها الصيدلية (العروض أولاً) بسعرها وتوفرها في سلة الآن. يشتغل لحاله كل 3 ساعات. إذا ظهر اختلاف حدّث الصيدلية من الزر فوق، ولو بقي بعد التحديث فالمشكلة في بيانات المنتج نفسه في سلة.</p>
+        <p class="note">يقارن عينة من المنتجات التي تعرضها الصيدلية (العروض أولاً) بسعرها وتوفرها في سلة الآن. يعمل تلقائياً كل 3 ساعات. إذا ظهر اختلاف فحدّث الصيدلية من الزر أعلاه، وإن بقي بعد التحديث فالمشكلة في بيانات المنتج نفسه في سلة.</p>
         <div class="row"><button class="btn" type="button" id="chkNow">🔎 افحص الآن</button><span class="note" id="chkState"></span></div>
         <div id="chkOut" class="note" style="margin-top:8px"></div>
       </div>
@@ -115,7 +115,7 @@ td,th{padding:6px 8px;border-bottom:1px solid var(--line);text-align:right}
   <!-- events -->
   <section id="t-events" hidden>
     <div class="card"><h2>فعاليات الصيدلية</h2>
-      <p class="note">ألعاب صغيرة تخلّي الزائر يتجوّل في الصيدلية. كل فعالية لها زر صغير على يمين الشاشة، وتتغيّر أماكنها كل يوم تلقائياً. كود الجائزة تكتبه أنت من كوبونات سلة؛ بدون كود يظهر للفائز تهنئة فقط. الكود مقروء لمن يفتّش الصفحة، فاجعل الكوبون في سلة محدود الاستخدام.</p></div>
+      <p class="note">ألعاب صغيرة تشجع الزائر على التجول في الصيدلية. لكل فعالية زر صغير على يمين الشاشة، وتتغيّر أماكنها كل يوم تلقائياً. اكتب كود الجائزة من كوبونات سلة؛ بدون كود يظهر للفائز تهنئة فقط. الكود مقروء لمن يفتّش الصفحة، فاجعل الكوبون في سلة محدود الاستخدام.</p></div>
     <div class="grid">
       <div class="card"><h2>الكنز المفقود</h2>
         <label class="chk"><input type="checkbox" id="trOn"> الكنز مفعّل</label>
@@ -141,7 +141,7 @@ td,th{padding:6px 8px;border-bottom:1px solid var(--line);text-align:right}
     </div>
     <div class="card"><h2>عدّاد الخطوات والمكافآت</h2>
       <label class="chk"><input type="checkbox" id="stOn"> العدّاد ظاهر أعلى الشاشة</label>
-      <p class="note">يعدّ خطوات الزائر ووقته في الصيدلية، ويعلن «المكافأة البرونزية» بعد دقيقتين، و«الفضية» بعد 5 دقائق، و«الذهبية» بعد 10 دقائق. إذا تركت خانة الكود فارغة يظهر للزائر إعلان المكافأة بدون أي كود، فإمّا تكتب كوداً لكل مستوى أو توقف العدّاد حتى لا يُوعَد الزائر بمكافأة غير موجودة.</p>
+      <p class="note">يعدّ خطوات الزائر ووقته في الصيدلية، ويعلن «المكافأة البرونزية» بعد دقيقتين، و«الفضية» بعد 5 دقائق، و«الذهبية» بعد 10 دقائق. إذا تركت خانة الكود فارغة يظهر للزائر إعلان المكافأة بدون أي كود، فإمّا أن تكتب كوداً لكل مستوى أو توقف العدّاد حتى لا يُوعَد الزائر بمكافأة غير موجودة.</p>
       <div class="grid"><div><label>كود البرونزية</label><input type="text" id="stC0" dir="ltr" maxlength="40"></div><div><label>كود الفضية</label><input type="text" id="stC1" dir="ltr" maxlength="40"></div><div><label>كود الذهبية</label><input type="text" id="stC2" dir="ltr" maxlength="40"></div></div>
       <label>الملاحظة تحت الكود</label><input type="text" id="stNote" maxlength="120">
     </div>
@@ -162,7 +162,7 @@ td,th{padding:6px 8px;border-bottom:1px solid var(--line);text-align:right}
           <div id="fxForm" hidden>
             <label>الكود</label><input type="text" id="fxCode" dir="ltr">
             <label>القسم</label><select id="fxZone"></select>
-            <label>العلامة (اتركها فاضية للرف المشترك)</label><input type="text" id="fxBrand" dir="ltr">
+            <label>العلامة (اتركها فارغة للرف المشترك)</label><input type="text" id="fxBrand" dir="ltr">
             <label>الموضع</label><select id="fxWall"><option value="0">أرضية</option><option value="1">حائط</option></select>
             <label>الوجه (للأرضية الطولية)</label><select id="fxFace"><option value="A">يواجه اليسار</option><option value="B">يواجه اليمين</option></select>
             <label>الطول (عدد الموديولات، كل موديول 1 م)</label><input type="number" id="fxLen" min="1" max="20">
@@ -286,7 +286,7 @@ function fillSettings(){
 const EVZ = [['z_makeup','الميك أب'],['z_derma','الديرما والبريميوم'],['z_hair','العناية بالشعر والبشرة'],['z_care','العناية الشخصية'],['z_dev','الأجهزة والمستلزمات الطبية'],['z_vit','المكملات الغذائية'],['z_kids','الأم والطفل'],['z_rx','الدواء والصيدلية']];
 const NOTE0 = 'استخدم الكود عند إتمام الطلب.';
 function riddleRow(r){ const d = el('div', {class:'rdRow'}); d.style.cssText = 'display:grid;grid-template-columns:1fr 190px 36px;gap:8px;align-items:center;margin:8px 0';
-  const q = el('input', {type:'text', maxlength:'160', placeholder:'نص اللغز (مثال: أحمي بشرتك من الشمس، في أي قسم تلقاني؟)'}); q.value = (r && r.q) || '';
+  const q = el('input', {type:'text', maxlength:'160', placeholder:'نص اللغز (مثال: أحمي بشرتك من الشمس، في أي قسم تجدني؟)'}); q.value = (r && r.q) || '';
   const z = el('select'); EVZ.forEach(o => z.appendChild(el('option', {value:o[0], text:o[1]}))); z.value = (r && r.zone) || EVZ[0][0];
   const x = el('button', {type:'button', class:'btn ghost', text:'✕', title:'حذف اللغز'}); x.style.cssText = 'color:#b3261e;border-color:var(--line);padding:6px 0'; x.onclick = () => { d.remove(); dirtyCfg(); };
   d.appendChild(q); d.appendChild(z); d.appendChild(x); return d; }
@@ -313,7 +313,7 @@ async function saveCfg(){ readSettings(); readEvents(); readPromo(); if (DEMO){ 
   try { await call('/config', {method:'PUT', body:JSON.stringify(out)}); cfgDirty = false; mark(); say('تم حفظ الإعدادات'); } catch(e){ say(e.message, true); } }
 const H = t => String(t == null ? '' : t).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 function showCheck(r){
-  const o = $('#chkOut'); if (!o) return; if (!r || !r.at){ o.textContent = 'ما صار فحص للحين.'; return; }
+  const o = $('#chkOut'); if (!o) return; if (!r || !r.at){ o.textContent = 'لم يُجرَ فحص بعد.'; return; }
   const when = d => d ? new Date(d).toLocaleString('ar-SA', {dateStyle:'short', timeStyle:'short'}) : '—';
   const K = {price:'السعر مختلف', stock:'غير متوفر في سلة', gone:'محذوف من سلة'};
   const rows = (r.issues || []).map(i => '<li><b>' + K[i.kind] + '</b>: <a target="_blank" rel="noopener" href="https://s.salla.sa/products/' + H(i.id) + '">' + H(i.name) + '</a> — في الصيدلية ' + H(i.shown) + (i.kind === 'price' ? ' / في سلة ' + H(i.live) : '') + '</li>').join('');
@@ -321,7 +321,7 @@ function showCheck(r){
     + (r.issues && r.issues.length ? '<b style="color:#c0392b">' + r.issues.length + ' اختلاف</b><ul style="margin:6px 0 0;padding-inline-start:18px">' + rows + '</ul>' : '<b style="color:#1f9a55">كل المنتجات المفحوصة مطابقة ✓</b>');
 }
 async function loadCheck(){ if (DEMO) return; try { const d = await call('/check'); showCheck(d.last); } catch(e){} }
-$('#chkNow').onclick = async () => { if (DEMO) return say('نسخة عرض'); const st = $('#chkState'); st.textContent = 'يفحص… (نص دقيقة تقريباً)'; try { showCheck(await call('/check', {method:'POST'})); st.textContent = ''; } catch(e){ st.textContent = ''; say(e.message, true); } };
+$('#chkNow').onclick = async () => { if (DEMO) return say('نسخة عرض'); const st = $('#chkState'); st.textContent = 'جارٍ الفحص… (نحو نصف دقيقة)'; try { showCheck(await call('/check', {method:'POST'})); st.textContent = ''; } catch(e){ st.textContent = ''; say(e.message, true); } };
 $('#buildNow').onclick = async () => { if (DEMO) return say('نسخة عرض'); const st = $('#buildState'); st.textContent = '…'; try { await call('/build', {method:'POST'}); st.textContent = 'بدأ التحديث ✓ يظهر في الصيدلية خلال 20 دقيقة تقريباً'; } catch(e){ st.textContent = ''; say(e.message, true); } };
 $('#saveCfg').onclick = saveCfg; $('#saveCfg2').onclick = saveCfg; $('#saveEv').onclick = saveCfg;
 
@@ -376,17 +376,17 @@ $('#fxForm').addEventListener('change', () => { const fx = SEL; if (!fx) return;
   const r = fx.r[0], v = r[3] > r[2], n = Math.max(1, Math.min(20, Math.round(+$('#fxLen').value || 1))); if (v) r[3] = n; else r[2] = n;
   fx.f = fx.w ? 'W' : (r[3] > r[2] ? $('#fxFace').value : ''); dirtyPg(); drawMap(); fillShelfPicker(); });
 $('#fxRot').onclick = () => { if (!SEL) return; SEL.r.forEach(r => { const t = r[2]; r[2] = r[3]; r[3] = t; }); const r = SEL.r[0]; SEL.f = SEL.w ? 'W' : (r[3] > r[2] ? $('#fxFace').value : ''); dirtyPg(); drawMap(); };
-$('#fxDel').onclick = () => { if (!SEL) return; const b = $('#fxDel'); if (b.dataset.sure !== SEL.c){ b.dataset.sure = SEL.c; b.textContent = 'اضغط مرة ثانية للتأكيد'; setTimeout(() => { b.dataset.sure = ''; b.textContent = 'حذف'; }, 4000); return; }
+$('#fxDel').onclick = () => { if (!SEL) return; const b = $('#fxDel'); if (b.dataset.sure !== SEL.c){ b.dataset.sure = SEL.c; b.textContent = 'اضغط مرة أخرى للتأكيد'; setTimeout(() => { b.dataset.sure = ''; b.textContent = 'حذف'; }, 4000); return; }
   PG.f = PG.f.filter(f => f !== SEL); b.dataset.sure = ''; b.textContent = 'حذف'; select(null); dirtyPg(); fillShelfPicker(); };
 $('#fxAdd').onclick = () => { let n = 1, code; do { code = 'N-' + String(n++).padStart(2, '0'); } while (PG.f.some(f => f.c === code));
   const fx = {c:code, z:'E', b:'', l:-1, w:0, s:5, k:0, r:[[+((PG.W || 44)/2 - .25).toFixed(1), +((PG.D || 46)/2).toFixed(1), .5, 2]], f:'A', it:[]}; PG.f.push(fx); dirtyPg(); select(fx); fillShelfPicker(); };
 $('#fxShelvesGo').onclick = () => { if (!SEL) return; $('#shFx').value = SEL.c; show('shelves'); };
 async function savePg(){ if (DEMO){ pgDirty = false; mark(); return say('نسخة عرض: التعديل لا يُحفظ'); } try { await call('/pg', {method:'PUT', body:JSON.stringify(PG)}); pgDirty = false; mark(); say('تم حفظ المخطط'); } catch(e){ say(e.message, true); } }
 $('#savePg').onclick = savePg; $('#savePg2').onclick = savePg;
-$('#undoPg').onclick = async () => { if (DEMO) return say('نسخة عرض: لا يوجد حفظ للتراجع عنه'); try { await call('/pg/undo', {method:'POST'}); PG = await getJSON(API + '/public/pg'); pgDirty = false; mark(); select(null); fillShelfPicker(); say('رجعت للنسخة السابقة'); } catch(e){ say(e.message, true); } };
-$('#resetPg').onclick = async () => { const b = $('#resetPg'); if (!b.dataset.sure){ b.dataset.sure = '1'; b.textContent = 'اضغط مرة ثانية للتأكيد'; setTimeout(() => { b.dataset.sure = ''; b.textContent = 'الرجوع للمخطط الأصلي'; }, 4000); return; }
+$('#undoPg').onclick = async () => { if (DEMO) return say('نسخة عرض: لا يوجد حفظ للتراجع عنه'); try { await call('/pg/undo', {method:'POST'}); PG = await getJSON(API + '/public/pg'); pgDirty = false; mark(); select(null); fillShelfPicker(); say('تمت العودة إلى النسخة السابقة'); } catch(e){ say(e.message, true); } };
+$('#resetPg').onclick = async () => { const b = $('#resetPg'); if (!b.dataset.sure){ b.dataset.sure = '1'; b.textContent = 'اضغط مرة أخرى للتأكيد'; setTimeout(() => { b.dataset.sure = ''; b.textContent = 'الرجوع للمخطط الأصلي'; }, 4000); return; }
   if (DEMO){ b.dataset.sure = ''; b.textContent = 'الرجوع للمخطط الأصلي'; return say('نسخة عرض'); }
-  try { await call('/pg', {method:'DELETE'}); PG = await getJSON('../plan/pg.json'); pgDirty = false; mark(); select(null); fillShelfPicker(); say('رجعت للمخطط الأصلي'); } catch(e){ say(e.message, true); } b.dataset.sure = ''; b.textContent = 'الرجوع للمخطط الأصلي'; };
+  try { await call('/pg', {method:'DELETE'}); PG = await getJSON('../plan/pg.json'); pgDirty = false; mark(); select(null); fillShelfPicker(); say('تمت العودة إلى المخطط الأصلي'); } catch(e){ say(e.message, true); } b.dataset.sure = ''; b.textContent = 'الرجوع للمخطط الأصلي'; };
 
 // ---------- import from the planogram editor's backup ----------
 // Only where things stand, their order, facings and widths are taken: sales rates and piece counts never leave the file.

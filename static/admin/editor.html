@@ -191,7 +191,7 @@ dialog .ft{padding:10px 14px;border-top:1px solid var(--line);display:flex;gap:6
 </style>
 </head>
 <body>
-<div id="loading">جاري تحميل المخطط…</div>
+<div id="loading">جارٍ تحميل المخطط…</div>
 <header>
   <h1>🗺️ لوحة تحكم المخطط</h1>
   <div class="grp">
@@ -202,7 +202,7 @@ dialog .ft{padding:10px 14px;border-top:1px solid var(--line);display:flex;gap:6
     <button id="bAdd" class="pri" title="إضافة ستاند جديد">＋ ستاند</button>
     <button id="bDup" title="نسخ الستاند المحدد بدون منتجات (Ctrl+D)">⧉ نسخ</button>
     <button id="bRot" title="تدوير 90° (R)">⟳ تدوير</button>
-    <button id="bSplit" title="تقسيم الستاند (أو كل الستاندات) لستاندات 1 متر جنب بعض">✂️ تقسيم لمتر</button>
+    <button id="bSplit" title="تقسيم الستاند (أو كل الستاندات) إلى ستاندات بطول متر واحد متجاورة">✂️ تقسيم لمتر</button>
     <button id="bDel" class="dng" title="حذف (Delete)">🗑 حذف</button>
   </div>
   <div class="grp">
@@ -217,7 +217,7 @@ dialog .ft{padding:10px 14px;border-top:1px solid var(--line);display:flex;gap:6
       <button data-a="json">⬇ تنزيل نسخة احتياطية (JSON)</button>
       <button data-a="csv">⬇ تصدير الـ Planogram (CSV / Excel)</button>
       <button data-a="svg">⬇ تصدير الرسم (SVG)</button>
-      <button data-a="html">⬇ تنزيل نسخة HTML تشتغل أوفلاين</button>
+      <button data-a="html">⬇ تنزيل نسخة HTML تعمل دون اتصال</button>
       <hr style="border:0;border-top:1px solid var(--line)">
       <button data-a="import">⬆ استيراد نسخة JSON</button>
       <button data-a="bgimg">🖼 تغيير صورة الخلفية…</button>
@@ -229,7 +229,7 @@ dialog .ft{padding:10px 14px;border-top:1px solid var(--line);display:flex;gap:6
   <div id="status">
     <span id="tot"></span>
     <span id="saveState">—</span>
-    <button id="bAuto" class="on" title="حفظ تلقائي بعد 8 ثواني من آخر تعديل">⟳ تلقائي</button>
+    <button id="bAuto" class="on" title="حفظ تلقائي بعد 8 ثوانٍ من آخر تعديل">⟳ تلقائي</button>
     <button id="bSave" class="pri" title="حفظ (Ctrl+S)">💾 حفظ</button>
   </div>
 </header>
@@ -251,10 +251,10 @@ dialog .ft{padding:10px 14px;border-top:1px solid var(--line);display:flex;gap:6
     <div id="floorBadge">✏️ وضع تعديل الأرضيات — اسحب المساحات وغيّر حجمها من الأركان · <u style="cursor:pointer" id="fbExit">إنهاء</u></div>
     <div id="elev">
       <div class="ehd"><span class="seg"><button data-ev="plan" class="on">📐 الشكل</button><button data-ev="photo">📷 بالصور</button></span><b id="eTitle"></b><span class="sp"></span>
-        <button id="eBulk" style="display:none" title="ارفع صور كتير مرة واحدة — بتتربط بالأصناف من اسم الملف">⬆ رفع صور</button>
+        <button id="eBulk" style="display:none" title="ارفع صوراً كثيرة دفعة واحدة — تُربط بالأصناف حسب اسم الملف">⬆ رفع صور</button>
         <label class="meta">التلوين <select id="eMode"><option value="auto">تلقائي</option><option value="brand">حسب البراند</option><option value="sub">حسب السب كاتيجوري</option><option value="ros">حسب المبيعات ROS</option><option value="stand">بلون الستاند</option></select></label>
         <label class="meta" style="display:flex;gap:4px;align-items:center">تكبير <input type="range" id="eZoom" min="1" max="8" step="0.25" value="1" style="width:90px"></label>
-        <button id="eGrp" title="عرض أمتار المجموعة جنب بعض أو المتر ده بس">🔗 المجموعة</button>
+        <button id="eGrp" title="عرض أمتار المجموعة متجاورة أو هذا المتر فقط">🔗 المجموعة</button>
         <button id="eAll">كل الرفوف</button>
         <button id="eSize" title="تكبير/تصغير اللوحة">⬍</button>
         <button id="eClose" title="إغلاق (Esc)">✕</button></div>
@@ -593,30 +593,30 @@ function addFixture(o){
   sel=new Set([id]);drawSel();showFx(id);toast('تمت إضافة '+S.fx[id].code+' — اسحبه لمكانه');
 }
 function dupSel(){
-  if(!sel.size)return toast('حدد ستاند الأول');
+  if(!sel.size)return toast('حدد ستاندًا أولاً');
   const news=[];
   commit('نسخ ستاند',[],()=>{for(const id of sel){const f=S.fx[id];const n=nextId();const b=bbox(f);const v=b.h>=b.w;S.fx[n]={...clone(f),code:newCode(f.zone,f.pos),it:[],parts:f.parts.map(p=>({...p,x:r1(p.x+(v?b.w:0)),y:r1(p.y+(v?0:b.h))}))};news.push(n)}return news});
   sel=new Set(news);drawSel();showFx(news[0]);toast('تم النسخ (بدون منتجات)');
 }
 function rotSel(){
-  if(!sel.size)return toast('حدد ستاند الأول');
+  if(!sel.size)return toast('حدد ستاندًا أولاً');
   commit('تدوير',[...sel],()=>{for(const id of sel){const f=S.fx[id],b=bbox(f),cx=b.x+b.w/2,cy=b.y+b.h/2;
     f.parts=f.parts.map(p=>{const px=p.x+p.w/2,py=p.y+p.h/2;const nx=cx-(py-cy),ny=cy+(px-cx);return{x:r1(nx-p.h/2),y:r1(ny-p.w/2),w:p.h,h:p.w}})}});
 }
 function delSel(){
-  if(!sel.size)return toast('حدد ستاند الأول');
+  if(!sel.size)return toast('حدد ستاندًا أولاً');
   const ids=[...sel];const n=ids.reduce((a,id)=>a+S.fx[id].it.length,0);
   const names=ids.map(id=>S.fx[id].code).join('، ');
   dialog({title:'حذف '+(ids.length>1?ids.length+' ستاندات':'الستاند '+names),
-    body:`<p style="margin:0 0 10px">${n?`فيه <b>${n}</b> منتج على الرفوف.`:'الستاند فاضي.'}</p>${n?`<label style="display:flex;gap:6px;align-items:center"><input type="checkbox" id="keepIt" checked> انقل المنتجات لقائمة "غير موزّع" بدل ما تتحذف</label>`:''}`,
-    btns:[['حذف','dng',()=>{const keep=!n||$('#keepIt').checked;commit('حذف '+names,[...ids,'__pool'],()=>{for(const id of ids){if(keep)for(const i of S.fx[id].it)S.pool.push(i);delete S.fx[id]}});sel.clear();if(ids.includes(cur))cur=null;drawSel();renderPanel();toast(keep&&n?`اتحذف، و${n} منتج اتنقلوا لـ "غير موزّع"`:'اتحذف')}],['إلغاء']]});
+    body:`<p style="margin:0 0 10px">${n?`فيه <b>${n}</b> منتج على الرفوف.`:'الستاند فارغ.'}</p>${n?`<label style="display:flex;gap:6px;align-items:center"><input type="checkbox" id="keepIt" checked> انقل المنتجات إلى قائمة "غير موزّع" بدلاً من حذفها</label>`:''}`,
+    btns:[['حذف','dng',()=>{const keep=!n||$('#keepIt').checked;commit('حذف '+names,[...ids,'__pool'],()=>{for(const id of ids){if(keep)for(const i of S.fx[id].it)S.pool.push(i);delete S.fx[id]}});sel.clear();if(ids.includes(cur))cur=null;drawSel();renderPanel();toast(keep&&n?`حُذف، ونُقل ${n} منتج إلى  "غير موزّع"`:'حُذف')}],['إلغاء']]});
 }
 $('#bAdd').onclick=()=>{
   const zo=Object.entries(S.zones).map(([z,v])=>`<option value="${esc(z)}">${esc(z)} · ${esc(v.name)}</option>`).join('');
   dialog({title:'إضافة ستاند جديد',body:`<div class="form">
     <label>المنطقة</label><select id="nZ">${zo}</select>
     <label>النوع</label><select id="nK">${KINDS.map(k=>`<option>${esc(k)}</option>`).join('')}</select>
-    <label>البراند</label><input id="nB" placeholder="Mixed لو رف مشترك" list="dlBrands">
+    <label>البراند</label><input id="nB" placeholder="Mixed إذا كان رفاً مشتركاً" list="dlBrands">
     <label>القسم</label><input id="nD" placeholder="مثلاً Hair Care" list="dlDepts">
     <label>المكان</label><select id="nP"><option>أرضي</option><option>حائط</option></select>
     <label>الطول</label><div class="row2"><input id="nM" type="number" min="1" max="20" value="2"><span class="meta">موديول (متر)</span></div>
@@ -684,15 +684,15 @@ function mergeGrp(g){
 }
 function doSplit(){
   const targets=(sel.size?[...sel]:Object.keys(S.fx)).filter(k=>S.fx[k]&&S.fx[k].modules>1||(S.fx[k]&&S.fx[k].parts.reduce((a,p)=>a+Math.round(Math.max(p.w,p.h)/M),0)>1));
-  if(!targets.length)return toast(sel.size?'الستاند المحدد متر واحد أصلاً':'كل الستاندات متر واحد أصلاً');
+  if(!targets.length)return toast(sel.size?'الستاند المحدد بطول متر واحد أصلاً':'كل الستاندات بطول متر واحد أصلاً');
   const meters=targets.reduce((a,k)=>a+S.fx[k].parts.reduce((b,p)=>b+Math.max(1,Math.round(Math.max(p.w,p.h)/M)),0),0);
   const run=()=>{const news=[];commit('تقسيم لمتر',targets,()=>{for(const k of targets)news.push(...splitFx(k));return news});
-    sel=new Set(sel.size?news:[]);drawSel();if(cur&&S.fx[cur])showFx(cur);toast(`اتقسم ${targets.length} ستاند إلى ${meters} ستاند متر`)};
+    sel=new Set(sel.size?news:[]);drawSel();if(cur&&S.fx[cur])showFx(cur);toast(`قُسِّم ${targets.length} ستاند إلى ${meters} ستاند بطول متر`)};
   if(sel.size)return run();
-  dialog({title:'تقسيم كل الستاندات لمتر؟',body:`<p style="margin:0">${targets.length} ستاند أطول من متر هيتقسموا إلى <b>${meters}</b> ستاند، كل واحد متر، جنب بعض بنفس الشكل.</p><p class="meta">المنتجات بتتوزع على كل متر حسب مكانها على الرف. كل مجموعة بتفضل مربوطة ببعض: دبل-كليك على أي متر يحدد المجموعة كلها، وتقدر تدمجها تاني في أي وقت. وتقدر تتراجع بـ Ctrl+Z.</p>`,btns:[['تقسيم','pri',run],['إلغاء']]});
+  dialog({title:'تقسيم كل الستاندات إلى أمتار؟',body:`<p style="margin:0">${targets.length} ستاند أطول من متر ستُقسَّم إلى <b>${meters}</b> ستاند، كل منها متر، متجاورة بنفس الشكل.</p><p class="meta">تتوزع المنتجات على كل متر حسب مكانها على الرف. تبقى كل مجموعة مترابطة: النقر المزدوج على أي متر يحدد المجموعة كلها، ويمكنك دمجها مجدداً في أي وقت. ويمكنك التراجع بـ Ctrl+Z.</p>`,btns:[['تقسيم','pri',run],['إلغاء']]});
 }
-function doMerge(g){const ids=grpIds(g);let keep;commit('دمج '+g,ids,()=>{keep=mergeGrp(g)});sel=new Set([keep]);drawSel();showFx(keep);toast(`اتدمجت ${ids.length} ستاندات في ${g}`)}
-function selGrp(g){sel=new Set(grpIds(g));drawSel();renderPanel();toast(`اتحددت المجموعة ${g} (${sel.size} متر) — اسحب أي متر لتحريكهم مع بعض`)}
+function doMerge(g){const ids=grpIds(g);let keep;commit('دمج '+g,ids,()=>{keep=mergeGrp(g)});sel=new Set([keep]);drawSel();showFx(keep);toast(`دُمجت ${ids.length} ستاندات في ${g}`)}
+function selGrp(g){sel=new Set(grpIds(g));drawSel();renderPanel();toast(`تم تحديد المجموعة ${g} (${sel.size} متر) — اسحب أي متر لتحريكها معاً`)}
 $('#bSplit').onclick=doSplit;
 let lastDown={id:null,t:0};
 
@@ -704,11 +704,11 @@ function renderPanel(){
   if(sel.size>1){
     const ids=[...sel];const z=Object.entries(S.zones).map(([k,v])=>`<option value="${esc(k)}">${esc(k)} · ${esc(v.name)}</option>`).join('');
     el.innerHTML=`<h2>${ids.length} ستاند محدد</h2><div class="meta">${ids.map(i=>esc(S.fx[i].code)).join(' · ')}</div>
-    ${(()=>{const gs=new Set(ids.map(i=>S.fx[i].grp||''));const g=[...gs][0];return gs.size===1&&g?`<div class="meta">🔗 كلهم من مجموعة <b>${esc(g)}</b></div><div class="acts"><button id="mMerge">دمج المجموعة في ستاند واحد</button></div>`:ids.some(i=>S.fx[i].modules>1)?'<div class="acts"><button id="mSplit">✂️ تقسيم المحدد لمتر</button></div>':''})()}
+    ${(()=>{const gs=new Set(ids.map(i=>S.fx[i].grp||''));const g=[...gs][0];return gs.size===1&&g?`<div class="meta">🔗 كلها من مجموعة <b>${esc(g)}</b></div><div class="acts"><button id="mMerge">دمج المجموعة في ستاند واحد</button></div>`:ids.some(i=>S.fx[i].modules>1)?'<div class="acts"><button id="mSplit">✂️ تقسيم المحدد إلى أمتار</button></div>':''})()}
     <div class="acts"><button id="mRot">⟳ تدوير</button><button id="mDup">⧉ نسخ</button><button id="mDel" class="dng">🗑 حذف</button></div>
     <h3>لون الستاندات</h3><div class="row2" style="display:flex;gap:6px;align-items:center"><input type="color" id="mC" class="sw" value="${esc(S.fx[ids[0]].color||zoneColor(S.fx[ids[0]].zone))}"><button id="mCok">تطبيق اللون</button><button id="mCr">↺ لون القسم</button></div>
     <h3>تغيير المنطقة للكل</h3><div class="row2" style="display:flex;gap:6px"><select id="mZ">${z}</select><button id="mZok">تطبيق</button></div>
-    <p class="meta" style="margin-top:14px">اسحب أي ستاند منهم على الرسم علشان تنقلهم مع بعض. Shift + ضغطة لإضافة/إزالة من التحديد.</p>`;
+    <p class="meta" style="margin-top:14px">اسحب أي ستاند منها على الرسم لنقلها معاً. Shift + ضغطة لإضافة/إزالة من التحديد.</p>`;
     $('#mRot').onclick=rotSel;$('#mDup').onclick=dupSel;$('#mDel').onclick=delSel;
     $('#mMerge')&&($('#mMerge').onclick=()=>doMerge(S.fx[ids[0]].grp));$('#mSplit')&&($('#mSplit').onclick=doSplit);
     $('#mC').oninput=()=>{for(const i of ids){const g=lFx.querySelector(`g[data-id="${i}"]`);g&&g.querySelectorAll('.body').forEach(r=>r.setAttribute('fill',$('#mC').value))}};
@@ -718,21 +718,21 @@ function renderPanel(){
     return;
   }
   const f=cur&&S.fx[cur];
-  if(!f){el.innerHTML=`<div class="empty">اضغط على أي ستاند في الرسم علشان تعدّله وتشوف الرفوف والمنتجات.<br><br>
+  if(!f){el.innerHTML=`<div class="empty">اضغط على أي ستاند في الرسم لتعديله وعرض رفوفه ومنتجاته.<br><br>
     <div class="kbd" style="text-align:right;display:inline-block">
     🖱 <b>سحب ستاند</b>: نقله · <b>سحب الدوائر</b> على أطرافه: تغيير الطول<br>
     🖱 <b>سحب الخلفية</b>: تحريك الرسم · <b>العجلة</b>: تكبير/تصغير<br>
-    <kbd>Shift</kbd>+ضغطة: تحديد أكتر من ستاند · <kbd>Shift</kbd>+سحب: تحديد بمستطيل<br>
+    <kbd>Shift</kbd>+ضغطة: تحديد أكثر من ستاند · <kbd>Shift</kbd>+سحب: تحديد بمستطيل<br>
     🖱 <b>دبل-كليك</b> على ستاند متر: تحديد مجموعته كلها<br>
     <kbd>R</kbd> تدوير · <kbd>Del</kbd> حذف · <kbd>Ctrl+D</kbd> نسخ · الأسهم: تحريك دقيق<br>
     <kbd>Ctrl+Z</kbd> تراجع · <kbd>Ctrl+Y</kbd> إعادة · <kbd>Ctrl+S</kbd> حفظ<br>
-    📦 اسحب أي منتج من الرفوف لرف تاني، أو على أي ستاند في الرسم</div></div>`;return}
+    📦 اسحب أي منتج من الرفوف إلى رف آخر، أو إلى أي ستاند في الرسم</div></div>`;return}
   const st=fStats(f),b=bbox(f),cap=f.modules*100;
   const zo=Object.entries(S.zones).map(([z,v])=>`<option value="${esc(z)}"${z===f.zone?' selected':''}>${esc(z)} · ${esc(v.name)}</option>`).join('');
   let h=`<h2><span style="display:inline-block;width:12px;height:12px;border-radius:3px;background:${esc(zoneColor(f.zone))}"></span> ${esc(f.code)} — ${esc(f.brand)}</h2>
   <div class="meta">${esc(f.kind)} · ${esc(f.dept)}${f.loc?'<br>📍 '+esc(f.loc):''}</div>
-  ${f.grp?`<div class="shelf" style="padding:6px 8px;border-bottom-width:1px;background:#f6f9ff;margin-top:6px"><span class="meta">🔗 جزء من مجموعة <b>${esc(f.grp)}</b> (${grpIds(f.grp).length} متر جنب بعض)</span><div class="acts" style="margin:6px 0 0"><button id="gSel">تحديد المجموعة كلها</button><button id="gMerge">دمجها في ستاند واحد</button></div></div>`:
-   f.modules>1?`<div class="acts" style="margin:6px 0 0"><button id="gSplit">✂️ تقسيمه لـ ${f.modules} ستاند متر</button></div>`:''}
+  ${f.grp?`<div class="shelf" style="padding:6px 8px;border-bottom-width:1px;background:#f6f9ff;margin-top:6px"><span class="meta">🔗 جزء من مجموعة <b>${esc(f.grp)}</b> (${grpIds(f.grp).length} متر متجاورة)</span><div class="acts" style="margin:6px 0 0"><button id="gSel">تحديد المجموعة كلها</button><button id="gMerge">دمجها في ستاند واحد</button></div></div>`:
+   f.modules>1?`<div class="acts" style="margin:6px 0 0"><button id="gSplit">✂️ تقسيمه إلى ${f.modules} ستاند بطول متر</button></div>`:''}
   <div class="kpis"><div class="kpi"><b>${st.skus}</b><span>صنف</span></div><div class="kpi"><b>${fmt(st.pcs)}</b><span>حبة</span></div><div class="kpi"><b>${st.ros}</b><span>ROS/يوم</span></div><div class="kpi"><b>${f.modules}×${f.shelves}</b><span>موديول×رف</span></div></div>
   <details ${f._open?'open':''} id="propBox"><summary style="cursor:pointer;font-weight:700;margin:6px 0">⚙️ بيانات الستاند</summary>
   <div class="form" style="margin-top:8px">
@@ -762,12 +762,12 @@ function renderPanel(){
     const tag=s===2?'مستوى النظر ⭐':s===3?'مستوى اليد':s===1?'العلوي':s===f.shelves?'السفلي':'';
     const pct=Math.min(100,cm/cap*100);
     h+=`<div class="shelf"><div class="sh ${s===2||s===3?'eye':''}"><span class="nm" data-view="${s}" style="cursor:pointer" title="عرض شكل الرف بالأصناف">الرف ${s}</span><span class="meta">${tag}</span><span class="sp"></span><span class="meta">${its.length} صنف · ${p} حبة · ${cm} من ${cap} سم</span>
-      <button data-view="${s}" title="عرض شكل الرف بالأصناف">👁</button><button data-sort="${s}" title="رتب الرف حسب ROS">⇅</button><button data-add="${s}" title="إضافة منتج للرف">＋</button></div>
+      <button data-view="${s}" title="عرض شكل الرف بالأصناف">👁</button><button data-sort="${s}" title="رتّب الرف حسب ROS">⇅</button><button data-add="${s}" title="إضافة منتج للرف">＋</button></div>
       <div class="bar${cm>cap?' over':''}"><i style="width:${pct}%"></i></div>
       <div class="items" data-shelf="${s}">${its.map(([i,ix])=>chip(i,ix,'fx')).join('')}</div></div>`;
   }
   const orphan=f.it.filter(i=>i[0]>f.shelves||i[0]<1).length;
-  if(orphan)h+=`<div class="meta" style="color:var(--bad)">⚠ ${orphan} منتج على رفوف اتشالت — زوّد عدد الرفوف أو انقلهم.</div>`;
+  if(orphan)h+=`<div class="meta" style="color:var(--bad)">⚠ ${orphan} منتج على رفوف محذوفة — زِد عدد الرفوف أو انقلها.</div>`;
   h+='<div class="meta">🟩 ROS ≥ 2 يومياً · 🟥 ROS = 0 (مرشح للمراجعة) · الشريط = المساحة المستخدمة من عرض الرف</div>';
   el.innerHTML=h;
   // bind
@@ -787,14 +787,14 @@ function renderPanel(){
 }
 function chip(i,ix,from){
   const m=markItem&&markItem.name===i[1]&&(from==='pool'||markItem.fid===cur);
-  return `<div class="it ${i[5]>=2?'h':i[5]==0?'z':''}${m?' mark':''}" draggable="true" data-ix="${ix}" title="${esc(i[6])} | ROS ${i[5]} | ${i[7]} سم — اضغط للتعديل، اسحب للنقل"><span class="x" data-del="${ix}" title="${from==='pool'?'حذف نهائي':'شيل من الرف'}">✕</span>${S.img[i[1]]?`<img class="th" src="${esc(imgSrc(S.img[i[1]]))}" alt="" loading="lazy">`:''}<b>${esc(i[1])}</b>${esc(i[2])} · ${i[3]} وجه · <b style="display:inline">${i[4]} حبة</b></div>`;
+  return `<div class="it ${i[5]>=2?'h':i[5]==0?'z':''}${m?' mark':''}" draggable="true" data-ix="${ix}" title="${esc(i[6])} | ROS ${i[5]} | ${i[7]} سم — اضغط للتعديل، اسحب للنقل"><span class="x" data-del="${ix}" title="${from==='pool'?'حذف نهائي':'إزالة من الرف'}">✕</span>${S.img[i[1]]?`<img class="th" src="${esc(imgSrc(S.img[i[1]]))}" alt="" loading="lazy">`:''}<b>${esc(i[1])}</b>${esc(i[2])} · ${i[3]} وجه · <b style="display:inline">${i[4]} حبة</b></div>`;
 }
 function setProp(id,k,v){
   const f=S.fx[id];
   if(k==='px'||k==='py'){const b=bbox(f);const d=(+v*M)-(k==='px'?b.x:b.y);if(!isFinite(d))return;return commit('تحريك '+f.code,[id],()=>{f.parts=f.parts.map(p=>k==='px'?{...p,x:r1(p.x+d)}:{...p,y:r1(p.y+d)})})}
   if(k==='modules'){const n=Math.max(1,Math.round(+v||1));return commit('تغيير طول '+f.code,[id],()=>{f.modules=n;let big=0;f.parts.forEach((p,i)=>{if(p.w*p.h>f.parts[big].w*f.parts[big].h)big=i});const others=f.parts.reduce((a,p,i)=>i===big?a:a+Math.round(Math.max(p.w,p.h)/M),0);const L=Math.max(1,n-others)*M;const p=f.parts[big];if(isV(p))p.h=L;else p.w=L})}
   if(k==='shelves'||k==='back')v=Math.max(k==='shelves'?1:0,Math.round(+v||0));
-  if(k==='code'&&Object.entries(S.fx).some(([i,x])=>i!==id&&x.code===v)){toast('الكود ده مستخدم قبل كده');renderPanel();return}
+  if(k==='code'&&Object.entries(S.fx).some(([i,x])=>i!==id&&x.code===v)){toast('هذا الكود مستخدم من قبل');renderPanel();return}
   commit('تعديل '+f.code,[id],()=>{f[k]=v});
   if(k==='zone')drawLegend();
 }
@@ -812,9 +812,9 @@ function bindItems(root,from,fid){
       if(from==='pool')return ctxMenu(e,[['✏️ تعديل بيانات الصنف',()=>itemDlg(null,ix,null)],['📋 نسخ',()=>copyItem(null,ix)],null,['🗑 حذف نهائي',()=>delPoolItem(ix)]]);
       const sh=S.fx[cf].it[ix][0];
       ctxMenu(e,[['✏️ تعديل بيانات الصنف',()=>itemDlg(cf,ix,null)],['📷 صورة الصنف',()=>imgDlg(cf,ix)],null,
-        ['📋 نسخ',()=>copyItem(cf,ix)],['📑 تكرار جنبه',()=>{clip=clone(S.fx[cf].it[ix]);pasteItem(cf,sh,ix)}],['📥 لصق قبله',()=>pasteItem(cf,sh,ix),!clip],null,
-        ['➡ حرّكه لليمين',()=>shiftItem(cf,ix,-1)],['⬅ حرّكه لليسار',()=>shiftItem(cf,ix,1)],['⏮ لأول الرف (يمين)',()=>shiftItem(cf,ix,-9)],['⏭ لآخر الرف (يسار)',()=>shiftItem(cf,ix,9)],null,
-        ['✕ شيل من الرف',()=>toPool(cf,ix)]])});
+        ['📋 نسخ',()=>copyItem(cf,ix)],['📑 تكرار بجانبه',()=>{clip=clone(S.fx[cf].it[ix]);pasteItem(cf,sh,ix)}],['📥 لصق قبله',()=>pasteItem(cf,sh,ix),!clip],null,
+        ['➡ حرّكه لليمين',()=>shiftItem(cf,ix,-1)],['⬅ حرّكه لليسار',()=>shiftItem(cf,ix,1)],['⏮ إلى أول الرف (يمين)',()=>shiftItem(cf,ix,-9)],['⏭ إلى آخر الرف (يسار)',()=>shiftItem(cf,ix,9)],null,
+        ['✕ إزالة من الرف',()=>toPool(cf,ix)]])});
   });
   if(from!=='pool')root.querySelectorAll('.items').forEach(z=>{const zf=z.dataset.fid||fid,sh=+z.dataset.shelf;
     z.addEventListener('pointerenter',()=>{hovZ={fid:zf,shelf:sh}});
@@ -844,26 +844,26 @@ function moveItem(src,dst){
     if(beforeRef&&beforeRef!==item){da.splice(da.indexOf(beforeRef),0,item)}
     else if(dst.pool)da.push(item);
     else{let last=-1;da.forEach((x,k)=>{if(x[0]===item[0])last=k});da.splice(last+1,0,item)}
-    label=dst.pool?'اتشال لـ "غير موزّع"':cp?'اتنسخ إلى '+S.fx[dId].code+' · رف '+item[0]:dId!==sId?'اتنقل إلى '+S.fx[dId].code+' · رف '+item[0]:'';
+    label=dst.pool?'أُزيل إلى "غير موزّع"':cp?'نُسخ إلى '+S.fx[dId].code+' · رف '+item[0]:dId!==sId?'نُقل إلى '+S.fx[dId].code+' · رف '+item[0]:'';
   });
   label&&toast(label);
 }
 /* ---- copy / paste, order inside the shelf, right-click menus ---- */
 let clip=null,hov=null,hovZ=null; // a copied item ; the item and the shelf under the pointer
-function copyItem(fid,ix){const it=fid==null?S.pool[ix]:S.fx[fid].it[ix];if(!it)return;clip=clone(it);toast('اتنسخ: '+String(it[1]).slice(0,34)+' — كلك يمين على أي رف ثم «لصق» (أو Ctrl+V)')}
+function copyItem(fid,ix){const it=fid==null?S.pool[ix]:S.fx[fid].it[ix];if(!it)return;clip=clone(it);toast('نُسخ: '+String(it[1]).slice(0,34)+' — انقر بالزر الأيمن على أي رف ثم «لصق» (أو Ctrl+V)')}
 function pasteItem(fid,shelf,before){
-  if(!clip)return toast('انسخ صنف الأول (كلك يمين ← نسخ)');const f=S.fx[fid];if(!f)return;
+  if(!clip)return toast('انسخ صنفاً أولاً (الزر الأيمن ← نسخ)');const f=S.fx[fid];if(!f)return;
   const sh=Math.min(Math.max(1,shelf||clip[0]),f.shelves);
   commit('لصق منتج',[fid],()=>{const it=clone(clip);it[0]=sh;const ref=before!=null?f.it[before]:null;
     if(ref)f.it.splice(f.it.indexOf(ref),0,it);else{let last=-1;f.it.forEach((x,k)=>{if(x[0]===sh)last=k});f.it.splice(last+1,0,it)}});
-  toast('اتلصق في '+f.code+' · رف '+sh)}
+  toast('لُصق في '+f.code+' · رف '+sh)}
 function shiftItem(fid,ix,d){ // inside its own shelf: -1 one place earlier, 1 one later, -9 first, 9 last
   const f=S.fx[fid],it=f&&f.it[ix];if(!it)return;const same=[];f.it.forEach((x,k)=>{if(x[0]===it[0])same.push(k)});
   const p=same.indexOf(ix),q=d===-9?0:d===9?same.length-1:Math.max(0,Math.min(same.length-1,p+d));if(q===p)return;
   commit('ترتيب منتج في الرف',[fid],()=>{const order=same.map(k=>f.it[k]);order.splice(p,1);order.splice(q,0,it);same.forEach((k,n)=>{f.it[k]=order[n]})})}
 function shelfMenu(e,fid,sh){const f=S.fx[fid];if(!f)return;
   ctxMenu(e,[['📥 لصق هنا'+(clip?' — '+esc(String(clip[1]).slice(0,22)):''),()=>pasteItem(fid,sh,null),!clip],['＋ إضافة صنف جديد للرف',()=>itemDlg(fid,null,sh)],null,
-    ['⇅ رتّب الرف حسب ROS',()=>sortShelf(fid,sh)],['🔍 '+(eFocus===sh&&elevOpen?'رجوع لكل الرفوف':'كبّر الرف ده'),()=>{if(eFocus===sh&&elevOpen){eFocus=null;renderElev()}else{sel=new Set([fid]);drawSel();showFx(fid);openElev(sh);renderElev()}}],null,
+    ['⇅ رتّب الرف حسب ROS',()=>sortShelf(fid,sh)],['🔍 '+(eFocus===sh&&elevOpen?'رجوع لكل الرفوف':'كبّر هذا الرف'),()=>{if(eFocus===sh&&elevOpen){eFocus=null;renderElev()}else{sel=new Set([fid]);drawSel();showFx(fid);openElev(sh);renderElev()}}],null,
     ['⚙ بيانات الستاند ('+esc(f.code)+')',()=>{sel=new Set([fid]);drawSel();showFx(fid);tab('fx')}]])}
 function ctxMenu(e,rows){e.preventDefault();e.stopPropagation();let m=$('#ctx');if(!m){m=document.createElement('div');m.id='ctx';document.body.appendChild(m)}
   m.innerHTML=rows.map((r,k)=>r?`<button type="button" data-k="${k}"${r[2]?' disabled':''}>${r[0]}</button>`:'<hr>').join('');
@@ -871,7 +871,7 @@ function ctxMenu(e,rows){e.preventDefault();e.stopPropagation();let m=$('#ctx');
   m.onclick=ev=>{const b=ev.target.closest('button');if(!b||b.disabled)return;m.style.display='none';rows[+b.dataset.k][1]()}}
 const ctxHide=()=>{const m=$('#ctx');if(m)m.style.display='none'};
 addEventListener('pointerdown',e=>{const m=$('#ctx');if(m&&!m.contains(e.target))ctxHide()},true);addEventListener('wheel',ctxHide,true);addEventListener('blur',ctxHide);
-function toPool(fid,ix){commit('شيل منتج من الرف',[fid,'__pool'],()=>{const[i]=S.fx[fid].it.splice(ix,1);S.pool.push(i)});toast('المنتج اتنقل لـ "غير موزّع" — تقدر ترجعه بالسحب')}
+function toPool(fid,ix){commit('إزالة منتج من الرف',[fid,'__pool'],()=>{const[i]=S.fx[fid].it.splice(ix,1);S.pool.push(i)});toast('نُقل المنتج إلى  "غير موزّع" — يمكنك إرجاعه بالسحب')}
 function delPoolItem(ix){commit('حذف منتج نهائياً',['__pool'],()=>{S.pool.splice(ix,1)})}
 function sortShelf(fid,s){commit('ترتيب الرف '+s,[fid],()=>{const f=S.fx[fid];const on=f.it.filter(i=>i[0]===s).sort((a,b)=>b[5]-a[5]);const rest=f.it.filter(i=>i[0]!==s);f.it=[...rest,...on]})}
 function autoArrange(fid){
@@ -884,7 +884,7 @@ function autoArrange(fid){
     for(const i of its){const pref=i[7]>=15&&f.shelves>2?bottomFirst:order;let s=pref.find(x=>(used[x]||0)+i[7]<=cap);if(s==null)s=pref[pref.length-1];used[s]=(used[s]||0)+i[7];i[0]=s}
     f.it=its;
   });
-  toast('اترتب: الأعلى مبيعاً على مستوى النظر واليد');
+  toast('تم الترتيب: الأعلى مبيعاً على مستوى النظر واليد');
 }
 function itemDlg(fid,ix,shelf){
   const pool=fid==null;const isNew=ix==null;
@@ -919,9 +919,9 @@ function itemDlg(fid,ix,shelf){
         if(isNew){da.push(ni);return}
         if(sId===dId){sa[ix]=ni}else{sa.splice(ix,1);da.push(ni)}
       });
-      if(tf&&tf!==fid&&!pool)toast('المنتج اتنقل إلى '+S.fx[tf].code);
+      if(tf&&tf!==fid&&!pool)toast('نُقل المنتج إلى '+S.fx[tf].code);
     }],
-    ...(isNew?[]:pool?[['حذف نهائي','dng',()=>delPoolItem(ix)]]:[['📷 الصورة','',()=>{setTimeout(()=>imgDlg(fid,ix))}],['شيل من الرف','dng',()=>toPool(fid,ix)]]),
+    ...(isNew?[]:pool?[['حذف نهائي','dng',()=>delPoolItem(ix)]]:[['📷 الصورة','',()=>{setTimeout(()=>imgDlg(fid,ix))}],['إزالة من الرف','dng',()=>toPool(fid,ix)]]),
     ['إلغاء']]});
 }
 
@@ -931,11 +931,11 @@ function renderPool(){
   const el=$('#p-pool');
   if(!el.classList.contains('act'))return;
   el.innerHTML=`<div class="acts"><button id="pAdd" class="pri">＋ منتج جديد</button>${S.pool.length?'<button id="pClr" class="dng">حذف الكل نهائياً</button>':''}</div>
-  <p class="meta">المنتجات اللي اتشالت من الرفوف أو من ستاند اتحذف بتيجي هنا. اسحب أي منتج منها لرف في تبويب "الستاند" أو على أي ستاند في الرسم مباشرة.</p>
+  <p class="meta">المنتجات التي أُزيلت من الرفوف أو من ستاند محذوف تظهر هنا. اسحب أي منتج منها إلى رف في تبويب "الستاند" أو على أي ستاند في الرسم مباشرة.</p>
   <div class="shelf"><div class="sh"><span class="nm">غير موزّع</span><span class="sp"></span><span class="meta">${S.pool.length} صنف</span></div>
-  <div class="items" style="min-height:80px">${S.pool.map((i,ix)=>chip(i,ix,'pool')).join('')||'<span class="meta" style="padding:10px">فاضية — اسحب منتج هنا علشان تشيله من الرف</span>'}</div></div>`;
+  <div class="items" style="min-height:80px">${S.pool.map((i,ix)=>chip(i,ix,'pool')).join('')||'<span class="meta" style="padding:10px">فارغة — اسحب منتجاً إلى هنا لإزالته من الرف</span>'}</div></div>`;
   $('#pAdd').onclick=()=>itemDlg(null,null,1);
-  const c=$('#pClr');c&&(c.onclick=()=>dialog({title:'حذف كل المنتجات غير الموزعة؟',body:`<p>${S.pool.length} منتج هيتحذفوا. تقدر تتراجع بـ Ctrl+Z.</p>`,btns:[['حذف','dng',()=>commit('تفريغ غير موزّع',['__pool'],()=>{S.pool=[]})],['إلغاء']]}));
+  const c=$('#pClr');c&&(c.onclick=()=>dialog({title:'حذف كل المنتجات غير الموزعة؟',body:`<p>${S.pool.length} منتج ستُحذف. يمكنك التراجع بـ Ctrl+Z.</p>`,btns:[['حذف','dng',()=>commit('تفريغ غير موزّع',['__pool'],()=>{S.pool=[]})],['إلغاء']]}));
   bindItems(el,'pool',null);
 }
 
@@ -953,7 +953,7 @@ function runSearch(){
   }
   for(const i of S.pool)if(i[1].toLowerCase().includes(t)||i[2].toLowerCase().includes(t))res.push({pool:true,i});
   for(const g of lFx.children)if(fxHit.has(g.dataset.id))g.classList.add('hit');
-  $('#qInfo').textContent=`${res.length} نتيجة في ${fxHit.size} ستاند (متعلّمين بالأصفر على الرسم)`;
+  $('#qInfo').textContent=`${res.length} نتيجة في ${fxHit.size} ستاند (مميزة بالأصفر على الرسم)`;
   $('#qRes').innerHTML=res.slice(0,150).map((r,n)=>r.stand?`<div class="res" data-n="${n}"><b>🧱 ${esc(r.f.code)} — ${esc(r.f.brand)}</b><br><small>${esc(r.f.dept)} · ${r.f.it.length} صنف</small></div>`:
     `<div class="res" data-n="${n}"><b>${esc(r.i[1])}</b><br><small>${esc(r.i[2])} · ${r.pool?'غير موزّع':esc(r.f.code)+' · رف '+r.i[0]} · ${r.i[4]} حبة · ROS ${r.i[5]}</small></div>`).join('')+(res.length>150?'<div class="meta">…أول 150 نتيجة</div>':'');
   $('#qRes').onclick=e=>{const d=e.target.closest('.res');if(!d)return;const r=res[+d.dataset.n];
@@ -971,18 +971,18 @@ function renderSum(){
   const clash=checkClash();
   el.innerHTML=`<h3 style="margin-top:0">ملخص المناطق</h3><table><tr><th></th><th>المنطقة</th><th>ستاند</th><th>موديول</th><th>أصناف</th><th>حبات</th><th>ROS</th></tr>
   ${Object.entries(agg).map(([z,a])=>{const zz=S.zones[z]||{name:'(منطقة غير معرفة)',color:'#78909c'};return`<tr><td><span class="swd" style="background:${esc(zz.color)}"></span></td><td><b>${esc(z)}</b> · ${esc(zz.name)}</td><td>${a.n}</td><td>${a.m}</td><td>${fmt(a.sk)}</td><td>${fmt(a.pc)}</td><td>${fmt(a.ros)}</td></tr>`}).join('')}</table>
-  <div class="meta" style="margin-top:6px">ألوان وأسماء الأقسام بتتعدل من تبويب «الألوان».</div>
-  <h3>تنبيهات</h3><div class="meta">${clash.size?`🔴 ${clash.size} ستاند متداخلين مع بعض (متعلّمين بخط أحمر متقطع على الرسم): `+[...clash].slice(0,30).map(i=>`<a href="#" data-go="${i}">${esc(S.fx[i].code)}</a>`).join('، '):'✅ مفيش ستاندات متداخلة'}<br>
-  ${(()=>{const o=Object.entries(S.fx).filter(([k,f])=>{const cap=f.modules*100;const by={};for(const i of f.it)by[i[0]]=(by[i[0]]||0)+i[7];return Object.values(by).some(v=>v>cap)});return o.length?`🟠 ${o.length} ستاند فيه رف متخطي السعة: `+o.slice(0,30).map(([k,f])=>`<a href="#" data-go="${k}">${esc(f.code)}</a>`).join('، '):'✅ كل الرفوف في حدود السعة'})()}<br>
+  <div class="meta" style="margin-top:6px">ألوان وأسماء الأقسام تُعدَّل من تبويب «الألوان».</div>
+  <h3>تنبيهات</h3><div class="meta">${clash.size?`🔴 ${clash.size} ستاند متداخلة (مميزة بخط أحمر متقطع على الرسم): `+[...clash].slice(0,30).map(i=>`<a href="#" data-go="${i}">${esc(S.fx[i].code)}</a>`).join('، '):'✅ لا توجد ستاندات متداخلة'}<br>
+  ${(()=>{const o=Object.entries(S.fx).filter(([k,f])=>{const cap=f.modules*100;const by={};for(const i of f.it)by[i[0]]=(by[i[0]]||0)+i[7];return Object.values(by).some(v=>v>cap)});return o.length?`🟠 ${o.length} ستاند فيه رف تجاوز السعة: `+o.slice(0,30).map(([k,f])=>`<a href="#" data-go="${k}">${esc(f.code)}</a>`).join('، '):'✅ كل الرفوف في حدود السعة'})()}<br>
   ${S.pool.length?`📦 ${S.pool.length} منتج غير موزّع`:'✅ كل المنتجات موزعة'}</div>
-  <h3>صورة الخلفية</h3><div class="meta">تقدر تحط مخطط حقيقي للمحل (صورة) تحت الرسم وتظبط شفافيتها.</div>
+  <h3>صورة الخلفية</h3><div class="meta">يمكنك وضع مخطط حقيقي للمحل (صورة) تحت الرسم وضبط شفافيتها.</div>
   <div class="acts"><button id="sImg">🖼 اختيار صورة</button>${S.bgImage?`<label class="meta" style="display:flex;gap:6px;align-items:center">الشفافية <input type="range" id="sOp" min="0.05" max="1" step="0.05" value="${S.bgImage.op??.5}"></label><button id="sImgX" class="dng">إزالة</button>`:''}</div>`;
   el.querySelectorAll('[data-go]').forEach(a=>a.onclick=e=>{e.preventDefault();const k=a.dataset.go;sel=new Set([k]);drawSel();focusFx(k);showFx(k)});
   $('#sImg').onclick=()=>$('#imgIn').click();
   const op=$('#sOp');op&&(op.oninput=()=>{S.bgImage.op=+op.value;const im=$('#lImg image');im&&im.setAttribute('opacity',op.value)},op.onchange=()=>markDirty());
   const x=$('#sImgX');x&&(x.onclick=()=>{S.bgImage=null;drawBg();markDirty();renderSum()});
 }
-$('#imgIn').onchange=e=>{const f=e.target.files[0];if(!f)return;const r=new FileReader();r.onload=()=>{S.bgImage={src:r.result,op:.5};drawBg();markDirty();renderSum();toast('اتحطت صورة الخلفية')};r.readAsDataURL(f);e.target.value=''};
+$('#imgIn').onchange=e=>{const f=e.target.files[0];if(!f)return;const r=new FileReader();r.onload=()=>{S.bgImage={src:r.result,op:.5};drawBg();markDirty();renderSum();toast('تمت إضافة صورة الخلفية')};r.readAsDataURL(f);e.target.value=''};
 
 
 /* ================= colors tab ================= */
@@ -1001,8 +1001,8 @@ function renderColors(){
     ${fl('cashier','الكاشير')}${fl('counter','كاونتر الصيدلي')}${fl('canvas','خارج المحل')}</div>
   <div class="acts"><button id="flReset">↺ الألوان الأصلية</button></div>
   <h3>🟦 مساحات أرضية ملوّنة</h3>
-  <p class="meta" style="margin:0 0 6px">مساحات ملوّنة على الأرض (سجاد، منطقة عروض، تمييز قسم…). في وضع «تعديل الأرضيات» الستاندات بتتقفل مؤقتاً، وتقدر تسحب المساحة أو تغيّر مقاسها من الأركان.</p>
-  <div class="acts"><button id="flMode" class="${floorMode?'on':''}">✏️ ${floorMode?'إنهاء تعديل الأرضيات':'تعديل الأرضيات'}</button><button id="arAdd">＋ مساحة</button><button id="arAuto" title="يرسم مساحة بلون كل قسم تحت الستاندات بتاعته">✨ لوّن أرضية كل قسم</button>${S.areas.length?'<button id="arClr" class="dng">مسح الكل</button>':''}</div>
+  <p class="meta" style="margin:0 0 6px">مساحات ملوّنة على الأرض (سجاد، منطقة عروض، تمييز قسم…). في وضع «تعديل الأرضيات» تُقفل الستاندات مؤقتاً، ويمكنك سحب المساحة أو تغيير مقاسها من الأركان.</p>
+  <div class="acts"><button id="flMode" class="${floorMode?'on':''}">✏️ ${floorMode?'إنهاء تعديل الأرضيات':'تعديل الأرضيات'}</button><button id="arAdd">＋ مساحة</button><button id="arAuto" title="يرسم مساحة بلون كل قسم تحت ستانداته">✨ لوّن أرضية كل قسم</button>${S.areas.length?'<button id="arClr" class="dng">مسح الكل</button>':''}</div>
   ${a?`<div class="shelf" style="padding:8px;border-bottom-width:1px"><div class="form">
     <label>الاسم</label><input id="arL" value="${esc(a.label||'')}">
     <label>اللون</label><input type="color" class="sw" id="arC" value="${esc(a.color)}">
@@ -1011,7 +1011,7 @@ function renderColors(){
     <div class="acts" style="margin-bottom:0"><button id="arDel" class="dng">🗑 حذف المساحة</button></div></div>`:''}
   ${S.areas.map(x=>`<div class="res${x.id===selA?' cur':''}" data-ar="${x.id}"><span class="swd" style="background:${esc(x.color)}"></span> ${esc(x.label||'مساحة بدون اسم')} <small>· ${(x.w/M).toFixed(1)}×${(x.h/M).toFixed(1)} م</small></div>`).join('')}
   <h3>🎯 ستاندات بلون خاص</h3>
-  ${custom.length?custom.map(([k,f])=>`<div class="res" data-cs="${k}" style="display:flex;align-items:center;gap:6px"><span class="swd" style="background:${esc(f.color)}"></span><b>${esc(f.code)}</b><small>${esc(f.brand)}</small><span style="flex:1"></span><button data-csr="${k}" title="رجّع للون القسم">↺</button></div>`).join('')+'<div class="acts"><button id="csAll">↺ رجّع الكل للون القسم</button></div>':'<p class="meta">مفيش — تقدر تغيّر لون أي ستاند من «بيانات الستاند» في تبويب الستاند، أو تحدد كذا ستاند وتلوّنهم مرة واحدة.</p>'}`;
+  ${custom.length?custom.map(([k,f])=>`<div class="res" data-cs="${k}" style="display:flex;align-items:center;gap:6px"><span class="swd" style="background:${esc(f.color)}"></span><b>${esc(f.code)}</b><small>${esc(f.brand)}</small><span style="flex:1"></span><button data-csr="${k}" title="إرجاع للون القسم">↺</button></div>`).join('')+'<div class="acts"><button id="csAll">↺ إرجاع الكل للون القسم</button></div>':'<p class="meta">لا يوجد — يمكنك تغيير لون أي ستاند من «بيانات الستاند» في تبويب الستاند، أو تحديد عدة ستاندات وتلوينها دفعة واحدة.</p>'}`;
   // zones
   el.querySelectorAll('[data-zc]').forEach(i=>{const z=i.dataset.zc;
     i.oninput=()=>{for(const g of lFx.children){const f=S.fx[g.dataset.id];if(f.zone===z&&!f.color)g.querySelectorAll('.body').forEach(r=>r.setAttribute('fill',i.value))}const c=$(`#legend .chip[data-z="${CSS.escape(z)}"] i`);c&&(c.style.background=i.value)};
@@ -1039,7 +1039,7 @@ function renderColors(){
       for(const c of cs)clusters.push([z,c])}
     commit('تلوين أرضية الأقسام',['__areas'],()=>{S.areas=S.areas.filter(a=>!a.auto);let id=Math.max(0,...S.areas.map(x=>x.id));
       for(const[z,b]of clusters){const pad=5;S.areas.unshift({id:++id,auto:true,x:r1(b.x1-pad),y:r1(b.y1-pad),w:r1(b.x2-b.x1+2*pad),h:r1(b.y2-b.y1+2*pad),color:S.zones[z].color,op:.14,label:''})}});
-    toast('اتلوّنت أرضية كل قسم — تقدر تعدّل أي مساحة من «تعديل الأرضيات»')};
+    toast('تم تلوين أرضية كل قسم — يمكنك تعديل أي مساحة من «تعديل الأرضيات»')};
   const cl=$('#arClr');cl&&(cl.onclick=()=>commit('مسح المساحات الأرضية',['__areas'],()=>{S.areas=[]}));
   if(a){
     $('#arL').onchange=()=>commit('اسم المساحة',['__areas'],()=>{S.areas.find(x=>x.id===a.id).label=$('#arL').value.trim()});
@@ -1078,7 +1078,7 @@ function closeElev(){elevOpen=false;$('#elev').style.display='none';$('#stage').
 function renderElev(){
   if(!elevOpen)return;
   const f=cur&&S.fx[cur],body=$('#eBody');
-  if(!f){$('#eTitle').textContent='شكل الستاند';$('#eLeg').innerHTML='';body.innerHTML='<div class="empty">اضغط على أي ستاند في الرسم علشان تشوف شكله من الأمام</div>';return}
+  if(!f){$('#eTitle').textContent='شكل الستاند';$('#eLeg').innerHTML='';body.innerHTML='<div class="empty">اضغط على أي ستاند في الرسم لعرض واجهته</div>';return}
   const G=f.grp&&eGroup?grpIds(f.grp):[cur];const FS=G.map(k=>S.fx[k]);const grp=G.length>1;
   const nSh=Math.max(...FS.map(x=>x.shelves));
   if(eFocus&&eFocus>nSh)eFocus=null;
@@ -1090,7 +1090,7 @@ function renderElev(){
   const rowH=photo?Math.round(Math.max(56,Math.min(440,SHELF_CM*sc))):eFocus?Math.max(150,Math.min(260,body.clientHeight-90)):Math.max(62,Math.min(96,(body.clientHeight-70)/nSh-6));
   const shelves=eFocus?[eFocus]:Array.from({length:nSh},(_,k)=>k+1);
   let sk=0,pc=0;for(const x of FS)for(const i of x.it){sk++;pc+=i[4]}
-  $('#eTitle').innerHTML=`<span class="swd" style="background:${esc(f.color||zoneColor(f.zone))}"></span> ${esc(grp?f.grp:f.code)} — ${esc(f.brand)} <span class="meta">· ${grp?G.length+' ستاند متر جنب بعض':f.modules+' موديول'} × ${nSh} رفوف · ${sk} صنف · ${fmt(pc)} حبة${eFocus?' · <b>الرف '+eFocus+'</b>':''}</span>`;
+  $('#eTitle').innerHTML=`<span class="swd" style="background:${esc(f.color||zoneColor(f.zone))}"></span> ${esc(grp?f.grp:f.code)} — ${esc(f.brand)} <span class="meta">· ${grp?G.length+' ستاند بطول متر متجاورة':f.modules+' موديول'} × ${nSh} رفوف · ${sk} صنف · ${fmt(pc)} حبة${eFocus?' · <b>الرف '+eFocus+'</b>':''}</span>`;
   $('#eAll').style.display=eFocus?'':'none';
   const shown=FS.flatMap(x=>x.it.filter(i=>shelves.includes(i[0])));const eMode=modeOf(f);
   if(eMode==='ros')$('#eLeg').innerHTML=[['≥ 2',2],['1–2',1],['0.3–1',.3],['أقل من 0.3',.1],['صفر (مرشح للمراجعة)',0]].map(([l,v])=>`<span><i style="background:${rosCol(v)}"></i>${l}</span>`).join('');
@@ -1099,9 +1099,9 @@ function renderElev(){
     const top=Object.entries(c).sort((a,b)=>b[1]-a[1]);
     $('#eLeg').innerHTML=top.slice(0,24).map(([k])=>`<span><i style="background:${itemCol(eMode==='brand'?[0,'',k,0,0,0,'']:[0,'','',0,0,0,k],f)}"></i>${esc(k)}</span>`).join('')+(top.length>24?`<span class="meta">+${top.length-24}</span>`:'')}
   $('#eBulk').style.display=photo?'':'none';$$('.seg [data-ev]').forEach(b=>b.classList.toggle('on',b.dataset.ev===eView));
-  if(photo){const names=new Set(FS.flatMap(x=>x.it.map(i=>i[1])));let w=0;for(const n of names)if(S.img[n])w++;$('#eTitle').innerHTML+=` <span class="meta">· 📷 ${w} من ${names.size} صنف ليهم صور</span>`}
+  if(photo){const names=new Set(FS.flatMap(x=>x.it.map(i=>i[1])));let w=0;for(const n of names)if(S.img[n])w++;$('#eTitle').innerHTML+=` <span class="meta">· 📷 ${w} من ${names.size} صنف لها صور</span>`}
   let h=`<div class="gond${photo?' photo':''}" style="--mod:${100*sc}px"><div class="erow ehead"><div class="elab"></div><div class="emods" style="gap:${GAP}px">${
-    grp?G.map(k=>`<span data-pick="${k}" style="width:${S.fx[k].modules*100*sc}px;cursor:pointer;${k===cur?'background:#1565c0;color:#fff;border-radius:4px 4px 0 0;font-weight:700':''}" title="اضغط لاختيار المتر ده">${esc(S.fx[k].code)}</span>`).join('')
+    grp?G.map(k=>`<span data-pick="${k}" style="width:${S.fx[k].modules*100*sc}px;cursor:pointer;${k===cur?'background:#1565c0;color:#fff;border-radius:4px 4px 0 0;font-weight:700':''}" title="اضغط لاختيار هذا المتر">${esc(S.fx[k].code)}</span>`).join('')
        :Array.from({length:f.modules},(_,k)=>`<span style="width:${100*sc}px">موديول ${k+1}</span>`).join('')}</div></div>`;
   for(const s of shelves){
     let cmT=0,pcs=0,n=0,over=false;
@@ -1111,10 +1111,10 @@ function renderElev(){
       const cm=its.reduce((a,[i])=>a+i[7],0);cmT+=cm;n+=its.length;pcs+=its.reduce((a,[i])=>a+i[4],0);if(cm>cp)over=true;
       return `<div class="etrack items${cm>cp?' ovf':''}${grp&&k===cur?' curm':''}" data-shelf="${s}" data-fid="${k}" style="width:${cp*sc}px;height:${rowH}px;flex-shrink:0">${its.map(([i,ix])=>(photo?photoBlock:block)(i,ix,sc,rowH,x,k)).join('')}</div>`}).join('');
     const tag=s===2?'مستوى النظر ⭐':s===3?'مستوى اليد':s===1?'العلوي':s===nSh?'السفلي':'';
-    h+=`<div class="erow${s===2||s===3?' eye':''}${eFocus===s?' foc':''}"><div class="elab" data-fs="${s}" title="${eFocus?'رجوع لكل الرفوف':'اضغط لعرض الرف ده لوحده بحجم أكبر'}"><b>الرف ${s}</b><span>${tag}</span><span>${n} صنف · ${pcs} حبة</span><span class="${over?'bad':''}">${cmT} من ${cap} سم</span></div>
+    h+=`<div class="erow${s===2||s===3?' eye':''}${eFocus===s?' foc':''}"><div class="elab" data-fs="${s}" title="${eFocus?'رجوع لكل الرفوف':'اضغط لعرض هذا الرف وحده بحجم أكبر'}"><b>الرف ${s}</b><span>${tag}</span><span>${n} صنف · ${pcs} حبة</span><span class="${over?'bad':''}">${cmT} من ${cap} سم</span></div>
       <div style="display:flex;gap:${GAP}px">${tracks}</div></div>`;
   }
-  body.innerHTML=h+'</div>'+(eFocus?'':`<div class="meta" style="margin-top:8px">${grp?'المجموعة معروضة جنب بعض — المتر المحدد عليه إطار أزرق · اضغط على كود أي متر فوق علشان تختاره · ':''}${photo?'اضغط على أي صنف علشان تضيف صورته أو تعدّلها · اسحب ملف صورة من جهازك وارميه على الصنف مباشرة · الأصناف اللي بخط متقطع لسه ملهاش صورة · ':''}اضغط على اسم أي رف علشان تكبّره · اسحب أي صنف لمكان تاني أو لمتر/رف تاني أو لستاند في الرسم · <b>كلك يمين</b> على أي صنف أو رف: نسخ، لصق، تكرار، ترتيب، إضافة · Ctrl+سحب = نسخة · Ctrl+C / Ctrl+V على الصنف والرف · عرض كل صنف = عرضه الفعلي بالسم، والخطوط البيضا جواه = عدد الأوجه</div>`);
+  body.innerHTML=h+'</div>'+(eFocus?'':`<div class="meta" style="margin-top:8px">${grp?'المجموعة معروضة متجاورة — المتر المحدد عليه إطار أزرق · اضغط على كود أي متر في الأعلى لاختياره · ':''}${photo?'اضغط على أي صنف لإضافة صورته أو تعديلها · اسحب ملف صورة من جهازك وأفلته على الصنف مباشرة · الأصناف ذات الإطار المتقطع ليس لها صورة بعد · ':''}اضغط على اسم أي رف لتكبيره · اسحب أي صنف إلى مكان آخر أو متر/رف آخر أو إلى ستاند في الرسم · <b>الزر الأيمن</b> على أي صنف أو رف: نسخ، لصق، تكرار، ترتيب، إضافة · Ctrl+سحب = نسخة · Ctrl+C / Ctrl+V على الصنف والرف · عرض كل صنف = عرضه الفعلي بالسم، والخطوط البيضاء داخله = عدد الأوجه</div>`);
   body.querySelectorAll('[data-pick]').forEach(d=>d.onclick=()=>{const k=d.dataset.pick;sel=new Set([k]);drawSel();showFx(k)});
   body.querySelectorAll('[data-fs]').forEach(d=>d.onclick=()=>{const s=+d.dataset.fs;eFocus=eFocus===s?null:s;renderElev()});
   body.querySelectorAll('[data-fs]').forEach(d=>d.oncontextmenu=e=>shelfMenu(e,cur,+d.dataset.fs));
@@ -1134,7 +1134,7 @@ function block(i,ix,sc,rowH,f,fid){
   return `<div class="it eb${i[5]==0?' z':''}${m?' mark':''}" draggable="true" data-ix="${ix}" data-fid="${fid}" style="width:${w}px;height:${Math.round(rowH*hp)}px;background-color:${itemCol(i,f)};--f:${Math.max(1,i[3])}" title="${esc(i[1])}
 ${esc(i[2])} · ${esc(i[6])}
 ${i[3]} وجه · ${i[4]} حبة · ${i[7]} سم · ROS ${i[5]}/يوم
-اضغط للتعديل · اسحب للنقل"><span class="x" data-del="${ix}" title="شيل من الرف">✕</span>${w>=10?`<span class="en${w<(big?70:52)?' v':''}">${esc(i[1])}</span>`:''}${w>=24?`<span class="ep">${i[4]}${big?' حبة':''}</span>`:''}</div>`;
+اضغط للتعديل · اسحب للنقل"><span class="x" data-del="${ix}" title="إزالة من الرف">✕</span>${w>=10?`<span class="en${w<(big?70:52)?' v':''}">${esc(i[1])}</span>`:''}${w>=24?`<span class="ep">${i[4]}${big?' حبة':''}</span>`:''}</div>`;
 }
 $('#eClose').onclick=closeElev;
 $('#eAll').onclick=()=>{eFocus=null;renderElev()};
@@ -1159,7 +1159,7 @@ function photoBlock(i,ix,sc,rowH,f,fid){
   let fcs='';for(let k=0;k<n;k++)fcs+=`<div class="fc" style="width:${fw}px">${inner}</div>`;
   return `<div class="it pb${t?'':' noimg'}${m?' mark':''}" draggable="true" data-ix="${ix}" data-fid="${fid}" style="width:${w}px;height:${h}px" title="${esc(i[1])}
 ${esc(i[2])} · ${i[3]} وجه · ${i[4]} حبة · ${i[7]} سم
-${t?'اضغط لتعديل الصورة':'📷 اضغط لإضافة صورة — أو اسحب ملف صورة عليه'} · اسحب للنقل"><span class="x" data-del="${ix}" title="شيل من الرف">✕</span>${fcs}</div>`;
+${t?'اضغط لتعديل الصورة':'📷 اضغط لإضافة صورة — أو اسحب ملف صورة عليه'} · اسحب للنقل"><span class="x" data-del="${ix}" title="إزالة من الرف">✕</span>${fcs}</div>`;
 }
 async function loadImg(src){const im=new Image();im.crossOrigin='anonymous';await new Promise((ok,err)=>{im.onload=ok;im.onerror=err;im.src=src});return im}
 async function canvasBlob(c){let b=await new Promise(r=>c.toBlob(r,'image/webp',.86));if(!b||b.type!=='image/webp')b=await new Promise(r=>c.toBlob(r,'image/png'));return b}
@@ -1192,19 +1192,19 @@ function imgDlg(fid,ix,preFile){
   let t=had?clone(S.img[name]):null;const D={z:1,x:0,y:0,fit:'contain',wb:false,hs:1};
   dialog({title:'📷 صورة الصنف',body:`<div class="meta" style="margin:-4px 0 10px"><b style="color:var(--fg)">${esc(name)}</b><br>${esc(it[2])} · ${it[3]} وجه · ${it[7]} سم · ${esc(f.code)} رف ${it[0]}</div>
     <div id="ipi"></div>
-    <div class="imged"><div><div class="ipv" id="ipv" title="اسحب الصورة لتحريكها جوه الإطار"></div><div class="meta" style="text-align:center;margin-top:4px">كده هتبان على الرف</div></div>
-    <div><div class="ipdrop" id="ipd">📁 اختار صورة من جهازك<br>أو اسحبها هنا · أو الصقها <kbd>Ctrl+V</kbd></div>
+    <div class="imged"><div><div class="ipv" id="ipv" title="اسحب الصورة لتحريكها داخل الإطار"></div><div class="meta" style="text-align:center;margin-top:4px">هكذا ستظهر على الرف</div></div>
+    <div><div class="ipdrop" id="ipd">📁 اختر صورة من جهازك<br>أو اسحبها هنا · أو الصقها <kbd>Ctrl+V</kbd></div>
       <div id="ipc" class="form" style="grid-template-columns:80px minmax(0,1fr)">
         <label>تكبير</label><input type="range" id="ipz" min="0.5" max="3" step="0.05">
         <label>الارتفاع</label><input type="range" id="iph" min="0.4" max="2.5" step="0.05" title="ارتفاع الصنف على الرف">
         <label>الملء</label><select id="ipf"><option value="contain">الصورة كاملة</option><option value="cover">ملء الإطار</option></select>
-        <label></label><label style="display:flex;gap:6px;align-items:center;color:var(--fg)"><input type="checkbox" id="ipw"> إخفاء الخلفية البيضا</label>
+        <label></label><label style="display:flex;gap:6px;align-items:center;color:var(--fg)"><input type="checkbox" id="ipw"> إخفاء الخلفية البيضاء</label>
       </div>
-      <div class="acts" id="ipa"><button type="button" id="ipr" title="تدوير 90°">⟳ تدوير</button><button type="button" id="ipl" title="قلب">⇋ قلب</button><button type="button" id="ipt" title="قص الحواف البيضا">✂ قص الحواف</button><button type="button" id="ip0" title="رجوع للوضع الافتراضي">↺</button></div>
+      <div class="acts" id="ipa"><button type="button" id="ipr" title="تدوير 90°">⟳ تدوير</button><button type="button" id="ipl" title="قلب">⇋ قلب</button><button type="button" id="ipt" title="قص الحواف البيضاء">✂ قص الحواف</button><button type="button" id="ip0" title="رجوع للوضع الافتراضي">↺</button></div>
       <div class="meta" id="ipm"></div></div></div>
     <div id="ipq"></div>
     <input type="file" id="ipfile" accept="image/*" hidden>`,
-    btns:[['حفظ','pri',()=>{if(!t){if(had)return;toast('اختار صورة الأول');return false}commit('صورة '+name.slice(0,30),['__img'],()=>{S.img[name]=t});toast('اتحفظت الصورة')}],
+    btns:[['حفظ','pri',()=>{if(!t){if(had)return;toast('اختر صورة أولاً');return false}commit('صورة '+name.slice(0,30),['__img'],()=>{S.img[name]=t});toast('تم حفظ الصورة')}],
       ...(had?[['حذف الصورة','dng',()=>commit('حذف صورة',['__img'],()=>{delete S.img[name]})]]:[]),
       ...(STORE().publishToSalla?[['🛒 نشر في سلة','',()=>{STORE().publishToSalla(it,name,t,toast);return false}]]:[]),
       ['بيانات الصنف','',()=>{setTimeout(()=>itemDlg(fid,ix,null))}],['إلغاء']]});
@@ -1214,7 +1214,7 @@ function imgDlg(fid,ix,preFile){
     pv.innerHTML=Array.from({length:n},()=>`<div class="fc" style="width:${bw}px;height:${t?bh:bw*1.5}px">${t?`<img src="${esc(imgSrc(t))}" style="${imgCss(t)}">`:`<div class="ph" style="background-color:${itemCol(it,f)}"><span>${esc(it[2])}</span></div>`}</div>`).join('');
     if(t){$('#ipz').value=t.z;$('#iph').value=t.hs;$('#ipf').value=t.fit;$('#ipw').checked=!!t.wb}};
   const busy=m=>{$('#ipm').textContent=m||''};
-  const load=async(file,op)=>{try{busy('⏳ جاري تجهيز الصورة…');const r=await processImage(file,op,name);STORE().hiRes&&STORE().hiRes(name,file,op,r.ref);t={...D,...(t&&op?t:{}),...r};if(op){t.x=t.x||0;t.y=t.y||0}busy('');draw();chk()}catch(e){busy('');toast('تعذّر فتح الصورة')}};
+  const load=async(file,op)=>{try{busy('⏳ جارٍ تجهيز الصورة…');const r=await processImage(file,op,name);STORE().hiRes&&STORE().hiRes(name,file,op,r.ref);t={...D,...(t&&op?t:{}),...r};if(op){t.x=t.x||0;t.y=t.y||0}busy('');draw();chk()}catch(e){busy('');toast('تعذّر فتح الصورة')}};
   const chk=()=>{STORE().check&&STORE().check(name,t,$('#ipq'))};
   imgEdit={load};
   $('#ipd').onclick=()=>$('#ipfile').click();
@@ -1255,14 +1255,14 @@ function bulkDlg(){
     const files=[...inp.files].filter(x=>x.type.startsWith('image/'));if(!files.length)return;
     NAMEIDX=null;const rows=files.map(fl=>({fl,url:URL.createObjectURL(fl),m:matchName(fl.name,pref)}));
     const opts=n=>`<option value="">— تجاهل —</option>`+(n&&!pref.includes(n)?`<option value="${esc(n)}" selected>${esc(n)}</option>`:'')+pref.map(p=>`<option value="${esc(p)}"${p===n?' selected':''}>${esc(p)}</option>`).join('');
-    dialog({title:`⬆ رفع ${files.length} صورة`,body:`<p class="meta" style="margin:0 0 8px">ربطت كل صورة بالصنف الأقرب لاسم الملف. راجع الربط وغيّره لو محتاج، وبعدين اضغط «رفع وربط».</p>
+    dialog({title:`⬆ رفع ${files.length} صورة`,body:`<p class="meta" style="margin:0 0 8px">رُبطت كل صورة بالصنف الأقرب لاسم الملف. راجع الربط وعدّله عند الحاجة، ثم اضغط «رفع وربط».</p>
       <div style="max-height:52vh;overflow:auto"><table class="bulk">${rows.map((r,k)=>`<tr><td style="width:44px"><img src="${r.url}"></td><td><div class="meta" style="font-size:11px;word-break:break-all">${esc(r.fl.name)}</div><select data-bk="${k}" style="width:100%">${opts(r.m)}</select></td></tr>`).join('')}</table></div>
-      <div class="meta" style="margin-top:6px">${rows.filter(r=>r.m).length} من ${rows.length} اتربطوا تلقائياً</div>`,
+      <div class="meta" style="margin-top:6px">${rows.filter(r=>r.m).length} من ${rows.length} رُبطت تلقائياً</div>`,
       btns:[['رفع وربط','pri',()=>{const sel=[...$$('[data-bk]')].map(s=>s.value);(async()=>{
           const out={};let k=0;for(const r of rows){const nm=sel[k++];if(!nm)continue;toast(`⏳ رفع ${k} من ${rows.length}…`);try{out[nm]={z:1,x:0,y:0,fit:'contain',wb:false,hs:1,...(await processImage(r.fl,undefined,nm))}}catch(e){console.warn('img fail',r.fl.name,e&&e.message||e)}}
           rows.forEach(r=>URL.revokeObjectURL(r.url));
-          const n=Object.keys(out).length;if(!n)return toast('مفيش صور اتربطت');
-          commit(`رفع ${n} صورة`,['__img'],()=>{Object.assign(S.img,out)});toast(`✓ اتربطت ${n} صورة بالأصناف`)})()}],['إلغاء']]});
+          const n=Object.keys(out).length;if(!n)return toast('لم تُربط أي صورة');
+          commit(`رفع ${n} صورة`,['__img'],()=>{Object.assign(S.img,out)});toast(`✓ رُبطت ${n} صورة بالأصناف`)})()}],['إلغاء']]});
   };
   inp.click();
 }
@@ -1320,7 +1320,7 @@ function stateJson(){const o={...S,fx:{}};for(const[k,f]of Object.entries(S.fx))
 async function download(name,data){
   try{const dl=window.claude&&await window.claude.use('downloads');if(dl){await dl.save({filename:name,data});toast('تم التنزيل');return}}
   catch(err){if(err&&err.code==='declined')return;if(err&&!['unavailable','not_granted','capability_disabled'].includes(err.code)){toast('تعذّر التنزيل: '+(err.message||err.code));return}}
-  try{const u=URL.createObjectURL(new Blob([data]));const a=document.createElement('a');a.href=u;a.download=name;document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(u),4000)}catch(e){toast('التنزيل مش متاح هنا')}
+  try{const u=URL.createObjectURL(new Blob([data]));const a=document.createElement('a');a.href=u;a.download=name;document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(u),4000)}catch(e){toast('التنزيل غير متاح هنا')}
 }
 async function fileAct(a){
   if(a==='json')return download(`planogram-backup-${stamp()}.json`,stateJson());
@@ -1344,7 +1344,7 @@ async function fileAct(a){
     src=src.replace(/\n<script id="seed" type="application\/json">[^\n]*<\/script>(?=\n)/,'');
     const st=JSON.parse(stateJson());
     const ext=Object.values(st.img||{}).filter(v=>v.ref&&!String(v.ref).startsWith('data:'));
-    if(ext.length){toast(`⏳ تجهيز ${ext.length} صورة للنسخة الأوفلاين…`);for(const v of ext){try{const b=await (await fetch(STORE().imageUrl(v.ref))).blob();v.ref=await new Promise(r=>{const fr=new FileReader();fr.onload=()=>r(fr.result);fr.readAsDataURL(b)})}catch(e){}}}
+    if(ext.length){toast(`⏳ تجهيز ${ext.length} صورة للنسخة غير المتصلة…`);for(const v of ext){try{const b=await (await fetch(STORE().imageUrl(v.ref))).blob();v.ref=await new Promise(r=>{const fr=new FileReader();fr.onload=()=>r(fr.result);fr.readAsDataURL(b)})}catch(e){}}}
     const seed='<script id="se'+'ed" type="application/json">'+JSON.stringify(st).replace(/</g,'\\u003c')+'<\/script>\n';
     const at=src.indexOf('\n<script id="app">');if(at<0){toast('تعذّر تجهيز النسخة');return}
     return download(`pharmacy-planogram-editor-${stamp()}.html`,src.slice(0,at+1)+seed+src.slice(at+1));
@@ -1352,9 +1352,9 @@ async function fileAct(a){
   if(a==='import')return $('#fileIn').click();
   if(a==='bgimg')return $('#imgIn').click();
   if(a==='bgclear'){S.bgImage=null;drawBg();markDirty();return}
-  if(a==='reset')return dialog({title:'استرجاع آخر نسخة محفوظة؟',body:'<p>كل التعديلات اللي ما اتحفظتش هتضيع.</p>',btns:[['استرجاع','dng',()=>{lsDel(LS_KEY);load(true)}],['إلغاء']]});
+  if(a==='reset')return dialog({title:'استرجاع آخر نسخة محفوظة؟',body:'<p>ستضيع كل التعديلات غير المحفوظة.</p>',btns:[['استرجاع','dng',()=>{lsDel(LS_KEY);load(true)}],['إلغاء']]});
 }
-$('#fileIn').onchange=e=>{const f=e.target.files[0];if(!f)return;const r=new FileReader();r.onload=()=>{try{const o=JSON.parse(r.result);if(!o.fx||!o.zones)throw 0;applyState(o);markDirty();toast('تم الاستيراد — اضغط حفظ علشان يتثبت')}catch(_){toast('الملف مش نسخة صالحة')}};r.readAsText(f);e.target.value=''};
+$('#fileIn').onchange=e=>{const f=e.target.files[0];if(!f)return;const r=new FileReader();r.onload=()=>{try{const o=JSON.parse(r.result);if(!o.fx||!o.zones)throw 0;applyState(o);markDirty();toast('تم الاستيراد — اضغط حفظ لتثبيته')}catch(_){toast('الملف ليس نسخة صالحة')}};r.readAsText(f);e.target.value=''};
 
 /* ================= save / persistence ================= */
 let canPublish=null, lsT=null, autoT=null, saving=false, autoSave=true;
@@ -1368,24 +1368,24 @@ async function saveNow(){
   if(saving)return;
   if(!canPublish){
     saveDraft();
-    setSave('ok','✓ محفوظ على الجهاز ده');dirty=false;
-    toast(canPublish===false?'الحفظ أونلاين مش متاح هنا — اتحفظ في المتصفح. نزّل نسخة من قائمة "ملف" للأمان':'اتحفظ في المتصفح');
+    setSave('ok','✓ محفوظ على هذا الجهاز');dirty=false;
+    toast(canPublish===false?'الحفظ على الخادم غير متاح هنا — حُفظ في المتصفح. نزّل نسخة من قائمة "ملف" للأمان':'حُفظ في المتصفح');
     return;
   }
-  saving=true;setSave('','⏳ جاري الحفظ…');
+  saving=true;setSave('','⏳ جارٍ الحفظ…');
   S.savedAt=Date.now();
   try{
     await STORE().save(JSON.parse(stateJson()));
-    BASE_SAVED=S.savedAt;dirty=false;lsDel(LS_KEY);setSave('ok','✓ محفوظ');toast('اتحفظ ✓');
+    BASE_SAVED=S.savedAt;dirty=false;lsDel(LS_KEY);setSave('ok','✓ محفوظ');toast('تم الحفظ ✓');
   }catch(err){
     const c=err&&err.code;
-    if(c==='offline'||c==='not_writer'||c==='not_granted'||c==='capability_disabled'||c==='capability_removed'||c==='not_declared'){canPublish=false;saveDraft();setSave('err','وضع القراءة فقط');toast('مش عندك صلاحية الحفظ هنا — التعديلات محفوظة في المتصفح بس')}
-    else if(c==='conflict'){try{sessionStorage.setItem(LS_KEY+'-c','1')}catch(_){}setSave('err','في نسخة أحدث — جاري التحديث');}
-    else{setSave('err','✕ فشل الحفظ');toast('فشل الحفظ: '+((err&&err.message)||c||'خطأ')+' — التعديلات لسه في المتصفح')}
+    if(c==='offline'||c==='not_writer'||c==='not_granted'||c==='capability_disabled'||c==='capability_removed'||c==='not_declared'){canPublish=false;saveDraft();setSave('err','وضع القراءة فقط');toast('ليست لديك صلاحية الحفظ هنا — التعديلات محفوظة في المتصفح فقط')}
+    else if(c==='conflict'){try{sessionStorage.setItem(LS_KEY+'-c','1')}catch(_){}setSave('err','توجد نسخة أحدث — جارٍ التحديث');}
+    else{setSave('err','✕ فشل الحفظ');toast('فشل الحفظ: '+((err&&err.message)||c||'خطأ')+' — التعديلات ما زالت في المتصفح')}
   }finally{saving=false}
 }
 $('#bSave').onclick=saveNow;
-$('#bAuto').onclick=e=>{autoSave=!autoSave;e.currentTarget.classList.toggle('on',autoSave);toast(autoSave?'الحفظ التلقائي شغال':'الحفظ التلقائي متوقف — استخدم زر حفظ')};
+$('#bAuto').onclick=e=>{autoSave=!autoSave;e.currentTarget.classList.toggle('on',autoSave);toast(autoSave?'الحفظ التلقائي مفعّل':'الحفظ التلقائي متوقف — استخدم زر حفظ')};
 addEventListener('beforeunload',e=>{if(dirty){saveDraft();}});
 
 function applyState(o){
@@ -1407,9 +1407,9 @@ async function load(skipDraft){
   if(!skipDraft){
     let d=null;try{d=JSON.parse(lsGet(LS_KEY)||'null')}catch(e){}
     if(d&&d.state&&d.at>BASE_SAVED){
-      $('#bannerTxt').textContent='في تعديلات محفوظة في المتصفح ده من '+new Date(d.at).toLocaleString('ar-EG')+' ما اتحفظتش أونلاين.';
+      $('#bannerTxt').textContent='توجد تعديلات محفوظة في هذا المتصفح منذ '+new Date(d.at).toLocaleString('ar-EG')+' لم تُحفظ على الخادم.';
       const b=$('#banner');b.style.display='flex';
-      $('#bannerYes').onclick=()=>{b.style.display='none';applyState(d.state);markDirty();toast('اتسترجعت — اضغط حفظ')};
+      $('#bannerYes').onclick=()=>{b.style.display='none';applyState(d.state);markDirty();toast('تمت الاستعادة — اضغط حفظ')};
       $('#bannerNo').onclick=()=>{b.style.display='none';lsDel(LS_KEY)};
     }
   }

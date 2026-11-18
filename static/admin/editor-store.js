@@ -86,16 +86,16 @@
   var withoutAuto = function(data){ if (!data.img) return data; var out = Object.assign({}, data, {img:{}});
     Object.keys(data.img).forEach(function(n){ if (!(AUTO[n] && JSON.stringify(data.img[n]) === AUTO[n])) out.img[n] = data.img[n]; }); return out; };
   // a small sign in the corner: is the link with Salla working (asks the backend, which asks the token vault; nothing is sent to Salla)
-  function sallaSign(){ var b = document.createElement('button'); b.type = 'button'; b.id = 'sallaSign'; b.textContent = '🛒 سلة: جاري الفحص…';
+  function sallaSign(){ var b = document.createElement('button'); b.type = 'button'; b.id = 'sallaSign'; b.textContent = '🛒 سلة: جارٍ الفحص…';
     b.style.cssText = 'position:fixed;left:176px;bottom:12px;z-index:50;font:600 12px/1 Tahoma,Arial,sans-serif;padding:8px 12px;border-radius:999px;border:1px solid #b0bec5;background:#eceff1;color:#37474f;cursor:pointer';
-    var why = '', check = function(){ b.textContent = '🛒 سلة: جاري الفحص…'; call('/salla/status').then(function(r){ return r.json().then(function(d){ if (r.status === 404) d = {linked:false, why:'الخادم لسه على الكود القديم'}; return d; }); }).then(function(d){
-        why = d.linked ? 'الربط مع سلة شغال: الخادم وصل للخزنة وأخذ مفتاحاً صالحاً.' : (d.why || d.error || 'غير معروف');
+    var why = '', check = function(){ b.textContent = '🛒 سلة: جارٍ الفحص…'; call('/salla/status').then(function(r){ return r.json().then(function(d){ if (r.status === 404) d = {linked:false, why:'الخادم ما زال على الكود القديم'}; return d; }); }).then(function(d){
+        why = d.linked ? 'الربط مع سلة يعمل: وصل الخادم إلى الخزنة وحصل على مفتاح صالح.' : (d.why || d.error || 'غير معروف');
         b.textContent = d.linked ? '🛒 سلة: مربوطة ✓' : '🛒 سلة: غير مربوطة ✕'; b.style.background = d.linked ? '#e8f5e9' : '#ffebee'; b.style.color = d.linked ? '#1b5e20' : '#b71c1c'; b.style.borderColor = d.linked ? '#81c784' : '#e57373'; b.title = why;
       }).catch(function(){ why = 'تعذّر الوصول للخادم'; b.textContent = '🛒 سلة: تعذّر الفحص'; b.title = why; }); };
-    b.onclick = function(){ alert(why || 'جاري الفحص…'); check(); }; document.body.appendChild(b); check(); }
+    b.onclick = function(){ alert(why || 'جارٍ الفحص…'); check(); }; document.body.appendChild(b); check(); }
   ready.then(function(){ if (document.body) sallaSign(); else addEventListener('DOMContentLoaded', sallaSign); }).catch(function(){});
   // ---- pictures worth replacing: the hourly build looks at every store photo; this lists its findings ----
-  var FLAG = {s:'المنتج صغير في الصورة', b:'المنتج مالي الصورة للحافة', l:'صورة صغيرة (مغبّشة)', g:'الخلفية مش بيضاء', w:'شعار أو علامة في الصورة'};
+  var FLAG = {s:'المنتج صغير في الصورة', b:'المنتج يملأ الصورة حتى الحافة', l:'صورة صغيرة (مغبّشة)', g:'الخلفية ليست بيضاء', w:'شعار أو علامة في الصورة'};
   var FIXED = {}; try { FIXED = JSON.parse(localStorage.getItem('ib3d-photo-fixed') || '{}'); } catch(e){}
   var markFixed = function(id){ FIXED[id] = 1; try { localStorage.setItem('ib3d-photo-fixed', JSON.stringify(FIXED)); } catch(e){} };
   var esc = function(x){ return String(x == null ? '' : x).replace(/[&<>"']/g, function(c){ return '&#' + c.charCodeAt(0) + ';'; }); };
@@ -120,27 +120,27 @@
     box.innerHTML = '<div style="background:#fff;border-radius:14px;width:min(760px,100%);max-height:calc(100vh - 48px);display:flex;flex-direction:column;box-shadow:0 12px 40px rgba(0,0,0,.3)">' +
       '<div style="display:flex;align-items:center;gap:10px;padding:12px 16px;border-bottom:1px solid #e0e6ea"><b style="font-size:15px">🖼 صور المنتجات</b><span id="phN" style="color:#607d8b"></span><button id="phX" type="button" style="margin-inline-start:auto;border:1px solid #cfd8dc;background:#fff;border-radius:8px;padding:4px 10px;cursor:pointer">إغلاق</button></div>' +
       '<div style="padding:10px 16px 0"><input id="phQ" type="search" placeholder="ابحث عن أي منتج على الرفوف بالاسم أو الباركود…" style="width:100%;box-sizing:border-box;border:1px solid #cfd8dc;border-radius:10px;padding:9px 12px;font:inherit"></div>' +
-      '<div id="phF" style="display:flex;flex-wrap:wrap;gap:6px;padding:10px 16px;border-bottom:1px solid #eef2f4"></div><div id="phL" style="overflow:auto;padding:6px 10px 12px">⏳ جاري التحميل…</div></div>';
+      '<div id="phF" style="display:flex;flex-wrap:wrap;gap:6px;padding:10px 16px;border-bottom:1px solid #eef2f4"></div><div id="phL" style="overflow:auto;padding:6px 10px 12px">⏳ جارٍ التحميل…</div></div>';
     document.body.appendChild(box);
     box.addEventListener('click', function(e){ if (e.target === box) box.remove(); }); box.querySelector('#phX').onclick = function(){ box.remove(); };
     var L = box.querySelector('#phL'), F = box.querySelector('#phF'), on = {}, shown = 150, data = null;
     var norm = function(t){ return String(t).toLowerCase().replace(/[أإآ]/g, 'ا').replace(/ة/g, 'ه').replace(/ى/g, 'ي').replace(/[\u064b-\u0652\u0640]/g, '').replace(/\s+/g, ' ').trim(); }, qv = '';
     var draw = function(){ var act = Object.keys(on).filter(function(k){ return on[k]; }), words = norm(qv).split(' ').filter(Boolean);
       var rows = (words.length ? data.all.filter(function(r){ var n = r._n || (r._n = norm(r.name)); return words.every(function(w){ return n.indexOf(w) >= 0 || r.sku.indexOf(w) >= 0; }); }) : data.rows).filter(function(r){ return !act.length || act.some(function(k){ return r.f.indexOf(k) >= 0; }); });
-      box.querySelector('#phN').textContent = rows.length + ' صورة' + (data.checked < data.total ? ' · اتفحص ' + data.checked + ' من ' + data.total + ' ' : '');
+      box.querySelector('#phN').textContent = rows.length + ' صورة' + (data.checked < data.total ? ' · فُحص ' + data.checked + ' من ' + data.total + ' ' : '');
       F.innerHTML = Object.keys(FLAG).map(function(k){ var n = data.rows.filter(function(r){ return r.f.indexOf(k) >= 0; }).length; return '<button type="button" data-k="' + k + '" style="border:1px solid ' + (on[k] ? '#1565c0' : '#cfd8dc') + ';background:' + (on[k] ? '#e3f2fd' : '#fff') + ';color:#263238;border-radius:999px;padding:5px 11px;cursor:pointer;font:inherit">' + FLAG[k] + ' · ' + n + '</button>'; }).join('');
       L.innerHTML = rows.length ? rows.slice(0, shown).map(function(r){ return '<div style="display:flex;gap:10px;align-items:center;padding:7px 6px;border-bottom:1px solid #f0f3f5">' +
         '<img src="' + esc(r.img) + '" loading="lazy" width="56" height="56" style="flex:none;object-fit:contain;border:1px solid #e0e6ea;border-radius:8px;background:#fff">' +
         '<div style="min-width:0;flex:1"><div style="font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">' + esc(r.name) + '</div><div style="color:' + (r.f ? '#b26a00' : '#78909c') + ';font-size:12px">' + (r.f ? r.f.split('').map(function(k){ return FLAG[k]; }).join(' · ') : 'لا ملاحظات على صورته') + (r.sku ? ' · <span dir="ltr">' + esc(r.sku) + '</span>' : '') + '</div></div>' +
         (r.at ? '<button type="button" data-open="' + r.id + '" style="flex:none;border:0;background:#1565c0;color:#fff;border-radius:8px;padding:6px 12px;cursor:pointer;font:inherit">تعديل الصورة</button>'
-              : '<a href="https://s.salla.sa/products/' + r.id + '" target="_blank" rel="noopener" style="flex:none;color:#1565c0;font-size:12px">مو على رف · افتحه في سلة</a>') + '</div>'; }).join('') +
+              : '<a href="https://s.salla.sa/products/' + r.id + '" target="_blank" rel="noopener" style="flex:none;color:#1565c0;font-size:12px">ليس على رف · افتحه في سلة</a>') + '</div>'; }).join('') +
         (rows.length > shown ? '<div style="text-align:center;padding:12px"><button type="button" id="phMore" style="border:1px solid #cfd8dc;background:#fff;border-radius:8px;padding:6px 16px;cursor:pointer;font:inherit">عرض المزيد (' + (rows.length - shown) + ')</button></div>' : '')
-        : '<div style="padding:24px;text-align:center;color:#607d8b">ما فيه صور في هذي القائمة.</div>';
+        : '<div style="padding:24px;text-align:center;color:#607d8b">لا توجد صور في هذه القائمة.</div>';
       var more = L.querySelector('#phMore'); if (more) more.onclick = function(){ shown += 300; draw(); }; };
     var qi = box.querySelector('#phQ'), qt = 0; qi.oninput = function(){ clearTimeout(qt); qt = setTimeout(function(){ qv = qi.value; shown = 150; if (data) draw(); }, 160); }; setTimeout(function(){ qi.focus(); }, 60);
     F.onclick = function(e){ var b = e.target.closest('[data-k]'); if (b && data){ on[b.dataset.k] = !on[b.dataset.k]; shown = 150; draw(); } };
     L.onclick = function(e){ var b = e.target.closest('[data-open]'); if (!b || !data) return; var r = data.all.find(function(x){ return x.id === b.dataset.open; }) || data.rows.find(function(x){ return x.id === b.dataset.open; }); if (r && r.at && window.PG_HOOK){ box.remove(); window.PG_HOOK.openImg(r.at[0], r.at[1]); } };
-    photoList().then(function(d){ if (!d){ L.innerHTML = '<div style="padding:24px;text-align:center;color:#607d8b">الفحص ما اشتغل للحين. يشتغل لحاله مع تحديث الصيدلية، جرّب بعد شوي.</div>'; return; } data = d; draw(); })
+    photoList().then(function(d){ if (!d){ L.innerHTML = '<div style="padding:24px;text-align:center;color:#607d8b">لم يعمل الفحص بعد. يعمل تلقائياً مع تحديث الصيدلية، حاول بعد قليل.</div>'; return; } data = d; draw(); })
       .catch(function(){ L.innerHTML = '<div style="padding:24px;text-align:center;color:#b71c1c">تعذّر تحميل القائمة.</div>'; });
   }
   function photoButton(){ var b = document.createElement('button'); b.type = 'button'; b.textContent = '🖼 الصور: بحث وتعديل';
@@ -173,26 +173,26 @@
     var box = document.createElement('div'); box.id = 'mxPanel'; box.dir = 'rtl';
     box.style.cssText = 'position:fixed;inset:0;z-index:60;background:rgba(20,30,40,.45);display:flex;justify-content:center;align-items:flex-start;padding:24px 12px;font:13px/1.5 Tahoma,Arial,sans-serif';
     box.innerHTML = '<div style="background:#fff;border-radius:14px;width:min(680px,100%);max-height:calc(100vh - 48px);display:flex;flex-direction:column;box-shadow:0 12px 40px rgba(0,0,0,.3)">' +
-      '<div style="display:flex;align-items:center;gap:10px;padding:12px 16px;border-bottom:1px solid #e0e6ea"><b style="font-size:15px">🧩 استاندات مختلطة</b><span id="mxN" style="color:#607d8b"></span><button id="mxX" type="button" style="margin-inline-start:auto;border:1px solid #cfd8dc;background:#fff;border-radius:8px;padding:4px 10px;cursor:pointer">✕</button></div>' +
-      '<div style="padding:8px 16px;color:#607d8b;border-bottom:1px solid #eef2f4">استاندات فيها منتجات من أقسام مختلفة (مثل عناية بالبشرة مع عناية بالفم) أو من فئات كثيرة. الأحمر فيه أكثر من قسم رئيسي، رتبه أول. اضغط «افتح» يفتح لك الاستاند في المحرر.</div>' +
-      '<div id="mxL" style="overflow:auto;padding:6px 10px 12px">⏳ جاري التحميل…</div></div>';
+      '<div style="display:flex;align-items:center;gap:10px;padding:12px 16px;border-bottom:1px solid #e0e6ea"><b style="font-size:15px">🧩 ستاندات مختلطة</b><span id="mxN" style="color:#607d8b"></span><button id="mxX" type="button" style="margin-inline-start:auto;border:1px solid #cfd8dc;background:#fff;border-radius:8px;padding:4px 10px;cursor:pointer">✕</button></div>' +
+      '<div style="padding:8px 16px;color:#607d8b;border-bottom:1px solid #eef2f4">ستاندات تضم منتجات من أقسام مختلفة (مثل العناية بالبشرة مع العناية بالفم) أو من فئات كثيرة. الأحمر يضم أكثر من قسم رئيسي، فابدأ بترتيبه. اضغط «افتح» لفتح الستاند في المحرر.</div>' +
+      '<div id="mxL" style="overflow:auto;padding:6px 10px 12px">⏳ جارٍ التحميل…</div></div>';
     document.body.appendChild(box);
     box.addEventListener('click', function(e){ if (e.target === box) box.remove(); }); box.querySelector('#mxX').onclick = function(){ box.remove(); };
     var L = box.querySelector('#mxL');
     L.onclick = function(e){ var b = e.target.closest('[data-fx]'); if (b && window.PG_HOOK && window.PG_HOOK.openFx){ box.remove(); window.PG_HOOK.openFx(b.dataset.fx); } };
     mixList().then(function(rows){
       if (!rows){ L.innerHTML = '<div style="padding:24px;text-align:center;color:#b71c1c">تعذّر تحميل بيانات الفئات.</div>'; return; }
-      box.querySelector('#mxN').textContent = rows.length + ' استاند';
+      box.querySelector('#mxN').textContent = rows.length + ' ستاند';
       L.innerHTML = rows.length ? rows.map(function(r){ var nm = window.PG_HOOK.name ? window.PG_HOOK.name(r.k) : '';
         return '<div style="display:flex;gap:10px;align-items:center;padding:8px 6px;border-bottom:1px solid #f0f3f5">' +
           '<span style="flex:none;width:10px;height:10px;border-radius:50%;background:' + (r.fams > 1 ? '#e53935' : '#ffb300') + '"></span>' +
           '<div style="min-width:0;flex:1"><div style="font-weight:600">' + esc(nm || r.k) + ' <span style="color:#78909c;font-weight:400">(' + r.n + ' منتج)</span></div>' +
           '<div style="color:#546e7a;font-size:12px">' + r.cats.map(function(c){ return esc(c.t) + ' ' + c.n; }).join(' · ') + '</div></div>' +
           '<button type="button" data-fx="' + esc(r.k) + '" style="flex:none;border:0;background:#1565c0;color:#fff;border-radius:8px;padding:6px 12px;cursor:pointer;font:inherit">افتح</button></div>'; }).join('')
-        : '<div style="padding:24px;text-align:center;color:#2e7d32">كل الاستاندات مرتبة ✓</div>'; })
+        : '<div style="padding:24px;text-align:center;color:#2e7d32">كل الستاندات مرتبة ✓</div>'; })
       .catch(function(){ L.innerHTML = '<div style="padding:24px;text-align:center;color:#b71c1c">تعذّر تحميل القائمة.</div>'; });
   }
-  function mixButton(){ var b = document.createElement('button'); b.type = 'button'; b.textContent = '🧩 استاندات مختلطة';
+  function mixButton(){ var b = document.createElement('button'); b.type = 'button'; b.textContent = '🧩 ستاندات مختلطة';
     b.style.cssText = 'position:fixed;left:478px;bottom:12px;z-index:50;font:600 12px/1 Tahoma,Arial,sans-serif;padding:8px 12px;border-radius:999px;border:1px solid #90caf9;background:#e3f2fd;color:#0d47a1;cursor:pointer';
     b.onclick = mixPanel; document.body.appendChild(b); }
   ready.then(function(){ if (document.body) { photoButton(); mixButton(); } else addEventListener('DOMContentLoaded', function(){ photoButton(); mixButton(); }); }).catch(function(){});
@@ -213,9 +213,9 @@
       if (!r.ok) throw fail(r, await r.json().catch(function(){ return null; }));
       BASE = +data.savedAt || Date.now();
       // publish to the store
-      var map; try { map = await getMap(); } catch(e){ mapP = null; throw new Error('اتحفظ في المحرر، لكن تعذّر تجهيز النشر للصيدلية'); }
+      var map; try { map = await getMap(); } catch(e){ mapP = null; throw new Error('حُفظ في المحرر، لكن تعذّر تجهيز النشر إلى الصيدلية'); }
       var p = await call('/pg?auto=1', {method:'PUT', headers:{'content-type':'application/json'}, body:JSON.stringify(toStore(data, map))});
-      if (!p.ok) throw new Error('اتحفظ في المحرر، لكن النشر للصيدلية فشل: ' + (((await p.json().catch(function(){ return null; })) || {}).error || p.status));
+      if (!p.ok) throw new Error('حُفظ في المحرر، لكن فشل النشر إلى الصيدلية: ' + (((await p.json().catch(function(){ return null; })) || {}).error || p.status));
     },
     saveImage:async function(name, blob){
       await ready; var r = await call('/img', {method:'POST', headers:{'content-type':blob.type || 'image/webp'}, body:blob});
@@ -223,14 +223,14 @@
     },
     // under the item's name in the picture dialog: its barcode (to search for a better photo) and quick links
     info:async function(it, el){ if (!el) return; el.textContent = '';
-      try { var p = await productOf(it); if (!p || p.many){ el.textContent = p && p.many ? 'في أكتر من منتج في سلة بنفس الاسم' : 'الصنف ده مش مربوط بمنتج في سلة'; return; }
+      try { var p = await productOf(it); if (!p || p.many){ el.textContent = p && p.many ? 'يوجد أكثر من منتج في سلة بنفس الاسم' : 'هذا الصنف غير مربوط بمنتج في سلة'; return; }
         if (!skuP) skuP = fetch('../data/sku.json', {cache:'no-cache'}).then(function(r){ return r.ok ? r.json() : {}; }).catch(function(){ return {}; });
         var bc = (await skuP)[p.id] || '', q = bc || p.name || it[1], mk = function(t, h){ var a = document.createElement('a'); a.textContent = t; a.href = h; a.target = '_blank'; a.rel = 'noopener'; a.style.cssText = 'color:#1565c0;text-decoration:none;white-space:nowrap'; return a; };
         el.style.cssText = 'display:flex;flex-wrap:wrap;gap:6px 14px;align-items:center;font-size:12px;margin:2px 0 8px;color:#455a64';
         if (bc){ var s1 = document.createElement('span'); s1.innerHTML = 'الباركود: <b dir="ltr" style="user-select:all;font-family:ui-monospace,Consolas,monospace;font-size:13px;color:#263238">' + esc(bc) + '</b>'; el.appendChild(s1);
           var cp = document.createElement('button'); cp.type = 'button'; cp.textContent = 'نسخ'; cp.style.cssText = 'border:1px solid #cfd8dc;background:#fff;border-radius:6px;padding:1px 8px;cursor:pointer;font:inherit';
-          cp.onclick = function(){ try { navigator.clipboard.writeText(bc).then(function(){ cp.textContent = 'اتنسخ ✓'; }); } catch(e){} }; el.appendChild(cp); }
-        else { var s2 = document.createElement('span'); s2.textContent = 'الباركود مش متوفر للمنتج ده'; el.appendChild(s2); }
+          cp.onclick = function(){ try { navigator.clipboard.writeText(bc).then(function(){ cp.textContent = 'تم النسخ ✓'; }); } catch(e){} }; el.appendChild(cp); }
+        else { var s2 = document.createElement('span'); s2.textContent = 'الباركود غير متوفر لهذا المنتج'; el.appendChild(s2); }
         el.appendChild(mk('🔎 صور قوقل' + (bc ? ' بالباركود' : ' بالاسم'), 'https://www.google.com/search?tbm=isch&q=' + encodeURIComponent(q)));
         if (bc && p.name) el.appendChild(mk('🔎 بالاسم', 'https://www.google.com/search?tbm=isch&q=' + encodeURIComponent(p.name + ' white background')));
         el.appendChild(mk('↗ المنتج في سلة', 'https://s.salla.sa/products/' + p.id));
@@ -238,7 +238,7 @@
     // The picture dialog asks: how good is this picture for the store and the 3D pharmacy, and what will be sent?
     check:async function(name, t, el){ if (!el) return; var my = el._n = (el._n || 0) + 1;
       if (!t || !t.ref){ el.innerHTML = ''; return; }
-      el.innerHTML = '<div style="font-size:12px;color:#78909c;padding:6px 0">⏳ جاري فحص الصورة…</div>';
+      el.innerHTML = '<div style="font-size:12px;color:#78909c;padding:6px 0">⏳ جارٍ فحص الصورة…</div>';
       try {
         var c = HIREF[name] === t.ref ? await HI[name] : null, own = !!c; if (!c) c = await bigCanvas(this.imageUrl(t.ref));
         var W = c.width, H = c.height, d = c.getContext('2d').getImageData(0, 0, W, H).data, x1 = W, y1 = H, x2 = -1, y2 = -1, ring = Math.max(2, Math.round(Math.min(W, H) * .02)), rb = 0, rn = 0;
@@ -248,18 +248,18 @@
         if (my !== el._n) return;
         var bw = Math.max(1, x2 - x1 + 1), bh = Math.max(1, y2 - y1 + 1), big = Math.max(bw, bh), bg = rb / rn, fill = Math.max(bw / W, bh / H), edge = bg > .9 && (x1 <= 1 || y1 <= 1 || x2 >= W - 2 || y2 >= H - 2);
         var bad = [], warn = [], ok = [];
-        if (bg < .75) bad.push('الخلفية مش بيضاء: اختار صورة بخلفية بيضاء صافية'); else if (bg < .95) warn.push('الخلفية مش بيضاء بالكامل (ظل أو إطار على الأطراف)'); else ok.push('خلفية بيضاء');
-        if (big < 400) bad.push('المنتج صغير جداً (' + big + ' بكسل): هيبان مغبّش، دوّر على صورة أكبر'); else if (big < 800) warn.push('المنتج متوسط الوضوح (' + big + ' بكسل)، الأفضل 1000 وأكتر'); else ok.push('وضوح عالي (' + big + ' بكسل)');
-        if (edge) warn.push('المنتج لازق في حافة الصورة: اتأكد إنه مش مقصوص');
-        if (bg >= .75 && fill < .45) ok.push('فراغ كبير حوالين المنتج: هيتقص تلقائي عند النشر');
-        if (!own) warn.push('دي صورة محفوظة بمقاس المحرر: ارفعها من جهازك عشان تتبعت لسلة بمقاسها الكامل');
+        if (bg < .75) bad.push('الخلفية ليست بيضاء: اختر صورة بخلفية بيضاء صافية'); else if (bg < .95) warn.push('الخلفية ليست بيضاء بالكامل (ظل أو إطار على الأطراف)'); else ok.push('خلفية بيضاء');
+        if (big < 400) bad.push('المنتج صغير جداً (' + big + ' بكسل): سيظهر مشوشاً، ابحث عن صورة أكبر'); else if (big < 800) warn.push('المنتج متوسط الوضوح (' + big + ' بكسل)، والأفضل 1000 فأكثر'); else ok.push('وضوح عالٍ (' + big + ' بكسل)');
+        if (edge) warn.push('المنتج ملاصق لحافة الصورة: تأكد أنه غير مقصوص');
+        if (bg >= .75 && fill < .45) ok.push('فراغ كبير حول المنتج: سيُقص تلقائياً عند النشر');
+        if (!own) warn.push('هذه صورة محفوظة بمقاس المحرر: ارفعها من جهازك لتُرسل إلى سلة بمقاسها الكامل');
         var col = bad.length ? '#c62828' : warn.length ? '#ef6c00' : '#2e7d32', word = bad.length ? 'ضعيفة' : warn.length ? 'مقبولة' : 'ممتازة', sq = squared(c), pv = document.createElement('canvas'); pv.width = pv.height = 96;
         var g = pv.getContext('2d'); g.fillStyle = '#fff'; g.fillRect(0, 0, 96, 96); g.drawImage(sq, 0, 0, 96, 96);
         var li = function(a, m){ return a.map(function(x){ return '<div>' + m + ' ' + x + '</div>'; }).join(''); };
         el.innerHTML = '<div style="display:flex;gap:10px;align-items:flex-start;margin-top:8px;padding:8px;border:1px solid ' + col + '55;border-radius:10px;background:' + col + '0d">' +
-          '<div style="flex:none;text-align:center"><img src="' + pv.toDataURL('image/jpeg', .85) + '" width="96" height="96" style="display:block;border:1px solid #cfd8dc;border-radius:6px;background:#fff"><div style="font-size:10px;color:#607d8b;margin-top:3px">كده هتتنشر</div></div>' +
+          '<div style="flex:none;text-align:center"><img src="' + pv.toDataURL('image/jpeg', .85) + '" width="96" height="96" style="display:block;border:1px solid #cfd8dc;border-radius:6px;background:#fff"><div style="font-size:10px;color:#607d8b;margin-top:3px">هكذا ستُنشر</div></div>' +
           '<div style="min-width:0;font-size:12px;line-height:1.7"><div style="font-weight:700;color:' + col + '">جودة الصورة للمتجر والصيدلية 3D: ' + word + '</div>' + li(bad, '✕') + li(warn, '⚠') + li(ok, '✓') + '</div></div>';
-      } catch(e){ if (my === el._n) el.innerHTML = '<div style="font-size:12px;color:#78909c;padding:6px 0">فحص الجودة متاح للصور اللي بترفعها من جهازك.</div>'; }
+      } catch(e){ if (my === el._n) el.innerHTML = '<div style="font-size:12px;color:#78909c;padding:6px 0">فحص الجودة متاح للصور التي ترفعها من جهازك.</div>'; }
     },
     // called by the picture dialog each time the picture changes (a new file, a turn, a flip)
     hiRes:function(name, src, op, ref){ var prev = HIREF[name] ? HI[name] : null, fresh = src instanceof Blob; HIREF[name] = ref || '';
@@ -268,19 +268,19 @@
       say = say || function(m){ alert(m); };
       try { await ready;
         var p = await productOf(it);
-        if (!p){ say('الصنف ده مش مربوط بمنتج في سلة'); return; }
-        if (p.many){ say('في ' + p.many + ' منتجات في سلة بنفس الاسم — حط رقم المنتج في بيانات الصنف الأول'); return; }
+        if (!p){ say('هذا الصنف غير مربوط بمنتج في سلة'); return; }
+        if (p.many){ say('في ' + p.many + ' منتجات في سلة بنفس الاسم — ضع رقم المنتج في بيانات الصنف أولاً'); return; }
         var c = t && t.ref && HIREF[name] === t.ref ? await HI[name] : null;   // the large copy counts only if it is of the picture now shown if (!c && t && t.ref) c = await bigCanvas(this.imageUrl(t.ref)).catch(function(){ return null; });
-        if (!c){ say('اختار صورة من جهازك الأول'); return; }
+        if (!c){ say('اختر صورة من جهازك أولاً'); return; }
         var sq = squared(c), small = sq.width < 500;
-        if (!confirm('نشر الصورة في سلة؟\n\nالمنتج: ' + (p.name || name) + '\nرقم المنتج: ' + p.id + '\nمقاس الصورة: ' + sq.width + '×' + sq.height + (small ? '  ⚠ صغيرة، هتبان مش واضحة في المتجر' : '') +
-          '\n\nهتبقى الصورة الرئيسية للمنتج وتظهر للعملاء على طول في الموقع والتطبيق. صور المنتج القديمة هتفضل موجودة كصور إضافية.')) return;
-        say('⏳ جاري الرفع لسلة…');
+        if (!confirm('نشر الصورة في سلة؟\n\nالمنتج: ' + (p.name || name) + '\nرقم المنتج: ' + p.id + '\nمقاس الصورة: ' + sq.width + '×' + sq.height + (small ? '  ⚠ صغيرة، ستظهر غير واضحة في المتجر' : '') +
+          '\n\nستصبح الصورة الرئيسية للمنتج وتظهر للعملاء مباشرة في الموقع والتطبيق. تبقى صور المنتج القديمة موجودة كصور إضافية.')) return;
+        say('⏳ جارٍ الرفع إلى سلة…');
         var blob = await new Promise(function(r){ sq.toBlob(r, 'image/jpeg', .92); });
         var r = await call('/salla/image/' + p.id, {method:'POST', headers:{'content-type':'image/jpeg'}, body:blob}), d = await r.json().catch(function(){ return null; });
         if (!r.ok || !d || !d.ok) throw fail(r, d);
         markFixed(String(p.id));
-        say(d.build ? '✅ اتنشرت في سلة — وبدأ تحديث الصيدلية، هتظهر فيها خلال 10 دقايق تقريباً' : '✅ اتنشرت في سلة — هتظهر في الصيدلية مع التحديث الجاي');
+        say(d.build ? '✅ نُشرت في سلة — وبدأ تحديث الصيدلية، ستظهر فيها خلال 20 دقيقة تقريباً' : '✅ نُشرت في سلة — ستظهر في الصيدلية مع التحديث القادم');
       } catch(e){ say('تعذّر النشر في سلة: ' + (e && e.message || e)); }
     },
     imageUrl:function(ref){ return !ref ? '' : /^(data:|blob:|https?:)/.test(ref) ? ref : ref.indexOf('/public/img/') === 0 ? API + ref : ''; }
