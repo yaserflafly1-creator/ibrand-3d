@@ -71,6 +71,7 @@ async function sallaToken(env){
 const SITE = env => String(env.SITE_URL || 'https://yaserflafly1-creator.github.io/ibrand-3d/').replace(/\/?$/, '/');
 const amt = v => typeof v === 'number' ? v : (v && typeof v.amount === 'number' ? v.amount : (v && !isNaN(+v) ? +v : null));
 async function priceCheck(env, n = 40){
+  const VAT = env.VAT !== undefined && !isNaN(+env.VAT) ? +env.VAT : .15;
   const t = await sallaToken(env); if (!t.token) return {error:t.error};
   let pub; try { const r = await fetch(SITE(env) + 'data/products.json?t=' + Date.now(), {cf:{cacheTtl:0}}); pub = await r.json(); } catch(e){ return {error:'تعذّر قراءة بيانات الصيدلية المنشورة'}; }
   const all = new Map(); for (const sec of Object.values(pub.sections || {})) for (const p of sec.products || []) if (p && p.id && !all.has(p.id)) all.set(p.id, p);
@@ -86,7 +87,9 @@ async function priceCheck(env, n = 40){
         const live = sp > 0 && base > 0 && sp < base && !(end && end < Date.now()) ? sp : base;
         const sellable = (!d.status || d.status === 'sale') && d.is_available !== false && !(typeof d.quantity === 'number' && d.quantity <= 0 && !d.unlimited_quantity);
         if (!sellable) issues.push({id:p.id, name:p.name, kind:'stock', shown:p.price});
-        else if (live > 0 && typeof p.price === 'number' && Math.abs(live - p.price) > .009) issues.push({id:p.id, name:p.name, kind:'price', shown:p.price, live});
+        // the dashboard's prices are before VAT and the shop's include it (15%); a product without VAT matches the bare price
+        else if (live > 0 && typeof p.price === 'number'){ const wt = Math.round(live * (1 + VAT) * 100) / 100;
+          if (Math.abs(wt - p.price) > .021 && Math.abs(live - p.price) > .009) issues.push({id:p.id, name:p.name, kind:'price', shown:p.price, live:wt}); }
       } catch(e){ failed++; }
     }));
   }
