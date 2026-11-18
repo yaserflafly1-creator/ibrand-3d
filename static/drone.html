@@ -922,8 +922,12 @@ function build(renderer){
   const HOME = {pos:new THREE.Vector3(DOOR_IN, EYE, zF - 2.4), target:new THREE.Vector3(0, 1.45, zF - 10)};
   camera.position.copy(HOME.pos);
   const view = {yaw:0, pitch:0};
-  const clampPitch = v => Math.max(-.62, Math.min(.5, v));
-  function aimAt(p, from=camera.position){ const d = p.clone().sub(from); view.yaw = Math.atan2(-d.x, -d.z); view.pitch = clampPitch(Math.atan2(d.y, Math.hypot(d.x, d.z))); }
+  // how far the shopper may tilt the view: walking, never much above the shelf tops (the drone is for looking from above);
+  // standing square in front of a shelf, far enough down to see its bottom shelf without stepping back
+  let PMIN = -.62, PMAX = .2;
+  const clampPitch = v => Math.max(PMIN, Math.min(PMAX, v));
+  const clampAim = v => Math.max(-1.1, Math.min(PMAX, v));
+  function aimAt(p, from=camera.position){ const d = p.clone().sub(from); view.yaw = Math.atan2(-d.x, -d.z); view.pitch = clampAim(Math.atan2(d.y, Math.hypot(d.x, d.z))); }
   const applyView = () => camera.rotation.set(view.pitch, view.yaw, 0, 'YXZ');
   aimAt(HOME.target); applyView();
 
@@ -1124,11 +1128,20 @@ function build(renderer){
   }
   REDRAW.push(() => nameMeshes.forEach(dropNames));
   // neighbouring tags on one shelf never overlap: a tag is as wide as the room its product has (down to 3.6 cm on a shelf of very small packs, 11 cm at most)
+  // a price tag sits in the middle of its product's facings (like the real shelf label), not under the first pack
+  function tagX(bay, it){
+    if (!bay._tx){ bay._tx = new Map(); const rows = {};
+      bay.items.forEach(i => (rows[i.y] || (rows[i.y] = [])).push(i));
+      Object.values(rows).forEach(r => { r.sort((a, b) => a.x - b.x); let lead = null, lo = 0, hi = 0;
+        const close = () => { if (lead) bay._tx.set(lead, (lo + hi) / 2); };
+        r.forEach(i => { if (lead && i.first === false && i.p === lead.p){ hi = i.x; return; } close(); lead = i; lo = hi = i.x; }); close(); }); }
+    const v = bay._tx.get(it); return v === undefined ? it.x : v;
+  }
   function tagW(bay, it){
     if (!bay._tg){ bay._tg = new Map(); const rows = {};
       bay.items.forEach(i => { if (i.first !== false) (rows[i.y] || (rows[i.y] = [])).push(i); });
-      Object.values(rows).forEach(r => { r.sort((a, b) => a.x - b.x);
-        r.forEach((i, k) => { const g = Math.min(k ? i.x - r[k-1].x : 9, k < r.length - 1 ? r[k+1].x - i.x : 9); bay._tg.set(i, Math.max(.036, Math.min(.11, g - .004))); }); }); }
+      Object.values(rows).forEach(r => { r.sort((a, b) => tagX(bay, a) - tagX(bay, b));
+        r.forEach((i, k) => { const g = Math.min(k ? tagX(bay, i) - tagX(bay, r[k-1]) : 9, k < r.length - 1 ? tagX(bay, r[k+1]) - tagX(bay, i) : 9); bay._tg.set(i, Math.max(.036, Math.min(.11, g - .004))); }); }); }
     return bay._tg.get(it) || .11;
   }
   const PLUSB = Bucket(true); let plusMesh = null;      // the "+" under every price tag: one tap puts the product in the cart
@@ -1210,7 +1223,7 @@ function build(renderer){
       const bx = x0 + b*BW;
       bay.items.forEach(it => {
         putProduct(key, F, bx + it.x, it.y, d/2 - .1 - (it.back || 0), it.w, it.h, it.d, it.p, isBox(it.p) ? ROWS : 1, it.yaw || 0, !!it.turn);
-        if (it.first !== false) priceTag(F, bx + it.x, it.y, d/2 - .025, it.p, tagW(bay, it));
+        if (it.first !== false) priceTag(F, bx + tagX(bay, it), it.y, d/2 - .025, it.p, tagW(bay, it));
       });
     });
     // headers: merge neighbouring bays that share a brand (or the section name)
@@ -2622,6 +2635,28 @@ function build(renderer){
     if (!lookers.size && (Math.abs(lookV.y) > .02 || Math.abs(lookV.p) > .02)){
       view.yaw += lookV.y * dt; view.pitch = clampPitch(view.pitch + lookV.p * dt);
       const d = Math.exp(-dt * 4.2); lookV.y *= d; lookV.p *= d;
+    }
+    { // standing at a shelf: the view may tilt down to its bottom shelf, the shopper is held at a comfortable distance
+      // from it (stepping back by itself when looking low) and turns square to it when nearly facing it
+      let best = null;
+      if (!droneMode) for (const o of OBSTACLES){ if (!o.fh || !o.box) continue; const b = o.box, x = camera.position.x, z = camera.position.z;
+        const px = Math.max(b.x0, Math.min(b.x1, x)), pz = Math.max(b.z0, Math.min(b.z1, z));
+        if ((px !== x) === (pz !== z)) continue;              // inside it, or off a corner: not in front of a face
+        const d = Math.hypot(x - px, z - pz); if (d > 1.1 || (best && d > best.d)) continue;
+        best = {d, nx: px !== x ? Math.sign(x - px) : 0, nz: pz !== z ? Math.sign(z - pz) : 0}; }
+      const fx = -Math.sin(view.yaw), fz = -Math.cos(view.yaw), face = best && -(fx * best.nx + fz * best.nz);
+      const atShelf = best && face > .82, still = Math.hypot(vel.x, vel.z) < .3 && !goal && !flight;
+      const pmin = droneMode ? -.9 : atShelf ? -1.1 : -.62; PMAX = droneMode ? .5 : .2;
+      PMIN += (pmin - PMIN) * Math.min(1, dt * 4);
+      if (view.pitch < PMIN) view.pitch += (PMIN - view.pitch) * Math.min(1, dt * 5);
+      if (view.pitch > PMAX) view.pitch += (PMAX - view.pitch) * Math.min(1, dt * 5);
+      if (atShelf && still){
+        const want = view.pitch < -.4 ? .38 : 0;              // looking low: ease back so the bottom shelf comes into view
+        if (best.d < want){ const m = Math.min(want - best.d, dt * .9), nx = camera.position.x + best.nx * m, nz = camera.position.z + best.nz * m;
+          if (!blockedGround(nx, nz)){ camera.position.x = nx; camera.position.z = nz; } }
+        if (!lookers.size && Math.abs(lookV.y) < .05 && !keys.tl && !keys.tr && Math.abs(joy.x) < .16){ const yw = Math.atan2(best.nx, best.nz), dy = ((yw - view.yaw + Math.PI * 3) % (Math.PI * 2)) - Math.PI;
+          if (Math.abs(dy) < .5) view.yaw += dy * Math.min(1, dt * 2.2); }
+      }
     }
     { // the pushed cart follows just ahead of the shopper
       const fx = -Math.sin(view.yaw), fz = -Math.cos(view.yaw);
