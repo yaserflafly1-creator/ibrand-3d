@@ -279,8 +279,10 @@
   }
 
   // ---------- end caps: the printed boards on the free ends of the gondola rows ----------
-  // Each department has its own board designed in Canva (assets/endcaps/<department>.png); until that file loads, or
+  // Each department has its own board designed in Canva (static/assets/endcaps/<department>.jpg, listed in ENDCAP_ART); until that file loads, or
   // if it is missing, a board is drawn here in the department's colours with the round iBrand logo and its name.
+  // departments whose Canva board is in static/assets/endcaps (list.json, written with the boards)
+  const ENDCAP_ART = fetch('assets/endcaps/list.json', {cache:'no-cache'}).then(r => r.ok ? r.json() : []).catch(() => []);
   { const capLogo = new Image(); let logoOk = false; const capTex = {}, capMats = {};
     const drawCap = (x, W, Hh, z) => {
       const g = x.createLinearGradient(0, 0, 0, Hh); g.addColorStop(0, z.zc.hi); g.addColorStop(1, z.zc.lo); x.fillStyle = g; x.fillRect(0, 0, W, Hh);
@@ -298,7 +300,7 @@
       const ck = z.key + (narrow ? ':n' : ''); if (capMats[ck]) return capMats[ck];
       const t = narrow ? canvasTex(256, 944, (x, W, Hh) => drawCap(x, W, Hh, z)) : canvasTex(512, 912, (x, W, Hh) => drawCap(x, W, Hh, z)); capTex[ck] = t; t.userData = {z};
       const m = capMats[ck] = new THREE.MeshStandardMaterial({map:t, roughness:.45, envMapIntensity:.5});
-      if (!narrow) texLoader.load('assets/endcaps/' + z.key + '.png' + (typeof AV === 'string' ? AV : ''), img => { sRGB(img); m.map = img; m.needsUpdate = true; capTex[ck] = null; }, undefined, () => {});
+      if (!narrow) ENDCAP_ART.then(l => { if (Array.isArray(l) && l.includes(z.key)) texLoader.load('assets/endcaps/' + z.key + '.jpg' + (typeof AV === 'string' ? AV : ''), img => { sRGB(img); m.map = img; m.needsUpdate = true; capTex[ck] = null; }, undefined, () => {}); });
       return m;
     };
     capLogo.onload = () => { logoOk = true; Object.keys(capTex).forEach(k => { const t = capTex[k]; if (!t) return; const z = t.userData.z; drawCap(t.image.getContext('2d'), t.image.width, t.image.height, z); t.needsUpdate = true; }); };
