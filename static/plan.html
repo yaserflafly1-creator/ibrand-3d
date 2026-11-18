@@ -1298,7 +1298,7 @@ function build(renderer){
       boxInto(STRUCT, F, s*(Wd/2), G.h/2, 0, .025, G.h, d, '#dfe3e6');
       // designed graphic on the outside of every end panel: the section's name
       const nm = opts.titleKey && SEC[opts.titleKey] ? SEC[opts.titleKey].name : (SEC[key] ? SEC[key].name : '');
-      if (nm){ const c = F.at(s*(Wd/2 + .014), 0, 0), m = new THREE.Mesh(endGeoFor(G), endMat(nm, opts.zc)); m.position.set(c[0], .12 + (G.h-.14)/2, c[2]); m.rotation.y = F.yaw + s*Math.PI/2; scene.add(m); }
+      if (nm && opts.endArt !== false){ const c = F.at(s*(Wd/2 + .014), 0, 0), m = new THREE.Mesh(endGeoFor(G), endMat(nm, opts.zc)); m.position.set(c[0], .12 + (G.h-.14)/2, c[2]); m.rotation.y = F.yaw + s*Math.PI/2; scene.add(m); }
     });
     // products
     bays.forEach((bay, b) => {
@@ -1324,7 +1324,7 @@ function build(renderer){
   }
 
   // ---------- stand every fixture where the planogram puts it ----------
-  const SEG = [];
+  const SEG = [], ENDCAPS = [];
   const pid = new Map(); mainKeys.forEach(k => SD(k).products.forEach(p => { const id = String(p.id); if (!pid.has(id)) pid.set(id, p); }));
   { const listed = new Set(); PGD.f.forEach(f => f.it.forEach(i => listed.add(i[1])));
     // sold in the store but not in the planogram: kept by department (category order), to fill spare shelf room
@@ -1459,6 +1459,7 @@ function build(renderer){
       if (!ok) for (const lim of [[1, .9], [1, .82], [1, .74], [1, .66], [1, .58], [1, .5]]){ if ((ok = attempt(lim, 4))) break; }
     });
     window.__pgStats.byZone = Z.map(z => z.key + ' ' + z.lim.join('/') + (z.mix ? ' mixed' : '') + ' left ' + z.left.length);
+    const ALLR = [];
     order.forEach(fx => {
       const zid = zidOf(fx.z), z = Z[zid], G = fx.w ? GWALL : GONDOLA;
       const mods = modsOf(fx), bays = fx._bays; let o = 0;
@@ -1466,11 +1467,33 @@ function build(renderer){
         const v = r[3] > r[2], cx = r[0] + r[2]/2 - PGD.W/2, cz = r[1] + r[3]/2 - PGD.D;
         const yaw = fx.w ? (v ? (cx < 0 ? Math.PI/2 : -Math.PI/2) : (cz > -PGD.D/2 ? Math.PI : 0)) : (!v ? 0 : fx.f === 'B' ? Math.PI/2 : -Math.PI/2);
         const run = bays.slice(o, o + mods[ri]); o += mods[ri];
-        gondolaFace(frame(cx, cz, yaw), run, z.key, {G, zc:z.zc, endPanels: !touch(r, 0) && !touch(r, 1)});
+        gondolaFace(frame(cx, cz, yaw), run, z.key, {G, zc:z.zc, endPanels: !touch(r, 0) && !touch(r, 1), endArt: !!fx.w});
+        ALLR.push(fx.w ? {w:1, x0:cx - r[2]/2, x1:cx + r[2]/2, zb:cz - r[3]/2, zf:cz + r[3]/2} : (v ? {zid, x0:cx - .25, x1:cx + .25, zb:cz - r[3]/2, zf:cz + r[3]/2, len:r[3]} : {zid, x0:cx - r[2]/2, x1:cx + r[2]/2, zb:cz - .25, zf:cz + .25, len:r[2]}));
         if (!fx.w) z.runs.push(v ? {x0:cx - .25, x1:cx + .25, zf:cz + r[3]/2, zb:cz - r[3]/2} : {x0:cx - r[2]/2, x1:cx + r[2]/2, zf:cz + .25, zb:cz - .25});
       });
     });
     window.__pgStats.unplaced = Z.reduce((a, z) => a + z.left.length, 0);
+    // end caps: every free end of a gondola row (both faces back to back count as one) gets a printed board in its
+    // department's design, the way a pharmacy dresses the ends of its aisles
+    { const gs = ALLR.filter(r => !r.w), par = gs.map((_, i) => i), find = i => par[i] === i ? i : (par[i] = find(par[i]));
+      const near = (a, b, e) => Math.max(a.x0, b.x0) - Math.min(a.x1, b.x1) < e && Math.max(a.zb, b.zb) - Math.min(a.zf, b.zf) < e;
+      for (let i = 0; i < gs.length; i++) for (let j = i + 1; j < gs.length; j++) if (near(gs[i], gs[j], .06)) par[find(i)] = find(j);
+      const cl = {}; gs.forEach((r, i) => { const k = find(i), c = cl[k] || (cl[k] = {x0:1e9, x1:-1e9, zb:1e9, zf:-1e9, zl:{}, rs:[]});
+        c.x0 = Math.min(c.x0, r.x0); c.x1 = Math.max(c.x1, r.x1); c.zb = Math.min(c.zb, r.zb); c.zf = Math.max(c.zf, r.zf); c.zl[r.zid] = (c.zl[r.zid] || 0) + r.len; c.rs.push(r); });
+      Object.values(cl).forEach(c => {
+        const alongX = c.x1 - c.x0 >= c.zf - c.zb, th = alongX ? c.zf - c.zb : c.x1 - c.x0; if (th > 1.3 || th < .4) return;
+        const zid = +Object.keys(c.zl).sort((a, b) => c.zl[b] - c.zl[a])[0], z = Z[zid];
+        [-1, 1].forEach(sd => {
+          const e = alongX ? (sd < 0 ? c.x0 : c.x1) : (sd < 0 ? c.zb : c.zf);
+          const zoneAt = alongX ? {x0:sd < 0 ? e - .45 : e + .01, x1:sd < 0 ? e - .01 : e + .45, zb:c.zb + .05, zf:c.zf - .05} : {x0:c.x0 + .05, x1:c.x1 - .05, zb:sd < 0 ? e - .45 : e + .01, zf:sd < 0 ? e - .01 : e + .45};
+          if (ALLR.some(q => c.rs.indexOf(q) < 0 && near(q, zoneAt, 0))) return;                      // something stands against this end
+          if (alongX ? Math.abs(e) > Wx - .5 : (e > zF - .5 || e < zB + .5)) return;                 // against the room's wall
+          const yaw = alongX ? (sd < 0 ? -Math.PI/2 : Math.PI/2) : (sd < 0 ? Math.PI : 0), mid = alongX ? (c.zb + c.zf)/2 : (c.x0 + c.x1)/2;
+          ENDCAPS.push({x:alongX ? e + sd*.016 : mid, z:alongX ? mid : e + sd*.016, yaw, w:th, zid, key:z.key, zc:z.zc});
+        });
+      });
+      window.__pgStats.endcaps = ENDCAPS.length;
+    }
     // each department's stretches of floor (for its signs, its name on the floor and where its button takes you):
     // units of one department standing side by side, or end to end, make one stretch — wherever the drawing puts them
     Z.forEach(z => { const rs = z.runs, par = rs.map((_, i) => i), find = i => par[i] === i ? i : (par[i] = find(par[i]));
@@ -1506,6 +1529,40 @@ function build(renderer){
     boxInto(STRUCT, frame(6.4, zF - 3.5, 0), 0, 1.2, 0, .42, .28, .03, '#1b1b1f'); boxInto(STRUCT, frame(6.4, zF - 3.5, 0), 0, 1.09, 0, .06, .1, .06, C_UPRIGHT);
     OBSTACLES.push({box:{x0:5.5, x1:8.3, z0:zF - 4.2, z1:zF - 2.6}});
     const s = lightbox('الكاشير', 1.7, {bg:PLUM, fg:'#ffffff'}); hang(s, 6.9, 3.0, zF - 3.4, .8);
+  }
+
+  // ---------- end caps: the printed boards on the free ends of the gondola rows ----------
+  // Each department has its own board designed in Canva (assets/endcaps/<department>.png); until that file loads, or
+  // if it is missing, a board is drawn here in the department's colours with the round iBrand logo and its name.
+  { const capLogo = new Image(); let logoOk = false; const capTex = {}, capMats = {};
+    const drawCap = (x, W, Hh, z) => {
+      const g = x.createLinearGradient(0, 0, 0, Hh); g.addColorStop(0, z.zc.hi); g.addColorStop(1, z.zc.lo); x.fillStyle = g; x.fillRect(0, 0, W, Hh);
+      x.fillStyle = 'rgba(255,255,255,.10)'; for (let i = 0; i < 6; i++){ x.beginPath(); x.arc(W * (i % 2 ? .12 : .88), 120 + i * 150, 70 + i * 10, 0, 7); x.fill(); }
+      const R = W * .27, cy = Hh * .2; x.fillStyle = '#ffffff'; x.beginPath(); x.arc(W/2, cy, R + 10, 0, 7); x.fill();
+      if (logoOk) x.drawImage(capLogo, W/2 - R, cy - R, 2*R, 2*R);
+      x.textAlign = 'center'; x.textBaseline = 'middle'; x.direction = 'rtl'; x.fillStyle = '#ffffff';
+      const nm = (SEC[z.key] && SEC[z.key].name) || '', words = nm.split(' '), lines = []; let cur = '';
+      words.forEach(w => { const t2 = cur ? cur + ' ' + w : w; x.font = '800 ' + Math.round(W * .125) + 'px "Almarai", Tahoma'; if (x.measureText(t2).width > W - W * .12 && cur){ lines.push(cur); cur = w; } else cur = t2; }); if (cur) lines.push(cur);
+      lines.forEach((ln, j) => { fitText(x, ln, W - W * .1, 800, Math.round(W * .136)); x.fillText(ln, W/2, Hh * .52 + j * W * .165 - (lines.length - 1) * W * .082); });
+      x.fillStyle = 'rgba(255,255,255,.95)'; x.fillRect(W * .07, Hh - W * .25, W * .86, W * .16); x.fillStyle = z.zc.hex; fitText(x, 'صيدلية اي براند', W * .76, 800, Math.round(W * .08)); x.fillText('صيدلية اي براند', W/2, Hh - W * .17);
+    };
+    // the designed board fits a row's full end (two faces back to back, ~1 m); a single-face row (~0.5 m) keeps the drawn one
+    const capMat = (z, narrow) => {
+      const ck = z.key + (narrow ? ':n' : ''); if (capMats[ck]) return capMats[ck];
+      const t = narrow ? canvasTex(256, 944, (x, W, Hh) => drawCap(x, W, Hh, z)) : canvasTex(512, 912, (x, W, Hh) => drawCap(x, W, Hh, z)); capTex[ck] = t; t.userData = {z};
+      const m = capMats[ck] = new THREE.MeshStandardMaterial({map:t, roughness:.45, envMapIntensity:.5});
+      if (!narrow) texLoader.load('assets/endcaps/' + z.key + '.png' + (typeof AV === 'string' ? AV : ''), img => { sRGB(img); m.map = img; m.needsUpdate = true; capTex[ck] = null; }, undefined, () => {});
+      return m;
+    };
+    capLogo.onload = () => { logoOk = true; Object.keys(capTex).forEach(k => { const t = capTex[k]; if (!t) return; const z = t.userData.z; drawCap(t.image.getContext('2d'), t.image.width, t.image.height, z); t.needsUpdate = true; }); };
+    capLogo.src = 'assets/logo.png';
+    const boardMat = new THREE.MeshStandardMaterial({color:'#f3f0f2', roughness:.6});
+    ENDCAPS.forEach(c => {
+      const z = Z[c.zid], h = GONDOLA.h, gh = h - .1, board = new THREE.Mesh(new THREE.BoxGeometry(c.w, h + .02, .024), boardMat);
+      board.position.set(c.x - Math.sin(c.yaw) * .004, (h + .02)/2, c.z - Math.cos(c.yaw) * .004); board.rotation.y = c.yaw; scene.add(board);
+      const art = new THREE.Mesh(new THREE.PlaneGeometry(c.w - .03, gh - .02), capMat(z, c.w < .75));
+      art.position.set(c.x + Math.sin(c.yaw) * .01, .06 + gh/2, c.z + Math.cos(c.yaw) * .01); art.rotation.y = c.yaw; scene.add(art);
+    });
   }
 
   // ---------- Saudi pharmacists (click → customer service) ----------

@@ -1242,7 +1242,7 @@ function build(renderer){
       boxInto(STRUCT, F, s*(Wd/2), G.h/2, 0, .025, G.h, d, '#dfe3e6');
       // designed graphic on the outside of every end panel: the section's name
       const nm = opts.titleKey && SEC[opts.titleKey] ? SEC[opts.titleKey].name : (SEC[key] ? SEC[key].name : '');
-      if (nm){ const c = F.at(s*(Wd/2 + .014), 0, 0), m = new THREE.Mesh(endGeoFor(G), endMat(nm)); m.position.set(c[0], .12 + (G.h-.14)/2, c[2]); m.rotation.y = F.yaw + s*Math.PI/2; scene.add(m); }
+      if (nm && opts.endArt !== false){ const c = F.at(s*(Wd/2 + .014), 0, 0), m = new THREE.Mesh(endGeoFor(G), endMat(nm)); m.position.set(c[0], .12 + (G.h-.14)/2, c[2]); m.rotation.y = F.yaw + s*Math.PI/2; scene.add(m); }
     });
     // products
     bays.forEach((bay, b) => {
