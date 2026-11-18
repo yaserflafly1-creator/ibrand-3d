@@ -64,8 +64,42 @@ async function sallaToken(env){
   return /^[\w.\-~+\/=]{20,4000}$/.test(tok) ? {token:tok} : {error:'خزنة المفاتيح لم ترجع مفتاحاً صالحاً', status:502};
 }
 
+// ---------- accuracy check: what the pharmacy shows against the store right now ----------
+// A sample of the products the published pharmacy shows (discounted ones first: their prices change most) is read one by
+// one from Salla; any price that differs, or any product shown that can no longer be bought, is listed for the panel.
+// About 40 products per run (a Worker run may make only ~50 requests), every three hours with the Cron Trigger.
+const SITE = env => String(env.SITE_URL || 'https://yaserflafly1-creator.github.io/ibrand-3d/').replace(/\/?$/, '/');
+const amt = v => typeof v === 'number' ? v : (v && typeof v.amount === 'number' ? v.amount : (v && !isNaN(+v) ? +v : null));
+async function priceCheck(env, n = 40){
+  const t = await sallaToken(env); if (!t.token) return {error:t.error};
+  let pub; try { const r = await fetch(SITE(env) + 'data/products.json?t=' + Date.now(), {cf:{cacheTtl:0}}); pub = await r.json(); } catch(e){ return {error:'تعذّر قراءة بيانات الصيدلية المنشورة'}; }
+  const all = new Map(); for (const sec of Object.values(pub.sections || {})) for (const p of sec.products || []) if (p && p.id && !all.has(p.id)) all.set(p.id, p);
+  const list = [...all.values()], shuf = a => { for (let i = a.length - 1; i > 0; i--){ const j = Math.floor(Math.random() * (i + 1)); [a[i], a[j]] = [a[j], a[i]]; } return a; };
+  const sale = shuf(list.filter(p => p.onSale)), rest = shuf(list.filter(p => !p.onSale)), pick = [...sale.slice(0, Math.round(n * .45)), ...rest].slice(0, n);
+  const issues = []; let checked = 0, failed = 0;
+  for (let i = 0; i < pick.length; i += 8){
+    await Promise.all(pick.slice(i, i + 8).map(async p => {
+      try { const r = await fetch(SALLA(env) + '/products/' + p.id, {headers:{authorization:'Bearer ' + t.token, accept:'application/json'}});
+        if (r.status === 404){ checked++; issues.push({id:p.id, name:p.name, kind:'gone', shown:p.price}); return; }
+        if (!r.ok){ failed++; return; } const d = (await r.json()).data || {}; checked++;
+        const base = amt(d.price), sp = amt(d.sale_price), end = d.sale_end ? Date.parse(d.sale_end) : 0;
+        const live = sp > 0 && base > 0 && sp < base && !(end && end < Date.now()) ? sp : base;
+        const sellable = (!d.status || d.status === 'sale') && d.is_available !== false && !(typeof d.quantity === 'number' && d.quantity <= 0 && !d.unlimited_quantity);
+        if (!sellable) issues.push({id:p.id, name:p.name, kind:'stock', shown:p.price});
+        else if (live > 0 && typeof p.price === 'number' && Math.abs(live - p.price) > .009) issues.push({id:p.id, name:p.name, kind:'price', shown:p.price, live});
+      } catch(e){ failed++; }
+    }));
+  }
+  const res = {at:new Date().toISOString(), built:pub.generated || '', total:list.length, checked, failed, issues};
+  await env.KV.put('check', JSON.stringify(res));
+  const h = await getJ(env, 'check:hist', []); h.unshift({at:res.at, checked, bad:issues.length}); await env.KV.put('check:hist', JSON.stringify(h.slice(0, 20)));
+  return res;
+}
+
 export default {
-  async scheduled(event, env, ctx){ ctx.waitUntil(startBuild(env)); },
+  async scheduled(event, env, ctx){ ctx.waitUntil(startBuild(env));
+    // every three hours, on the run just after the hour: the accuracy check
+    const d = new Date(event.scheduledTime || Date.now()); if (d.getUTCHours() % 3 === 0 && d.getUTCMinutes() < 25) ctx.waitUntil(priceCheck(env)); },
   async fetch(req, env, ctx){
     if (req.method === 'OPTIONS') return new Response(null, {status:204, headers:CORS});
     if (!env.KV || !env.TOKEN_SECRET || !env.ADMIN_PASSWORD) return json({error:'الخادم غير مهيأ: KV و TOKEN_SECRET و ADMIN_PASSWORD مطلوبة'}, 500);
@@ -125,6 +159,8 @@ export default {
       // ---- Salla: put a picture on a product as its main picture (the product's other pictures stay) ----
       if (M === 'POST' && path === '/build'){ const b = await startBuild(env); if (b.ok) await log(env, me.u, 'طلب تحديث الصيدلية الآن'); return json(b.ok ? {ok:true} : {error:b.why}, b.ok ? 200 : 503); }
       if (M === 'GET' && path === '/build'){ return json({ready:!!env.GH_TOKEN}); }
+      if (M === 'GET' && path === '/check') return json({last:await getJ(env, 'check', null), hist:await getJ(env, 'check:hist', [])});
+      if (M === 'POST' && path === '/check'){ const r = await priceCheck(env); if (r.error) return json(r, 502); await log(env, me.u, 'فحص دقة الأسعار والتوفر'); return json(r); }
       if (M === 'GET' && path === '/salla/status'){ const t = await sallaToken(env); return json(t.token ? {linked:true} : {linked:false, why:t.error}); }
       if (M === 'POST' && path.startsWith('/salla/image/')){
         const id = path.slice(13); if (!/^\d{3,15}$/.test(id)) return json({error:'رقم منتج غير صحيح'}, 400);

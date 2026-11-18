@@ -99,6 +99,11 @@ td,th{padding:6px 8px;border-bottom:1px solid var(--line);text-align:right}
         <p class="note">الصيدلية تعيد قراءة المنتجات والصور والأسعار من سلة ثم تُنشر من جديد. يبدأ التحديث تلقائياً بعد كل نشر صورة من المحرر، وتقدر تبدأه بيدك بعد أي تعديل في سلة. يأخذ من 5 إلى 10 دقائق غالباً.</p>
         <div class="row"><button class="btn" type="button" id="buildNow">🔄 حدّث الصيدلية من سلة الآن</button><span class="note" id="buildState"></span></div>
       </div>
+      <div class="card"><h2>دقة الأسعار والتوفر</h2>
+        <p class="note">يقارن عينة من المنتجات اللي تعرضها الصيدلية (العروض أولاً) بسعرها وتوفرها في سلة الآن. يشتغل لحاله كل 3 ساعات. إذا ظهر اختلاف حدّث الصيدلية من الزر فوق، ولو بقي بعد التحديث فالمشكلة في بيانات المنتج نفسه في سلة.</p>
+        <div class="row"><button class="btn" type="button" id="chkNow">🔎 افحص الآن</button><span class="note" id="chkState"></span></div>
+        <div id="chkOut" class="note" style="margin-top:8px"></div>
+      </div>
       <div class="card"><h2>تجربة الزائر</h2>
         <label class="chk"><input type="checkbox" id="tour"> الجولة الترحيبية في أول زيارة</label>
         <label class="chk"><input type="checkbox" id="sound"> الصوت مفعّل افتراضياً</label>
@@ -259,6 +264,7 @@ $('#out').onclick = () => { if (!DEMO) signOut(); };
 async function enter(me){
   ROLE = me.role; $('#who').textContent = me.user + (ROLE === 'admin' ? ' (مدير)' : ''); $('#login').hidden = true; $('#tabs').hidden = false; $('#out').hidden = false;
   const saved = DEMO ? null : await getJSON(API + '/public/config'); CFG = Object.assign({}, CFG, saved || {});
+  loadCheck();
   PG = DEMO ? DEMO.pg : await getJSON(API + '/public/pg'); if (!PG || !Array.isArray(PG.f)) PG = await getJSON('../plan/pg.json');
   if (!PG){ say('تعذّر تحميل المخطط', true); PG = {v:1, W:44, D:46.1, names:[], f:[]}; }
   if (DEMO && DEMO.prods) Object.keys(DEMO.prods).forEach(id => PRODS.set(id, {id, name:DEMO.prods[id]}));
@@ -305,7 +311,18 @@ $('#t-settings').addEventListener('input', dirtyCfg); $('#t-promo').addEventList
 $('#t-events').addEventListener('input', dirtyCfg); $('#rdAdd').addEventListener('click', () => { $('#rdList').appendChild(riddleRow(null)); dirtyCfg(); });
 async function saveCfg(){ readSettings(); readEvents(); readPromo(); if (DEMO){ cfgDirty = false; mark(); return say('نسخة عرض: التعديل لا يُحفظ'); } const out = Object.assign({}, CFG); delete out.api;
   try { await call('/config', {method:'PUT', body:JSON.stringify(out)}); cfgDirty = false; mark(); say('تم حفظ الإعدادات'); } catch(e){ say(e.message, true); } }
-$('#buildNow').onclick = async () => { if (DEMO) return say('نسخة عرض'); const st = $('#buildState'); st.textContent = '…'; try { await call('/build', {method:'POST'}); st.textContent = 'بدأ التحديث ✓ يظهر في الصيدلية خلال 5 إلى 10 دقائق'; } catch(e){ st.textContent = ''; say(e.message, true); } };
+const H = t => String(t == null ? '' : t).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+function showCheck(r){
+  const o = $('#chkOut'); if (!o) return; if (!r || !r.at){ o.textContent = 'ما صار فحص للحين.'; return; }
+  const when = d => d ? new Date(d).toLocaleString('ar-SA', {dateStyle:'short', timeStyle:'short'}) : '—';
+  const K = {price:'السعر مختلف', stock:'غير متوفر في سلة', gone:'محذوف من سلة'};
+  const rows = (r.issues || []).map(i => '<li><b>' + K[i.kind] + '</b>: <a target="_blank" rel="noopener" href="https://s.salla.sa/products/' + H(i.id) + '">' + H(i.name) + '</a> — في الصيدلية ' + H(i.shown) + (i.kind === 'price' ? ' / في سلة ' + H(i.live) : '') + '</li>').join('');
+  o.innerHTML = 'آخر فحص: ' + when(r.at) + ' · فحص ' + r.checked + ' منتج من ' + r.total + (r.failed ? ' (تعذّر ' + r.failed + ')' : '') + ' · بيانات الصيدلية من ' + when(r.built) + '<br>'
+    + (r.issues && r.issues.length ? '<b style="color:#c0392b">' + r.issues.length + ' اختلاف</b><ul style="margin:6px 0 0;padding-inline-start:18px">' + rows + '</ul>' : '<b style="color:#1f9a55">كل المنتجات المفحوصة مطابقة ✓</b>');
+}
+async function loadCheck(){ if (DEMO) return; try { const d = await call('/check'); showCheck(d.last); } catch(e){} }
+$('#chkNow').onclick = async () => { if (DEMO) return say('نسخة عرض'); const st = $('#chkState'); st.textContent = 'يفحص… (نص دقيقة تقريباً)'; try { showCheck(await call('/check', {method:'POST'})); st.textContent = ''; } catch(e){ st.textContent = ''; say(e.message, true); } };
+$('#buildNow').onclick = async () => { if (DEMO) return say('نسخة عرض'); const st = $('#buildState'); st.textContent = '…'; try { await call('/build', {method:'POST'}); st.textContent = 'بدأ التحديث ✓ يظهر في الصيدلية خلال 20 دقيقة تقريباً'; } catch(e){ st.textContent = ''; say(e.message, true); } };
 $('#saveCfg').onclick = saveCfg; $('#saveCfg2').onclick = saveCfg; $('#saveEv').onclick = saveCfg;
 
 // ---------- promo and screens ----------
