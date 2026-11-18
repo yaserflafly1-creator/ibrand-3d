@@ -570,7 +570,8 @@ function build(renderer){
       return [w, h, d];
     };
   }
-  const GONDOLA = {h:1.8, d:.5, levels:[.12, .45, .78, 1.11, 1.44]};   // eye-level gondolas (1.8 m) so you can see across the store
+  const GONDOLA = {h:1.85, d:.5, levels:[.28, .59, .9, 1.21, 1.52]};   // eye-level gondolas so you can see across the store; the bottom shelf
+  // sits on a closed storage base (28 cm), as in many pharmacies, so the lowest products are not at the shopper's feet
   const shelvesOf = G => G.levels.map((y,i)=>({y:y+.0125, maxH:(i < G.levels.length-1 ? G.levels[i+1] - y - .06 : G.h - y - .05) - .015})).reverse(); // top shelf first
   const BW = 1.0;
 
@@ -969,7 +970,7 @@ function build(renderer){
     }));
     window.__imfStats = {matched, total};
   }
-  const GWALL = {h:2.2, d:.5, levels:[.12, .45, .78, 1.11, 1.44, 1.77]};   // wall units around the perimeter
+  const GWALL = {h:2.2, d:.5, levels:[.28, .6, .92, 1.24, 1.56, 1.88]};   // wall units around the perimeter
   const sizers = {}, szOf = p => sizers[p._k] || (sizers[p._k] = sizer(p._k));
   const brandOf = p => p.brandId || p.brand || '';
   const ZCOL = ZINFO.map(z => { const c = new THREE.Color(z.hex); const cl = c.clone().convertSRGBToLinear(); return {hex:z.hex, c:[cl.r, cl.g, cl.b], hi:'#' + c.clone().lerp(new THREE.Color('#ffffff'), .3).getHexString(), lo:'#' + c.clone().lerp(new THREE.Color('#000000'), .25).getHexString()}; });
@@ -1075,7 +1076,7 @@ function build(renderer){
   // ---------- fixtures: powder-coated steel gondolas, merged into a few meshes ----------
   const steelMat = std('#9aa1a6',{roughness:.35, metalness:.75});
   const STRUCT = Bucket(false), PEG = Bucket(true), HDR = Bucket(false), HLOGO = Bucket(true), HTITLE = Bucket(true);
-  const C_STEEL = rgb('#e4e6e9'), C_SHELF = rgb('#fcfcfd'), C_UPRIGHT = rgb('#eef0f2'), C_KICK = rgb('#d5d8dc'), C_PINK = rgb('#e873a8');
+  const C_STEEL = rgb('#e4e6e9'), C_SHELF = rgb('#fcfcfd'), C_UPRIGHT = rgb('#eef0f2'), C_KICK = rgb('#d5d8dc'), C_CAB = rgb('#f3f0f2'), C_SEAM = rgb('#a99fa6'), C_PINK = rgb('#e873a8');
   let HDR_C = C_PINK;
   const clickables = [];  // [{box, sec}] for collisions and section focus
   // section-title atlas for the shared headers
@@ -1266,12 +1267,19 @@ function build(renderer){
     const hooked = bays.some(b => b && b.kind);
     if (opts.zc && opts.headers !== false) boxInto(STRUCT, F, 0, G.h + .38, -d/2 + .05, Wd, .03, .14, opts.zc.c);   // zone-coloured trim along the top
     // structure
-    boxInto(STRUCT, F, 0, .06, d/2 - .02, Wd, .12, .04, opts.zc ? opts.zc.c : C_KICK);                              // kick plate
+    const kh = Math.max(.12, G.levels[0] - .012);
+    if (kh > .2){                                                                               // storage base: cabinet doors with a seam and handles
+      boxInto(STRUCT, F, 0, kh/2, d/2 - .02, Wd, kh, .04, C_CAB);
+      boxInto(STRUCT, F, 0, .035, d/2 + .002, Wd, .07, .01, opts.zc ? opts.zc.c : C_KICK);       // toe strip in the section colour
+      for (let i = 0; i < n; i++){ const cx = x0 + (i + .5)*BW;
+        boxInto(STRUCT, F, cx, (kh + .07)/2, d/2 + .002, .006, kh - .09, .008, C_SEAM);           // seam between the two doors
+        [-1, 1].forEach(sd => boxInto(STRUCT, F, cx + sd*.05, kh - .05, d/2 + .008, .012, .05, .012, C_STEEL)); }   // handles
+    } else boxInto(STRUCT, F, 0, .06, d/2 - .02, Wd, .12, .04, opts.zc ? opts.zc.c : C_KICK);                        // kick plate
     boxInto(STRUCT, F, 0, .03, 0, Wd, .06, d - .04, C_STEEL);                                 // base
     for (let i=0; i<=n; i++) boxInto(STRUCT, F, x0 + i*BW, G.h/2, -d/2 + .03, .045, G.h, .045, C_UPRIGHT); // uprights
     if (opts.cap !== false) boxInto(STRUCT, F, 0, G.h + .01, -d/2 + .03, Wd + .04, .02, .06, C_UPRIGHT);
     // perforated back panels (pegboard texture)
-    { const a = F.at, nn = F.n(0,0,1), z = -d/2 + .055; quad(PEG, [a(x0,.12,z), a(x0+Wd,.12,z), a(x0+Wd,G.h,z), a(x0,G.h,z)], nn, C_WHITE, null, [0,0, Wd/.5,0, Wd/.5,G.h/.5, 0,G.h/.5]); }
+    { const a = F.at, nn = F.n(0,0,1), z = -d/2 + .055; quad(PEG, [a(x0,kh,z), a(x0+Wd,kh,z), a(x0+Wd,G.h,z), a(x0,G.h,z)], nn, C_WHITE, null, [0,0, Wd/.5,0, Wd/.5,G.h/.5, 0,G.h/.5]); }
     G.levels.forEach((y, li) => {
       if (!hooked){
       boxInto(STRUCT, F, 0, y, .01, Wd - .04, .022, d - .08, C_SHELF);                       // shelf deck
@@ -2850,11 +2858,11 @@ function build(renderer){
     const draw = () => {
       const a = dts.slice().sort((x, y) => x - y), n = a.length; if (!n) return;
       const avg = a.reduce((x, y) => x + y, 0) / n, p99 = a[Math.min(n - 1, Math.floor(n * .99))], i = renderer.info;
-      let mb = 0, files = 0; try { performance.getEntriesByType('resource').forEach(r => { mb += r.transferSize || r.encodedBodySize || 0; files++; }); } catch(e){}
+      let mb = 0, files = 0, cmb = 0; try { performance.getEntriesByType('resource').forEach(r => { if (r.transferSize > 0){ mb += r.transferSize; files++; } else cmb += r.encodedBodySize || r.decodedBodySize || 0; }); } catch(e){}   // over the network vs read again from the browser's cache
       const nav = navigator, c = nav.connection || {}, mem = performance.memory;
       S.text = ['iBrand 3D speed  ' + new Date().toISOString().slice(0, 16).replace('T', ' '),
         'fps avg ' + (1000 / avg).toFixed(0) + '   slowest 1% ' + (1000 / p99).toFixed(0) + '   worst frame ' + S.worst.toFixed(0) + ' ms',
-        'ready in ' + (S.ready / 1000).toFixed(1) + ' s   loaded ' + (mb / 1048576).toFixed(1) + ' MB in ' + files + ' files' + (inflight ? '   (loading ' + inflight + ')' : ''),
+        'ready in ' + (S.ready / 1000).toFixed(1) + ' s   loaded ' + (mb / 1048576).toFixed(1) + ' MB in ' + files + ' files' + (cmb > 1048576 ? '   (+' + (cmb / 1048576).toFixed(0) + ' MB from cache)' : '') + (inflight ? '   (loading ' + inflight + ')' : ''),
         'draw calls ' + i.render.calls + '   triangles ' + Math.round(i.render.triangles / 1000) + 'k   textures ' + i.memory.textures,
         'resolution x' + renderer.getPixelRatio().toFixed(2) + ' (screen x' + devicePixelRatio.toFixed(2) + ', step ' + qIdx + ')   ' + innerWidth + 'x' + innerHeight,
         'memory ' + (mem ? Math.round(mem.usedJSHeapSize / 1048576) + ' MB js' : 'n/a') + '   device ' + (nav.deviceMemory || '?') + ' GB, ' + (nav.hardwareConcurrency || '?') + ' cores   net ' + (c.effectiveType || '?'),
@@ -2996,10 +3004,10 @@ function build(renderer){
       PMIN += (pmin - PMIN) * Math.min(1, dt * 4);
       if (view.pitch < PMIN) view.pitch += (PMIN - view.pitch) * Math.min(1, dt * 5);
       if (view.pitch > PMAX) view.pitch += (PMAX - view.pitch) * Math.min(1, dt * 5);
+      if (atShelf && best.d < .42){                          // never closer than a view of the whole shelf, its bottom one too
+        const m = .42 - best.d, nx = camera.position.x + best.nx * m, nz = camera.position.z + best.nz * m;
+        if (!blockedGround(nx, nz)){ camera.position.x = nx; camera.position.z = nz; } }
       if (atShelf && still){
-        const want = view.pitch < -.4 ? .38 : 0;              // looking low: ease back so the bottom shelf comes into view
-        if (best.d < want){ const m = Math.min(want - best.d, dt * .9), nx = camera.position.x + best.nx * m, nz = camera.position.z + best.nz * m;
-          if (!blockedGround(nx, nz)){ camera.position.x = nx; camera.position.z = nz; } }
         if (!lookers.size && Math.abs(lookV.y) < .05 && !keys.tl && !keys.tr && Math.abs(joy.x) < .16){ const yw = Math.atan2(best.nx, best.nz), dy = ((yw - view.yaw + Math.PI * 3) % (Math.PI * 2)) - Math.PI;
           if (Math.abs(dy) < .5) view.yaw += dy * Math.min(1, dt * 2.2); }
       }

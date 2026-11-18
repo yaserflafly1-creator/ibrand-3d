@@ -81,8 +81,10 @@ rep("    const G = opts.G || GONDOLA, n = bays.length, Wd = n * BW, d = G.d, x0 
     "    const G = opts.G || GONDOLA, n = bays.length, Wd = n * BW, d = G.d, x0 = -Wd/2; HDR_C = opts.zc ? opts.zc.c : C_PINK;\n"
     "    const hooked = bays.some(b => b && b.kind);\n"
     "    if (opts.zc && opts.headers !== false) boxInto(STRUCT, F, 0, G.h + .38, -d/2 + .05, Wd, .03, .14, opts.zc.c);   // zone-coloured trim along the top")
-rep("    boxInto(STRUCT, F, 0, .06, d/2 - .02, Wd, .12, .04, C_KICK);",
-    "    boxInto(STRUCT, F, 0, .06, d/2 - .02, Wd, .12, .04, opts.zc ? opts.zc.c : C_KICK);")
+rep("      boxInto(STRUCT, F, 0, .035, d/2 + .002, Wd, .07, .01, C_KICK);                           // toe strip",
+    "      boxInto(STRUCT, F, 0, .035, d/2 + .002, Wd, .07, .01, opts.zc ? opts.zc.c : C_KICK);       // toe strip in the section colour")
+rep("    } else boxInto(STRUCT, F, 0, .06, d/2 - .02, Wd, .12, .04, C_KICK);",
+    "    } else boxInto(STRUCT, F, 0, .06, d/2 - .02, Wd, .12, .04, opts.zc ? opts.zc.c : C_KICK);")
 rep("    G.levels.forEach(y => {\n"
     "      boxInto(STRUCT, F, 0, y, .01, Wd - .04, .022, d - .08, C_SHELF);                       // shelf deck\n"
     "      boxInto(STRUCT, F, 0, y - .022, d/2 - .045, Wd - .04, .05, .012, [0.97,0.97,0.97]);       // price strip\n",

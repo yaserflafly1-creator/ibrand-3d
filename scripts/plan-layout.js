@@ -55,7 +55,7 @@
     }));
     window.__imfStats = {matched, total};
   }
-  const GWALL = {h:2.2, d:.5, levels:[.12, .45, .78, 1.11, 1.44, 1.77]};   // wall units around the perimeter
+  const GWALL = {h:2.2, d:.5, levels:[.28, .6, .92, 1.24, 1.56, 1.88]};   // wall units around the perimeter
   const sizers = {}, szOf = p => sizers[p._k] || (sizers[p._k] = sizer(p._k));
   const brandOf = p => p.brandId || p.brand || '';
   const ZCOL = ZINFO.map(z => { const c = new THREE.Color(z.hex); const cl = c.clone().convertSRGBToLinear(); return {hex:z.hex, c:[cl.r, cl.g, cl.b], hi:'#' + c.clone().lerp(new THREE.Color('#ffffff'), .3).getHexString(), lo:'#' + c.clone().lerp(new THREE.Color('#000000'), .25).getHexString()}; });
