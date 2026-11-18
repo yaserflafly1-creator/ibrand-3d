@@ -214,7 +214,9 @@
         const v = r[3] > r[2], cx = r[0] + r[2]/2 - PGD.W/2, cz = r[1] + r[3]/2 - PGD.D;
         const yaw = fx.w ? (v ? (cx < 0 ? Math.PI/2 : -Math.PI/2) : (cz > -PGD.D/2 ? Math.PI : 0)) : (!v ? 0 : fx.f === 'B' ? Math.PI/2 : -Math.PI/2);
         const run = bays.slice(o, o + mods[ri]); o += mods[ri];
-        gondolaFace(frame(cx, cz, yaw), run, z.key, {G, zc:z.zc, endPanels: !touch(r, 0) && !touch(r, 1), endArt: !!fx.w});
+        // which end of the plan rectangle lies on the face's right (+x) side: the header band runs on into a neighbour there
+        const dp = v ? (-Math.sin(yaw) > 0 ? 1 : 0) : (Math.cos(yaw) > 0 ? 1 : 0);
+        gondolaFace(frame(cx, cz, yaw), run, z.key, {G, zc:z.zc, endPanels: !touch(r, 0) && !touch(r, 1), endArt: !!fx.w, join:{L:touch(r, 1 - dp), R:touch(r, dp)}});
         ALLR.push(fx.w ? {w:1, x0:cx - r[2]/2, x1:cx + r[2]/2, zb:cz - r[3]/2, zf:cz + r[3]/2} : (v ? {zid, x0:cx - .25, x1:cx + .25, zb:cz - r[3]/2, zf:cz + r[3]/2, len:r[3]} : {zid, x0:cx - r[2]/2, x1:cx + r[2]/2, zb:cz - .25, zf:cz + .25, len:r[2]}));
         if (!fx.w) z.runs.push(v ? {x0:cx - .25, x1:cx + .25, zf:cz + r[3]/2, zb:cz - r[3]/2} : {x0:cx - r[2]/2, x1:cx + r[2]/2, zf:cz + .25, zb:cz - .25});
       });

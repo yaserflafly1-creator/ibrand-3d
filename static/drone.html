@@ -1241,7 +1241,7 @@ function build(renderer){
       for (let b=1; b<=n; b++){
         const prev = bays[b-1] && bays[b-1].hdr, curH = b < n && bays[b] && bays[b].hdr;
         const same = curH && prev && prev.id === curH.id;
-        if (!same){ if (prev) header(F, x0 + s0*BW, x0 + b*BW, G.h + .06, -d/2 + .1, opts.titleKey && !prev.big ? {...prev, force:opts.titleKey} : prev, key, [s0 === 0 || !bays[s0 - 1] || !bays[s0 - 1].hdr, b === n || !curH]); s0 = b; }
+        if (!same){ if (prev) header(F, x0 + s0*BW, x0 + b*BW, G.h + .06, -d/2 + .1, opts.titleKey && !prev.big ? {...prev, force:opts.titleKey} : prev, key, [s0 === 0 ? !(opts.join && opts.join.L) : !bays[s0 - 1] || !bays[s0 - 1].hdr, b === n ? !(opts.join && opts.join.R) : !curH]); s0 = b; }
       }
     }
     // collision box in world space
