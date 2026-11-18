@@ -147,7 +147,8 @@ jobs:
         run: |
           [ -s ai-todo.json ] || { echo "nothing to cut"; exit 0; }
           mkdir cutter && cp scripts/ai-cut.mjs cutter/ && cd cutter && npm init -y >/dev/null && npm pkg set type=module
-          npm install @imgly/background-removal-node@1.4.5 >/dev/null
+          # the CPU build is enough here; the GPU (CUDA) binaries it also tries to fetch are no longer published, which broke the install
+          ONNXRUNTIME_NODE_INSTALL_CUDA=skip npm install --onnxruntime-node-install-cuda=skip @imgly/background-removal-node@1.4.5 >/dev/null
           mkdir -p ../.cache/aicut && ln -s ../.cache .cache && cp ../ai-todo.json . && node ai-cut.mjs
         env:
           CUT_MINUTES: 45
