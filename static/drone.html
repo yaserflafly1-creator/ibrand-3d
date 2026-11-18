@@ -184,7 +184,6 @@ body.sheet .altBtns{display:none}
 .cleanBtn{position:fixed;z-index:6;left:max(18px, env(safe-area-inset-left,0px));bottom:calc(env(safe-area-inset-bottom,0px) + 136px + var(--lift, 0px));width:46px;height:46px;border-radius:50%;border:1px solid var(--line);background:rgba(255,255,255,.92);color:var(--plum);display:flex;align-items:center;justify-content:center;box-shadow:0 6px 18px rgba(80,20,60,.14);cursor:pointer;padding:0}
 .cleanBtn .on{display:none} body.clean .cleanBtn .on{display:block} body.clean .cleanBtn .off{display:none}
 body.clean .cleanBtn{background:var(--pink);color:#fff;border-color:var(--pink);opacity:.85}
-@media (pointer:coarse){ body:not(.nojoy) .cleanBtn{bottom:calc(env(safe-area-inset-bottom,0px) + 268px)} }
 body.clean .topbar, body.clean .hint, body.clean .brPill, body.clean .sndBtn, body.clean .joyBtn, body.clean .aisles, body.clean .steps, body.clean .trBtn, body.clean .evBtn, body.clean #mini, body.clean .altBtns, body.clean .goCart, body.clean .tour, body.clean .evBox{opacity:0!important;pointer-events:none!important;transition:opacity .25s}
 body.sheet .cleanBtn{display:none}
 .joyBtn[aria-pressed="true"]{background:var(--pink);color:#fff;border-color:var(--pink)}
@@ -1992,6 +1991,12 @@ function build(renderer){
   function closeAll(){ ['added','cart','search','service','exit','branch'].forEach(id => $('#' + id).hidden = true); }
   { // clean view: one tap hides every button so the shopper sees only the pharmacy; the same button brings them back
     const cb = $('#cleanBtn');
+    // sits just above the movement stick wherever that is shown (phone or computer), down in its own spot when it is not
+    const placeClean = () => { const j = $('#joy'), jbb = $('#joyBtn'); let top = innerHeight;
+      [j, jbb].forEach(e => { if (e && getComputedStyle(e).display !== 'none'){ const r = e.getBoundingClientRect(); if (r.width) top = Math.min(top, r.top); } });
+      cb.style.bottom = top < innerHeight ? Math.round(innerHeight - top + 12) + 'px' : ''; };
+    placeClean(); addEventListener('resize', placeClean); setTimeout(placeClean, 800);
+    new MutationObserver(placeClean).observe(document.body, {attributes:true, attributeFilter:['class']});
     const setClean = on => { document.body.classList.toggle('clean', on); cb.setAttribute('aria-pressed', on ? 'true' : 'false'); cb.title = on ? 'إظهار الأزرار' : 'إخفاء الأزرار'; cb.setAttribute('aria-label', on ? 'إظهار الأزرار' : 'إخفاء الأزرار لرؤية الصيدلية كاملة'); };
     cb.addEventListener('click', e => { e.stopPropagation(); const on = !document.body.classList.contains('clean'); setClean(on); if (on) setTimeout(() => toast('اضغط العين لإرجاع الأزرار'), 0); });
     window.addEventListener('keydown', e => { if (e.code === 'KeyH' && !/INPUT|TEXTAREA/.test((e.target || {}).tagName || '')) setClean(!document.body.classList.contains('clean')); });
