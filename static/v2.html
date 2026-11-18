@@ -1048,11 +1048,29 @@ function build(renderer){
     }
   }
   // brands without a logo: their name on a small canvas
-  const nameHdrs = [];
+  // all of them gathered into one or two shared sheets and drawn as one mesh per sheet (they were one mesh and one texture
+  // per board: hundreds of draws every frame, and the slowest part of the store on a phone)
+  const nameHdrs = []; let nameFlush = 0;
   function brandNameHeader(F, cx, yc, z, w, hh, name){
-    const t = canvasTex(512, 96, (x,W,Hh)=>{ x.fillStyle='#fff'; x.fillRect(0,0,W,Hh); x.fillStyle = PLUM; x.textAlign='center'; x.textBaseline='middle'; x.direction='rtl'; fitText(x, name, W-30, 800, 54); x.fillText(name, W/2, Hh/2+2); });
-    const tw = Math.min(w - .1, (hh - .1) * 512/96), m = new THREE.Mesh(new THREE.PlaneGeometry(tw, tw*96/512), new THREE.MeshBasicMaterial({map:t, toneMapped:false}));
-    const p = F.at(cx, yc, z); m.position.set(p[0], p[1], p[2]); m.rotation.y = F.yaw; scene.add(m);
+    const tw = Math.min(w - .1, (hh - .1) * 512/96), th = tw*96/512, a = F.at;
+    nameHdrs.push({name, q:[a(cx-tw/2,yc-th/2,z), a(cx+tw/2,yc-th/2,z), a(cx+tw/2,yc+th/2,z), a(cx-tw/2,yc+th/2,z)]});
+    if (!nameFlush) nameFlush = setTimeout(flushNameHdrs, 0);
+  }
+  function flushNameHdrs(){
+    nameFlush = 0; const list = nameHdrs.splice(0); if (!list.length) return;
+    const all = [...new Set(list.map(e => e.name))], CW = 512, CH = 96, COLS = 4, PER = COLS * 42;
+    for (let s0 = 0; s0 < all.length; s0 += PER){
+      const names = all.slice(s0, s0 + PER), rows = Math.ceil(names.length / COLS), W = CW * COLS, Hh = CH * rows, at = new Map();
+      const t = canvasTex(W, Hh, x => { x.fillStyle = '#fff'; x.fillRect(0, 0, W, Hh); x.fillStyle = PLUM; x.textAlign = 'center'; x.textBaseline = 'middle'; x.direction = 'rtl';
+        names.forEach((nm, k) => { const c = k % COLS, r = Math.floor(k / COLS); at.set(nm, [c, r]); fitText(x, nm, CW - 30, 800, 54); x.fillText(nm, c*CW + CW/2, r*CH + CH/2 + 2); }); });
+      t.anisotropy = 4;
+      const mine = list.filter(e => at.has(e.name)), pos = new Float32Array(mine.length * 12), uv = new Float32Array(mine.length * 8), idx = [];
+      mine.forEach((e, k) => { const [c, r] = at.get(e.name), u0 = c/COLS, u1 = (c+1)/COLS, v1 = 1 - r*CH/Hh, v0 = 1 - (r+1)*CH/Hh;
+        e.q.forEach((p, j) => { pos[k*12 + j*3] = p[0]; pos[k*12 + j*3 + 1] = p[1]; pos[k*12 + j*3 + 2] = p[2]; });
+        uv.set([u0,v0, u1,v0, u1,v1, u0,v1], k*8); const b = k*4; idx.push(b, b+1, b+2, b, b+2, b+3); });
+      const g = new THREE.BufferGeometry(); g.setAttribute('position', new THREE.BufferAttribute(pos, 3)); g.setAttribute('uv', new THREE.BufferAttribute(uv, 2)); g.setIndex(idx); g.computeBoundingSphere();
+      scene.add(new THREE.Mesh(g, new THREE.MeshBasicMaterial({map:t, toneMapped:false, side:THREE.DoubleSide})));
+    }
   }
   // price tags: white (or yellow when on sale) label with the real price, built from digit glyphs
   const GLY = '0123456789.', GW = 48, GH = 64;

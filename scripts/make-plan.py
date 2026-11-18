@@ -118,11 +118,7 @@ rep("g.addColorStop(0,'#b7875a'); g.addColorStop(.5,'#c89a6b'); g.addColorStop(1
 # one header board per gondola (1.2 m), not one wide board across a brand's bays
 rep("        const same = curH && prev && prev.id === curH.id;", "        const same = false;")
 
-# brand-name headers (brands without a logo): one shared texture per brand instead of one per bay
-rep("  const nameHdrs = [];", "  const nameHdrs = [], nameTex = {};")
-rep("    const t = canvasTex(512, 96, (x,W,Hh)=>{ x.fillStyle='#fff'; x.fillRect(0,0,W,Hh); x.fillStyle = PLUM;",
-    "    const t = nameTex[name] || (nameTex[name] = canvasTex(512, 96, (x,W,Hh)=>{ x.fillStyle='#fff'; x.fillRect(0,0,W,Hh); x.fillStyle = PLUM;")
-rep("fitText(x, name, W-30, 800, 54); x.fillText(name, W/2, Hh/2+2); });", "fitText(x, name, W-30, 800, 54); x.fillText(name, W/2, Hh/2+2); }));")
+# (brand-name headers are batched into shared sheets in the engine itself)
 
 # layout, counter
 region('  // ---------- lay the sections out: back wall (medicines), then aisle after aisle ----------', '  // ---------- Saudi pharmacists (click → customer service) ----------', blocks['R2'])
