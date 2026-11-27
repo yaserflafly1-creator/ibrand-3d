@@ -73,6 +73,12 @@ jobs:
         run: node scripts/build-data.mjs
         env:
           BASISU: ${{ github.workspace }}/.tools/basisu
+      - name: Keep the private figures (barcodes, units sold) for the photo finder
+        if: always()
+        uses: actions/cache/save@v4
+        with:
+          path: .private
+          key: private1-${{ github.run_id }}
       - name: Save product photo cache
         if: always()
         uses: actions/cache/save@v4
@@ -133,9 +139,11 @@ jobs:
         run: |
           set -euo pipefail
           STORE=https://yaserflafly1-creator.github.io/ibrand-3d/
-          rm -rf cf && mkdir -p cf/admin && cp -r site/admin/. cf/admin/
+          rm -rf cf && mkdir -p cf/admin cf/data && cp -r site/admin/. cf/admin/
+          # the barcodes are served only here, behind Cloudflare Access
+          [ -f .private/sku.json ] && cp .private/sku.json cf/data/sku.json || echo '{}' > cf/data/sku.json
           # what the panel reads from the store (settings, drawing, products, logo) comes from the store itself
-          sed -i -E "s#(['\"\`])\.\./#\1${STORE}#g" cf/admin/*.html cf/admin/*.js
+          sed -i -E "s#\.\./data/sku\.json#@@SKU@@#g; s#(['\"\`])\.\./#\1${STORE}#g; s#@@SKU@@#../data/sku.json#g" cf/admin/*.html cf/admin/*.js
           printf '<!doctype html><meta charset="utf-8"><meta http-equiv="refresh" content="0;url=admin/"><title>iBrand</title>' > cf/index.html
           W="npx --yes wrangler@3.114.0"
           $W pages project create ibrand-3d-admin --production-branch=main >/dev/null 2>&1 || true

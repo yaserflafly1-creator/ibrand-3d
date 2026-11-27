@@ -41,6 +41,12 @@ jobs:
         with:
           node-version: 20
       - run: npm install --no-save sharp@0.33.5
+      - name: Private figures from the last build (barcodes, units sold)
+        uses: actions/cache/restore@v4
+        with:
+          path: .private
+          key: private1-none
+          restore-keys: private1-
       - name: Earlier finds
         run: |
           if [ "${{ inputs.fresh }}" = "yes" ]; then mkdir -p out; else git clone --quiet --depth 1 --branch photo-fix "https://github.com/${{ github.repository }}.git" out 2>/dev/null || mkdir -p out; fi

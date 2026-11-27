@@ -633,8 +633,20 @@ async function main(){
   // the published file: random-looking text does not compress, and it was a third of what every visitor downloads
   try { for (const sec of Object.values(result.sections || {})) for (const p of sec.products || []){ delete p.sig; delete p.psig; delete p.ah; delete p.pk; delete p.ai; delete p.aiNo; } } catch (e){ console.warn('trim skipped:', e.message); }
   if (Object.keys(PHOTOFIX).length) console.log('PHOTO NOTES used (records):', photoFixed);
+  // Units sold and barcodes are the store's own business figures: they never go in the published file. The shelves were
+  // already ordered by them above; what the page still needs is a coarse popularity grade (pop 0-5) and the brands
+  // ranked by sales (topBrands). The real figures go to .private/ for the build's own jobs (photo search, control panel).
+  const PRIV = process.env.PRIVATE || '.private', sales = {};
+  try {
+    const all = new Map(); for (const sec of Object.values(result.sections || {})) for (const p of sec.products || []) if (!all.has(p.id)) all.set(p.id, p);
+    const list = [...all.values()].sort((a, b) => (b.sold || 0) - (a.sold || 0)), n = list.length || 1, brands = {};
+    list.forEach((p, i) => { const s = p.sold || 0, q = i / n; sales[p.id] = s; p.pop = !s ? 0 : q < .01 ? 5 : q < .05 ? 4 : q < .15 ? 3 : q < .4 ? 2 : 1;
+      if (p.brandId) brands[p.brandId] = (brands[p.brandId] || 0) + s; });
+    for (const sec of Object.values(result.sections || {})) for (const p of sec.products || []){ p.pop = all.get(p.id).pop; delete p.sold; }
+    result.topBrands = Object.keys(brands).filter(b => brands[b] > 0).sort((a, b) => brands[b] - brands[a]).slice(0, 30);
+  } catch (e){ console.warn('sales grading failed:', e.message); for (const sec of Object.values(result.sections || {})) for (const p of sec.products || []) delete p.sold; }
   await fs.writeFile(`${OUT}/data/products.json`, JSON.stringify(result));
-  try { await fs.writeFile(`${OUT}/data/sku.json`, JSON.stringify(SKU)); console.log('BARCODES', Object.keys(SKU).length); } catch (e){ console.warn('barcodes not written:', e.message); }
+  try { await fs.mkdir(PRIV, { recursive: true }); await fs.writeFile(`${PRIV}/sku.json`, JSON.stringify(SKU)); await fs.writeFile(`${PRIV}/sales.json`, JSON.stringify(sales)); console.log('BARCODES', Object.keys(SKU).length, 'kept private'); } catch (e){ console.warn('private files not written:', e.message); }
 }
 
 main().catch(e => { console.error(e); process.exit(1); });

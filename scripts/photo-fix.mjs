@@ -141,7 +141,9 @@ async function candidatesFor(p, oldShape, oldFlags){
 export async function main(){
   if (!KEY){ console.error('FIRECRAWL_API_KEY is not set (repository secret)'); process.exit(1); }
   await fs.mkdir(OUT, { recursive: true });
-  const [prod, audit, skus] = await Promise.all([getJ(SITE + '/data/products.json'), getJ(SITE + '/data/photo-audit.json'), getJ(SITE + '/data/sku.json').catch(() => ({}))]);
+  const priv = async f => { try { return JSON.parse(await fs.readFile((process.env.PRIVATE || '.private') + '/' + f, 'utf8')); } catch (e){ return null; } };
+  const [prod, audit, skus0, sales] = await Promise.all([getJ(SITE + '/data/products.json'), getJ(SITE + '/data/photo-audit.json'), priv('sku.json'), priv('sales.json')]);
+  const skus = skus0 || {}, soldOf = id => (sales && sales[id]) || 0;   // barcodes and units sold come from the build's private files (never published)
   const base = prod.imgBase || 'https://cdn.salla.sa/yKErG/', P = new Map();
   for (const s of Object.values(prod.sections || {})) for (const p of s.products || []) if (!P.has(String(p.id))) P.set(String(p.id), p);
   const readJ = async (f, d) => { try { return JSON.parse(await fs.readFile(`${OUT}/${f}`, 'utf8')); } catch (e){ return d; } };
@@ -152,7 +154,7 @@ export async function main(){
   for (const it of prev.items || []){ if (bad[it.id] && P.has(it.id) && !ONLY.includes(it.id)) items.push(it); else for (const c of it.c || []) await fs.rm(`${OUT}/${c.f}`, { force: true }); }
   const have = new Set(items.map(i => i.id));
   let todo = Object.keys(bad).filter(id => P.has(id) && !have.has(id) && (RETRY || ONLY.length || !tried[id]) && (!ONLY.length || ONLY.includes(id)));
-  todo.sort((a, b) => (P.get(b).sold || 0) - (P.get(a).sold || 0)); todo = todo.slice(0, ONLY.length ? ONLY.length : COUNT);
+  todo.sort((a, b) => soldOf(b) - soldOf(a) || (P.get(b).pop || 0) - (P.get(a).pop || 0)); todo = todo.slice(0, ONLY.length ? ONLY.length : COUNT);
   console.log('weak pictures', Object.keys(bad).length, '| waiting for review', items.length, '| searching now', todo.length);
   let i = 0, found = 0, none = 0;
   const work = async () => { while (i < todo.length && !stopped && Date.now() - T0 < BUDGET){
@@ -163,11 +165,12 @@ export async function main(){
     tried[id] = new Date().toISOString().slice(0, 10);
     if (!c.length){ none++; continue; }
     const out = []; for (let n = 0; n < c.length; n++){ const f = `${id}-${n + 1}.jpg`; await fs.writeFile(`${OUT}/${f}`, c[n].buf); out.push({ f, w: c[n].w, h: c[n].h, from: c[n].from, host: c[n].host, s: c[n].s, conf: c[n].conf, code: c[n].byCode ? 1 : 0, v: c[n].v, t: c[n].t, br: c[n].br }); }
-    items.push({ id, name: p.name, brand: p.brand || '', sku, sold: p.sold || 0, fl: flags, old: oldUrl, c: out }); found++;
+    items.push({ id, name: p.name, brand: p.brand || '', pop: p.pop || 0, fl: flags, old: oldUrl, c: out }); found++;
   } };
   await Promise.all(Array.from({ length: PAR }, work));
-  items.sort((a, b) => (b.sold || 0) - (a.sold || 0));
-  const noPic = Object.keys(tried).filter(id => bad[id] && P.has(id) && !items.some(x => x.id === id)).map(id => ({ id, name: P.get(id).name, sku: skus[id] || '', sold: P.get(id).sold || 0 })).sort((a, b) => b.sold - a.sold);
+  items.forEach(it => { delete it.sku; delete it.sold; if (it.pop == null && P.has(it.id)) it.pop = P.get(it.id).pop || 0; });
+  items.sort((a, b) => soldOf(b.id) - soldOf(a.id) || (b.pop || 0) - (a.pop || 0));
+  const noPic = Object.keys(tried).filter(id => bad[id] && P.has(id) && !items.some(x => x.id === id)).sort((a, b) => soldOf(b) - soldOf(a)).map(id => ({ id, name: P.get(id).name, pop: P.get(id).pop || 0 }));
   for (const id of Object.keys(tried)) if (!bad[id]) delete tried[id];
   const inList = new Set(items.map(x => x.id)), left = Object.keys(bad).filter(id => P.has(id) && !inList.has(id) && !tried[id]).length;
   await fs.writeFile(`${OUT}/tried.json`, JSON.stringify(tried));
