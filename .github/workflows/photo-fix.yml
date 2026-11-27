@@ -48,8 +48,10 @@ jobs:
           key: private1-none
           restore-keys: private1-
       - name: Earlier finds
+        env:
+          FRESH: ${{ inputs.fresh }}
         run: |
-          if [ "${{ inputs.fresh }}" = "yes" ]; then mkdir -p out; else git clone --quiet --depth 1 --branch photo-fix "https://github.com/${{ github.repository }}.git" out 2>/dev/null || mkdir -p out; fi
+          if [ "$FRESH" = "yes" ]; then mkdir -p out; else git clone --quiet --depth 1 --branch photo-fix "https://github.com/${{ github.repository }}.git" out 2>/dev/null || mkdir -p out; fi
       - name: Search and judge
         env:
           FIRECRAWL_API_KEY: ${{ secrets.FIRECRAWL_API_KEY }}
@@ -71,7 +73,10 @@ jobs:
         if: ${{ (inputs.chain || 'yes') == 'yes' && inputs.ids == '' }}
         env:
           GH_TOKEN: ${{ github.token }}
+          REPO: ${{ github.repository }}
+          REF: ${{ github.ref_name }}
+          COUNT: ${{ inputs.count || '400' }}
         run: |
           left=$(jq -r '.run.left // 0' out/list.json); stopped=$(jq -r '.run.stopped // ""' out/list.json); searched=$(jq -r '.run.searched // 0' out/list.json)
           echo "left $left, searched $searched, stopped '$stopped'"
-          if [ "$left" -gt 0 ] && [ -z "$stopped" ] && [ "$searched" -gt 0 ]; then gh workflow run photo-fix.yml --repo "${{ github.repository }}" --ref "${{ github.ref_name }}" -f count="${{ inputs.count || '400' }}" -f chain=yes; fi
+          if [ "$left" -gt 0 ] && [ -z "$stopped" ] && [ "$searched" -gt 0 ]; then gh workflow run photo-fix.yml --repo "$REPO" --ref "$REF" -f count="$COUNT" -f chain=yes; fi

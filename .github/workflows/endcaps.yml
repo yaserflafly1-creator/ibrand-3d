@@ -41,4 +41,5 @@ jobs:
       - name: refresh the pharmacy
         env:
           GH_TOKEN: ${{ github.token }}
-        run: gh workflow run refresh.yml --ref "${{ github.ref_name }}"
+          REF: ${{ github.ref_name }}
+        run: gh workflow run refresh.yml --ref "$REF"

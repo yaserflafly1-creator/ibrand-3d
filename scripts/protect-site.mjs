@@ -9,7 +9,7 @@ async function js(code, where){ try { const r = await minify(code, opts); if (!r
 const walk = d => fs.readdirSync(d, {withFileTypes:true}).flatMap(e => e.isDirectory() ? walk(path.join(d, e.name)) : [path.join(d, e.name)]);
 for (const f of walk(root)){
   const rel = path.relative(root, f);
-  if (/(^|\/)(data|atlas|plan|assets)\//.test(rel)) continue;   // product data and pictures: nothing to shrink
+  if (/(^|\/)(data|atlas|plan|assets|vendor)\//.test(rel)) continue;   // product data and pictures: nothing to shrink
   if (f.endsWith('.js')){ const s = fs.readFileSync(f, 'utf8'); before += s.length; const o = await js(s, rel); after += o.length; fs.writeFileSync(f, o); continue; }
   if (!f.endsWith('.html')) continue;
   let s = fs.readFileSync(f, 'utf8'), out = '', i = 0; const re = /<script(\s[^>]*)?>([\s\S]*?)<\/script>/gi; let m;
