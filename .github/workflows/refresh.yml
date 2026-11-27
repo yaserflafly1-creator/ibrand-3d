@@ -22,6 +22,8 @@ jobs:
       cancel-in-progress: false
     runs-on: ubuntu-latest
     timeout-minutes: 300
+    env:
+      CF_ON: ${{ secrets.CLOUDFLARE_API_TOKEN != '' && secrets.CLOUDFLARE_ACCOUNT_ID != '' && '1' || '' }}
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -120,6 +122,31 @@ jobs:
         run: |
           npm install --no-save terser@5.31.0
           node scripts/protect-site.mjs site
+      # The control panel is served from Cloudflare Pages (project ibrand-3d-admin), where Cloudflare Access lets in only
+      # the people allowed; the GitHub Pages copy of /admin/ then only sends visitors there. Skipped until the
+      # CLOUDFLARE_API_TOKEN and CLOUDFLARE_ACCOUNT_ID secrets are set, so nothing changes before then.
+      - name: Control panel on Cloudflare Pages
+        if: env.CF_ON == '1'
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+        run: |
+          set -euo pipefail
+          STORE=https://yaserflafly1-creator.github.io/ibrand-3d/
+          rm -rf cf && mkdir -p cf/admin && cp -r site/admin/. cf/admin/
+          # what the panel reads from the store (settings, drawing, products, logo) comes from the store itself
+          sed -i -E "s#(['\"\`])\.\./#\1${STORE}#g" cf/admin/*.html cf/admin/*.js
+          printf '<!doctype html><meta charset="utf-8"><meta http-equiv="refresh" content="0;url=admin/"><title>iBrand</title>' > cf/index.html
+          W="npx --yes wrangler@3.114.0"
+          $W pages project create ibrand-3d-admin --production-branch=main >/dev/null 2>&1 || true
+          $W pages deploy cf --project-name=ibrand-3d-admin --branch=main --commit-dirty=true | tee cf-deploy.txt
+          HOST=$(grep -oE 'https://[a-z0-9]+\.[a-z0-9-]+\.pages\.dev' cf-deploy.txt | head -1 | sed -E 's#https://[a-z0-9]+\.#https://#')
+          [ -n "$HOST" ] || { echo "could not read the Pages address"; exit 1; }
+          echo "control panel: $HOST/admin/"
+          # the GitHub Pages copy of the panel now only points there
+          rm -f site/admin/*.js site/admin/*.json
+          for f in site/admin/*.html; do n=$(basename "$f")
+            printf '<!doctype html><meta charset="utf-8"><title>لوحة التحكم</title><script>location.replace("%s/admin/%s"+location.search+location.hash)</script><a href="%s/admin/%s">لوحة التحكم</a>' "$HOST" "$n" "$HOST" "$n" > "$f"; done
       - uses: actions/configure-pages@v5
       - uses: actions/upload-pages-artifact@v3
         with:
