@@ -1,0 +1,211 @@
+name: Refresh products and deploy
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [ibrand-dashboard]
+  schedule:
+    - cron: '23 * * * *'   # hourly: product edits in Salla reach the store without anyone asking (only changed photo pages are redrawn)
+
+permissions:
+  contents: read
+  deployments: read
+  pages: write
+  id-token: write
+
+# Builds queue behind each other (a cancelled build would never save its photo cache); the AI cut runs beside them without holding up the next build.
+
+jobs:
+  build:
+    concurrency:
+      group: pages-build
+      cancel-in-progress: false
+    runs-on: ubuntu-latest
+    timeout-minutes: 300
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - name: Restore product photo cache
+        uses: actions/cache/restore@v4
+        with:
+          path: |
+            .cache/tiles8
+            .cache/basis6
+            .cache/pages1
+          key: tiles8-${{ github.run_id }}
+          restore-keys: tiles8-
+      - name: Restore AI photo cuts
+        uses: actions/cache/restore@v4
+        with:
+          path: .cache/aicut
+          key: aicut-${{ github.run_id }}
+          restore-keys: aicut-
+      - name: Cache basisu encoder
+        id: basisu-cache
+        uses: actions/cache@v4
+        with:
+          path: .tools/basisu
+          key: basisu-1.16.4-${{ runner.os }}
+      - name: Build basisu encoder if missing
+        if: steps.basisu-cache.outputs.cache-hit != 'true'
+        run: |
+          git clone --depth 1 --branch 1.16.4 https://github.com/BinomialLLC/basis_universal.git /tmp/bu
+          cmake -S /tmp/bu -B /tmp/bu/build -DCMAKE_BUILD_TYPE=Release -DCMAKE_POLICY_VERSION_MINIMUM=3.5
+          cmake --build /tmp/bu/build -j
+          mkdir -p .tools
+          cp "$(find /tmp/bu -name basisu -type f | head -1)" .tools/basisu
+          chmod +x .tools/basisu
+      - run: npm install --no-save sharp@0.33.5
+      - name: Prepare site
+        run: |
+          mkdir -p site
+          cp index.html .nojekyll site/
+          cp -r static/. site/ 2>/dev/null || true
+          # the plan page is the main store; the earlier store stays reachable at /classic.html
+          cp site/index.html site/classic.html
+          cp site/plan.html site/index.html
+          echo "${{ github.run_id }}" > site/build.txt
+      - name: Pull products from the store
+        run: node scripts/build-data.mjs
+        env:
+          BASISU: ${{ github.workspace }}/.tools/basisu
+      - name: Save product photo cache
+        if: always()
+        uses: actions/cache/save@v4
+        with:
+          path: |
+            .cache/tiles8
+            .cache/basis6
+            .cache/pages1
+          key: tiles8-${{ github.run_id }}
+      # The editor's "pictures to fix" list: a few minutes of looking per build, remembered between builds. Never stops a deploy.
+      - name: Restore photo audit
+        uses: actions/cache/restore@v4
+        with:
+          path: .cache/audit1
+          key: audit1-${{ github.run_id }}
+          restore-keys: audit1-
+      - name: Note the product photos worth replacing
+        continue-on-error: true
+        timeout-minutes: 12
+        run: node scripts/photo-audit.mjs
+      - name: Save photo audit
+        if: always()
+        continue-on-error: true
+        uses: actions/cache/save@v4
+        with:
+          path: .cache/audit1
+          key: audit1-${{ github.run_id }}
+      - name: Site weight report
+        continue-on-error: true
+        run: |
+          cd site
+          echo "WEIGHT total $(du -sb . | cut -f1) bytes, files $(find . -type f | wc -l)"
+          for d in atlas data assets admin plan; do [ -d "$d" ] && echo "WEIGHT dir $d $(du -sb $d | cut -f1) bytes, files $(find $d -type f | wc -l)"; done
+          for f in index.html classic.html plan.html v2.html drone.html data/products.json data/plan.json plan/pg.json plan/imf.json plan/pgmap.json config.json; do [ -f "$f" ] && echo "WEIGHT file $f raw $(stat -c %s $f) gzip $(gzip -9 -c $f | wc -c)"; done
+          echo "WEIGHT atlas by kind:"; ls atlas | sed -E 's/^(pz[0-9]+|[a-z]+)-[0-9]+//; s/^-h[0-9]+[ab]/ hires-quarter/; s/^-m/ medium/; s/^-s/ small/; s/^-t/ tiny/; s/^\.webp$/ big.webp/' | sort | uniq -c | sed 's/^/WEIGHT kind /'
+          for k in '-t.' '-s.' '-m.' '-h'; do echo "WEIGHT bytes matching $k: $(ls -l atlas | grep -- "$k" | awk '{s+=$5} END {print s+0, NR" files"}')"; done
+          echo "WEIGHT plan (pz) bytes: $(ls -l atlas | grep ' pz' | awk '{s+=$5} END {print s+0, NR" files"}')"
+          echo "WEIGHT largest:"; find . -type f -printf '%s %p\n' | sort -nr | head -12 | sed 's/^/WEIGHT big /'
+          ls atlas | head -40 | sed 's/^/WEIGHT name /'
+      - uses: actions/upload-artifact@v4
+        with:
+          name: ai-todo
+          path: ai-todo.json
+          if-no-files-found: ignore
+      - name: Shrink and scramble the published code
+        continue-on-error: true
+        run: |
+          npm install --no-save terser@5.31.0
+          node scripts/protect-site.mjs site
+      - uses: actions/configure-pages@v5
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: site
+
+  # Photos the plain cut-out could not handle are cut by an AI model here, beside the deploy, a batch per run; the next refresh uses them.
+  cut:
+    needs: build
+    concurrency:
+      group: pages-aicut
+      cancel-in-progress: false
+    runs-on: ubuntu-latest
+    timeout-minutes: 70
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - uses: actions/download-artifact@v4
+        with:
+          name: ai-todo
+        continue-on-error: true
+      - name: Restore AI photo cuts
+        uses: actions/cache/restore@v4
+        with:
+          path: .cache/aicut
+          key: aicut-${{ github.run_id }}
+          restore-keys: aicut-
+      - name: Cut
+        run: |
+          [ -s ai-todo.json ] || { echo "nothing to cut"; exit 0; }
+          mkdir cutter && cp scripts/ai-cut.mjs cutter/ && cd cutter && npm init -y >/dev/null && npm pkg set type=module
+          # the CPU build is enough here; the GPU (CUDA) binaries it also tries to fetch are no longer published, which broke the install
+          ONNXRUNTIME_NODE_INSTALL_CUDA=skip npm install --onnxruntime-node-install-cuda=skip @imgly/background-removal-node@1.4.5 >/dev/null
+          mkdir -p ../.cache/aicut && ln -s ../.cache .cache && cp ../ai-todo.json . && node ai-cut.mjs
+        env:
+          CUT_MINUTES: 45
+      - name: Save AI photo cuts
+        if: always()
+        uses: actions/cache/save@v4
+        with:
+          path: .cache/aicut
+          key: aicut-${{ github.run_id }}
+
+  deploy:
+    needs: build
+    concurrency:
+      group: pages-deploy
+      cancel-in-progress: false
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - name: Clear a stuck earlier deployment
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          for sha in $( (gh api "repos/${{ github.repository }}/deployments?environment=github-pages&per_page=10" --jq '.[].sha'; echo fdb8fd118c361dc506296bdbbf07fc52d9a9f741) | sort -u); do
+            [ "$sha" = "${{ github.sha }}" ] && continue
+            gh api -X POST "repos/${{ github.repository }}/pages/deployments/$sha/cancel" >/dev/null 2>&1 || true
+          done
+      - id: deployment
+        uses: actions/deploy-pages@v4
+      # the repository also has a branch-based Pages build; when it shares this commit the deploy above can report
+      # success without going live, leaving the bare branch (no product data) online. Check, and deploy again if so.
+      - name: Check that this build is what is live
+        id: check
+        run: |
+          URL="${{ steps.deployment.outputs.page_url }}"
+          sleep 25
+          for i in $(seq 1 24); do
+            if [ "$(curl -fsS "${URL}build.txt?x=$RANDOM$i" 2>/dev/null | tr -d '[:space:]')" = "${{ github.run_id }}" ]; then echo "ok=true" >> "$GITHUB_OUTPUT"; exit 0; fi
+            sleep 10
+          done
+          echo "ok=false" >> "$GITHUB_OUTPUT"
+      - name: Deploy again if the first attempt did not take
+        if: steps.check.outputs.ok != 'true'
+        uses: actions/deploy-pages@v4
+      - name: Fail loudly if this build is still not live
+        if: steps.check.outputs.ok != 'true'
+        run: |
+          URL="${{ steps.deployment.outputs.page_url }}"
+          sleep 25
+          for i in $(seq 1 24); do
+            if [ "$(curl -fsS "${URL}build.txt?y=$RANDOM$i" 2>/dev/null | tr -d '[:space:]')" = "${{ github.run_id }}" ]; then exit 0; fi
+            sleep 10
+          done
+          echo "this build is not live"; exit 1

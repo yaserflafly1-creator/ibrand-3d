@@ -1,0 +1,44 @@
+# Brings the end-cap boards designed in Canva into the pharmacy:
+# downloads each exported image, makes it a light JPEG (720 px wide) and commits it to static/assets/endcaps/<department>.jpg,
+# then starts a pharmacy refresh so it goes live.
+name: end caps from Canva
+on:
+  workflow_dispatch:
+    inputs:
+      boards:
+        description: 'JSON: {"z_makeup":"https://…", …} (Canva export links)'
+        required: true
+permissions:
+  contents: write
+  actions: write
+jobs:
+  fetch:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: download and convert
+        env:
+          BOARDS: ${{ inputs.boards }}
+        run: |
+          mkdir -p static/assets/endcaps
+          python3 -m pip install --quiet pillow
+          echo "$BOARDS" | jq -r 'to_entries[] | "\(.key) \(.value)"' | while read -r key url; do
+            case "$key" in z_[a-z]*) ;; *) echo "skip $key"; continue;; esac
+            case "$url" in https://*.canva.com/*|https://*.canva-export.com/*|https://*.amazonaws.com/*) ;; *) echo "skip url for $key"; continue;; esac
+            curl -fsSL "$url" -o "/tmp/$key.img" || { echo "download failed $key"; continue; }
+            python3 -c "import sys; from PIL import Image; im = Image.open(sys.argv[1]).convert('RGB'); w = 720; im = im.resize((w, round(im.height * w / im.width)), Image.LANCZOS); im.save(sys.argv[2], 'JPEG', quality=84, optimize=True, progressive=True)" "/tmp/$key.img" "static/assets/endcaps/$key.jpg"
+            ls -l "static/assets/endcaps/$key.jpg"
+          done
+          ls static/assets/endcaps/*.jpg 2>/dev/null | xargs -n1 basename | sed 's/\.jpg$//' | jq -R . | jq -s . > static/assets/endcaps/list.json
+          cat static/assets/endcaps/list.json
+      - name: commit
+        run: |
+          git config user.name "Yaser"; git config user.email "yaserflafly1-creator@users.noreply.github.com"
+          git add static/assets/endcaps
+          git diff --cached --quiet && { echo "nothing new"; exit 0; }
+          git commit -m "End-cap boards from Canva"
+          git push
+      - name: refresh the pharmacy
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh workflow run refresh.yml --ref "${{ github.ref_name }}"

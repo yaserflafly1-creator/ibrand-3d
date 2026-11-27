@@ -1,0 +1,27 @@
+{
+  "api": "https://ibrand-3d-panel.ibrandsales.workers.dev",
+  "season": {
+    "tag": "11.11",
+    "line": "عروض 11.11",
+    "a": "#3b1d36",
+    "b": "#e8368f"
+  },
+  "treasure": {
+    "on": true,
+    "code": "",
+    "note": "استخدم الكود عند إتمام الطلب."
+  },
+  "tour": true,
+  "sound": true,
+  "promo": {
+    "order": [
+      "offers",
+      "excl",
+      "trend",
+      "import"
+    ],
+    "milk": true,
+    "best": true
+  },
+  "slides": []
+}

@@ -1,0 +1,71 @@
+# Finds better pictures for the products whose picture is weak (the audit's list), best sellers first, and leaves them
+# for review in the control panel (admin/photos.html). Nothing is sent to the store from here.
+# The finds live on their own branch (photo-fix), rewritten on every run so the repository does not grow.
+# Needs the repository secret FIRECRAWL_API_KEY.
+name: better product pictures
+on:
+  # every morning (06:10 in Riyadh): goes on with what is left, e.g. after the search credit ran out the day before;
+  # when nothing is left to search it ends in seconds and uses no credit
+  schedule:
+    - cron: '10 3 * * *'
+  workflow_dispatch:
+    inputs:
+      count:
+        description: 'How many products to search for this run'
+        default: '400'
+      chain:
+        description: 'When this run ends with products still to search, start the next one by itself (yes / no)'
+        default: 'yes'
+      retry:
+        description: 'Search again for products an earlier run found nothing for (yes / no)'
+        default: 'no'
+      ids:
+        description: 'Only these product ids (optional, separated by commas)'
+        default: ''
+      fresh:
+        description: 'Start over: forget the earlier finds and what was already searched (yes / no)'
+        default: 'no'
+permissions:
+  contents: write
+  actions: write
+concurrency:
+  group: photo-fix
+  cancel-in-progress: false
+jobs:
+  find:
+    runs-on: ubuntu-latest
+    timeout-minutes: 80
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - run: npm install --no-save sharp@0.33.5
+      - name: Earlier finds
+        run: |
+          if [ "${{ inputs.fresh }}" = "yes" ]; then mkdir -p out; else git clone --quiet --depth 1 --branch photo-fix "https://github.com/${{ github.repository }}.git" out 2>/dev/null || mkdir -p out; fi
+      - name: Search and judge
+        env:
+          FIRECRAWL_API_KEY: ${{ secrets.FIRECRAWL_API_KEY }}
+          COUNT: ${{ inputs.count || '400' }}
+          MINUTES: 45
+          RETRY: ${{ inputs.retry }}
+          IDS: ${{ inputs.ids }}
+          OUT: out
+        run: node scripts/photo-fix.mjs
+      - name: Leave the finds for review
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          cd out && rm -rf .git && git init -q -b photo-fix
+          git config user.name "Yaser"; git config user.email "yaserflafly1-creator@users.noreply.github.com"
+          git add -A && git commit -q -m "Better picture candidates, waiting for review"
+          git push -q -f "https://x-access-token:${GH_TOKEN}@github.com/${{ github.repository }}.git" photo-fix
+      - name: Go on with what is left
+        if: ${{ (inputs.chain || 'yes') == 'yes' && inputs.ids == '' }}
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          left=$(jq -r '.run.left // 0' out/list.json); stopped=$(jq -r '.run.stopped // ""' out/list.json); searched=$(jq -r '.run.searched // 0' out/list.json)
+          echo "left $left, searched $searched, stopped '$stopped'"
+          if [ "$left" -gt 0 ] && [ -z "$stopped" ] && [ "$searched" -gt 0 ]; then gh workflow run photo-fix.yml --repo "${{ github.repository }}" --ref "${{ github.ref_name }}" -f count="${{ inputs.count || '400' }}" -f chain=yes; fi

@@ -1,0 +1,231 @@
+<!doctype html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex, nofollow">
+<title>لوحة تحكم الصيدلية 3D</title>
+<link rel="icon" href="../assets/logo.png">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Almarai:wght@400;700;800&display=swap">
+<style>
+/* layout: a top bar with the tabs, then one panel at a time; the map tab is a drawing beside a properties column */
+:root{--bg:#f7f2f6;--card:#fff;--line:#e6d7e2;--fg:#2a1b27;--muted:#75607a;--pink:#e0447f;--plum:#3b1d36;--ok:#1f9a55;--bad:#c21f2f;--font:'Almarai',Tahoma,Arial,sans-serif}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--fg);font-family:var(--font);font-size:15px;line-height:1.7}
+button,input,select,textarea{font:inherit;color:inherit}
+h1{font-size:19px;margin:0;font-weight:800}
+h2{font-size:17px;margin:0 0 10px;font-weight:800;color:var(--plum)}
+.bar{position:sticky;top:0;z-index:5;background:var(--plum);color:#fff;display:flex;flex-wrap:wrap;align-items:center;gap:10px;padding:10px 16px}
+.bar .sp{flex:1}
+.tabs{display:flex;flex-wrap:wrap;gap:6px}
+.tabs button{border:0;border-radius:10px;padding:7px 14px;background:rgba(255,255,255,.12);color:#fff;cursor:pointer;font-weight:700}
+.tabs button.on{background:#fff;color:var(--plum)}
+.btn{border:0;border-radius:10px;padding:8px 16px;background:var(--pink);color:#fff;font-weight:800;cursor:pointer}
+.btn.ghost{background:#f1e8ef;color:var(--plum)}
+.btn.bad{background:#fbe4e7;color:var(--bad)}
+.btn:disabled{opacity:.5;cursor:default}
+main{max-width:1280px;margin:0 auto;padding:16px}
+.card{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:16px;margin-bottom:14px}
+.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:14px}
+label{display:block;font-size:13px;color:var(--muted);margin:8px 0 2px}
+input[type=text],input[type=password],input[type=number],input[type=url],select,textarea{width:100%;border:1px solid var(--line);border-radius:10px;padding:8px 10px;background:#fff}
+input[type=color]{width:54px;height:36px;border:1px solid var(--line);border-radius:8px;padding:2px;background:#fff}
+.row{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.chk{display:flex;gap:8px;align-items:center;margin:8px 0;color:var(--fg);font-size:15px}
+.chk input{width:18px;height:18px}
+.note{font-size:13px;color:var(--muted)}
+.msg{position:fixed;z-index:20;left:50%;bottom:22px;transform:translateX(-50%);background:var(--plum);color:#fff;border-radius:12px;padding:10px 18px;box-shadow:0 10px 30px rgba(0,0,0,.25);max-width:90vw}
+.msg.bad{background:var(--bad)}
+.mapwrap{display:grid;grid-template-columns:minmax(0,1fr) 300px;gap:14px}
+@media (max-width:900px){.mapwrap{grid-template-columns:1fr}}
+.mapbox{background:#fff;border:1px solid var(--line);border-radius:16px;overflow:auto;max-height:78vh;touch-action:none}
+svg{display:block;width:100%;height:auto;min-width:640px;user-select:none}
+.fx{cursor:grab;stroke:#fff;stroke-width:.04}
+.fx.sel{stroke:#000;stroke-width:.12}
+.legend{display:flex;flex-wrap:wrap;gap:8px;margin:8px 0 0;font-size:12px}
+.legend span{display:inline-flex;align-items:center;gap:4px}
+.legend i{width:12px;height:12px;border-radius:3px;display:inline-block}
+.shelf{border:1px solid var(--line);border-radius:12px;padding:10px;margin-bottom:10px}
+.shelf h3{margin:0 0 6px;font-size:14px;color:var(--plum)}
+.item{display:grid;grid-template-columns:minmax(0,1fr) 64px auto;gap:6px;align-items:center;padding:4px 0;border-top:1px dashed var(--line)}
+.item:first-of-type{border-top:0}
+.item .nm{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.item.off .nm{color:var(--muted);text-decoration:line-through}
+.item .ops{display:flex;gap:4px}
+.mini{border:0;background:#f1e8ef;border-radius:8px;width:30px;height:30px;cursor:pointer;font-weight:800}
+.res{max-height:240px;overflow:auto;border:1px solid var(--line);border-radius:10px;margin-top:6px}
+.res button{display:block;width:100%;text-align:right;border:0;border-bottom:1px solid var(--line);background:#fff;padding:6px 10px;cursor:pointer}
+.res button:hover{background:#faf3f8}
+table{width:100%;border-collapse:collapse;font-size:14px}
+td,th{padding:6px 8px;border-bottom:1px solid var(--line);text-align:right}
+[hidden]{display:none!important}
+</style>
+</head>
+<body>
+<div class="bar">
+  <h1>لوحة تحكم الصيدلية 3D</h1>
+  <div class="tabs" id="tabs" hidden>
+    <button data-t="settings" class="on">الإعدادات والميزات</button>
+    <button data-t="events">الفعاليات</button>
+    <button data-t="map">المخطط</button>
+    <button data-t="promo">العروض واللوحات</button>
+    <button data-t="team">الفريق والسجل</button>
+  </div>
+  <span class="sp"></span>
+  <a class="btn ghost" id="goStore" href="../" target="_blank" rel="noopener" style="text-decoration:none">🏬 دخول الصيدلية</a>
+  <a class="btn ghost" id="goTrial" href="../?game=1" target="_blank" rel="noopener" style="text-decoration:none" title="نسخة تجريبية من الصيدلية بوضع اللعبة (شخصية، رادار، خط إلى المنتج، جري) وبترتيب الرفوف الأصلي. الصيدلية الأصلية لا تتغير.">🧪 النسخة التجريبية</a>
+  <a class="btn ghost" id="goPhotos" href="photos.html" style="text-decoration:none" title="صور أفضل للمنتجات التي صورتها ضعيفة: راجعها واعتمدها لتُنشر في سلة والصيدلية">🖼️ تحسين الصور</a>
+  <span id="who" class="note" style="color:#fff"></span>
+  <button class="btn ghost" id="out" hidden>خروج</button>
+</div>
+<main>
+  <!-- sign in -->
+  <section class="card" id="login" style="max-width:420px;margin:40px auto">
+    <h2>تسجيل الدخول</h2>
+    <div id="apiRow"><label>رابط خادم لوحة التحكم</label><input type="url" id="api" placeholder="https://….workers.dev" dir="ltr"></div>
+    <label>اسم المستخدم</label><input type="text" id="user" dir="ltr" autocomplete="username">
+    <label>كلمة المرور</label><input type="password" id="pass" dir="ltr" autocomplete="current-password">
+    <div class="row" style="margin-top:14px"><button class="btn" id="go">دخول</button></div>
+    <p class="note">التعديلات تظهر في الصيدلية خلال دقيقة تقريباً بعد الحفظ وتحديث الصفحة.</p>
+  </section>
+
+  <!-- settings -->
+  <section id="t-settings" hidden>
+    <div class="grid">
+      <div class="card"><h2>الموسم</h2>
+        <label class="chk"><input type="checkbox" id="seOn"> زينة الموسم ظاهرة (الأعلام، شريحة الشاشات، لوحة جندولة العروض)</label>
+        <label>الرقم أو الشعار القصير</label><input type="text" id="seTag" maxlength="12">
+        <label>اسم الموسم</label><input type="text" id="seLine" maxlength="40">
+        <label>اللونان</label><div class="row"><input type="color" id="seA"><input type="color" id="seB"></div>
+      </div>
+      <div class="card"><h2>تحديث الصيدلية</h2>
+        <p class="note">الصيدلية تعيد قراءة المنتجات والصور والأسعار من سلة ثم تُنشر من جديد. يبدأ التحديث تلقائياً بعد كل نشر صورة من المحرر، ويمكنك بدؤه يدوياً بعد أي تعديل في سلة. يستغرق نحو 20 دقيقة غالباً.</p>
+        <div class="row"><button class="btn" type="button" id="buildNow">🔄 حدّث الصيدلية من سلة الآن</button><span class="note" id="buildState"></span></div>
+      </div>
+      <div class="card"><h2>دقة الأسعار والتوفر</h2>
+        <p class="note">يقارن عينة من المنتجات التي تعرضها الصيدلية (العروض أولاً) بسعرها وتوفرها في سلة الآن. يعمل تلقائياً كل 3 ساعات. إذا ظهر اختلاف فحدّث الصيدلية من الزر أعلاه، وإن بقي بعد التحديث فالمشكلة في بيانات المنتج نفسه في سلة.</p>
+        <div class="row"><button class="btn" type="button" id="chkNow">🔎 افحص الآن</button><span class="note" id="chkState"></span></div>
+        <div id="chkOut" class="note" style="margin-top:8px"></div>
+      </div>
+      <div class="card"><h2>تجربة الزائر</h2>
+        <label class="chk"><input type="checkbox" id="tour"> الجولة الترحيبية في أول زيارة</label>
+        <label class="chk"><input type="checkbox" id="sound"> الصوت مفعّل افتراضياً</label>
+      </div>
+    </div>
+    <div class="row"><button class="btn" id="saveCfg">حفظ الإعدادات</button><span class="note" id="cfgState"></span></div>
+  </section>
+
+  <!-- events -->
+  <section id="t-events" hidden>
+    <div class="card"><h2>فعاليات الصيدلية</h2>
+      <p class="note">ألعاب صغيرة تشجع الزائر على التجول في الصيدلية. لكل فعالية زر صغير على يمين الشاشة، وتتغيّر أماكنها كل يوم تلقائياً. اكتب كود الجائزة من كوبونات سلة؛ بدون كود يظهر للفائز تهنئة فقط. الكود مقروء لمن يفتّش الصفحة، فاجعل الكوبون في سلة محدود الاستخدام.</p></div>
+    <div class="grid">
+      <div class="card"><h2>الكنز المفقود</h2>
+        <label class="chk"><input type="checkbox" id="trOn"> الكنز مفعّل</label>
+        <label>كود الخصم (من كوبونات سلة)</label><input type="text" id="trCode" dir="ltr" maxlength="40">
+        <label>الملاحظة تحت الكود</label><input type="text" id="trNote" maxlength="120">
+        <p class="note">الكود يظهر لكل من يجد الصندوق، وهو مقروء لمن يفتّش الصفحة. اجعل الكوبون في سلة محدود الاستخدام.</p>
+      </div>
+      <div class="card"><h2>القطع المفقودة</h2>
+        <label class="chk"><input type="checkbox" id="pcOn"> الفعالية مفعّلة</label>
+        <p class="note">قطع لامعة مخفية بين الممرات في أقسام مختلفة. الزائر يجمعها كلها ليفوز.</p>
+        <label>عدد القطع (من 3 إلى 7)</label><input type="number" id="pcCount" min="3" max="7" step="1">
+        <label>كود الخصم (من كوبونات سلة)</label><input type="text" id="pcCode" dir="ltr" maxlength="40">
+        <label>الملاحظة تحت الكود</label><input type="text" id="pcNote" maxlength="120">
+      </div>
+      <div class="card"><h2>لغز اليوم</h2>
+        <label class="chk"><input type="checkbox" id="rdOn"> الفعالية مفعّلة</label>
+        <p class="note">الزائر يقرأ اللغز ثم يمشي للقسم الصحيح ويقف على علامة الاستفهام فيه. كل يوم يظهر لغز واحد من القائمة بالدور.</p>
+        <div id="rdList"></div>
+        <div class="row"><button class="btn ghost" type="button" id="rdAdd" style="color:var(--plum);border-color:var(--line)">+ لغز جديد</button></div>
+        <label>كود الخصم (من كوبونات سلة)</label><input type="text" id="rdCode" dir="ltr" maxlength="40">
+        <label>الملاحظة تحت الكود</label><input type="text" id="rdNote" maxlength="120">
+      </div>
+    </div>
+    <div class="card"><h2>عدّاد الخطوات والمكافآت</h2>
+      <label class="chk"><input type="checkbox" id="stOn"> العدّاد ظاهر أعلى الشاشة</label>
+      <p class="note">يعدّ خطوات الزائر ووقته في الصيدلية، ويعلن «المكافأة البرونزية» بعد دقيقتين، و«الفضية» بعد 5 دقائق، و«الذهبية» بعد 10 دقائق. إذا تركت خانة الكود فارغة يظهر للزائر إعلان المكافأة بدون أي كود، فإمّا أن تكتب كوداً لكل مستوى أو توقف العدّاد حتى لا يُوعَد الزائر بمكافأة غير موجودة.</p>
+      <div class="grid"><div><label>كود البرونزية</label><input type="text" id="stC0" dir="ltr" maxlength="40"></div><div><label>كود الفضية</label><input type="text" id="stC1" dir="ltr" maxlength="40"></div><div><label>كود الذهبية</label><input type="text" id="stC2" dir="ltr" maxlength="40"></div></div>
+      <label>الملاحظة تحت الكود</label><input type="text" id="stNote" maxlength="120">
+    </div>
+    <div class="row"><button class="btn" id="saveEv">حفظ الفعاليات</button><span class="note" id="evState"></span></div>
+  </section>
+
+  <!-- map -->
+  <section id="t-map" hidden>
+    <div class="card"><h2>محرر المخطط</h2><p class="note">أماكن الستاندات ومحتوى الرفوف تُعدَّل من محرر المخطط الكامل؛ كل حفظ فيه يُنشر للصيدلية. الرسم هنا للاطلاع والتعديلات السريعة.</p><a class="btn" href="editor.html" style="text-decoration:none;display:inline-block">فتح محرر المخطط</a></div>
+    <div class="mapwrap">
+      <div>
+        <div class="mapbox"><svg id="svg"></svg></div>
+        <div class="legend" id="legend"></div>
+        <p class="note">اسحب أي وحدة لتنقلها (تلتصق كل 10 سم). أعلى الرسم هو كاونتر الصيدلي وأسفله المدخل. الصيدلية توسّع الممرات تلقائياً عند العرض.</p>
+      </div>
+      <div>
+        <div class="card" id="fxCard"><h2>الوحدة المختارة</h2><p class="note" id="fxNone">اضغط على وحدة في الرسم.</p>
+          <div id="fxForm" hidden>
+            <label>الكود</label><input type="text" id="fxCode" dir="ltr">
+            <label>القسم</label><select id="fxZone"></select>
+            <label>العلامة (اتركها فارغة للرف المشترك)</label><input type="text" id="fxBrand" dir="ltr">
+            <label>الموضع</label><select id="fxWall"><option value="0">أرضية</option><option value="1">حائط</option></select>
+            <label>الوجه (للأرضية الطولية)</label><select id="fxFace"><option value="A">يواجه اليسار</option><option value="B">يواجه اليمين</option></select>
+            <label>الطول (عدد الموديولات، كل موديول 1 م)</label><input type="number" id="fxLen" min="1" max="20">
+            <label>عدد الرفوف</label><input type="number" id="fxShelves" min="3" max="6">
+            <label>النوع</label><select id="fxKind"><option value="0">رفوف</option><option value="1">هوك</option><option value="2">هوك أعلى ورفوف أسفل</option></select>
+            <div class="row" style="margin-top:12px"><button class="btn ghost" id="fxRot">تدوير</button><button class="btn ghost" id="fxShelvesGo">تعديل الرفوف</button><button class="btn bad" id="fxDel">حذف</button></div>
+          </div>
+        </div>
+        <div class="card"><h2>إضافة وحدة</h2><button class="btn ghost" id="fxAdd">وحدة جديدة في منتصف الرسم</button></div>
+        <div class="card"><h2>استيراد من محرر المخطط</h2>
+          <p class="note">نزّل من المحرر «نسخة احتياطية JSON» واختره هنا: يُحوَّل لمخطط الصيدلية (الأماكن، الأصناف، الأوجه، عرض كل صنف). ثم راجعه واضغط «حفظ المخطط».</p>
+          <input type="file" id="edFile" accept="application/json,.json"><p class="note" id="edState"></p></div>
+        <div class="card"><h2>الحفظ</h2>
+          <div class="row"><button class="btn" id="savePg">حفظ المخطط</button><button class="btn ghost" id="undoPg">تراجع عن آخر حفظ</button></div>
+          <div class="row" style="margin-top:8px"><button class="btn bad" id="resetPg">الرجوع للمخطط الأصلي</button></div>
+          <p class="note" id="pgState"></p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- shelves -->
+  <section id="t-shelves" hidden>
+    <div class="card"><h2>محتوى الرفوف</h2>
+      <div class="grid"><div><label>الوحدة</label><select id="shFx"></select></div>
+        <div><label>أضف منتجاً (ابحث بالاسم)</label><input type="text" id="shQ" placeholder="اسم المنتج…"><div class="res" id="shRes" hidden></div></div>
+        <div><label>يُضاف إلى الرف</label><select id="shTo"></select></div></div>
+      <p class="note">الرف 1 هو الأعلى. المنتج المشطوب غير متاح حالياً في المتجر ولن يظهر في الصيدلية. بعد التعديل اضغط «حفظ المخطط».</p>
+      <div class="row"><button class="btn" id="savePg2">حفظ المخطط</button><span class="note" id="pgState2"></span></div>
+    </div>
+    <div id="shelves"></div>
+  </section>
+
+  <!-- promo -->
+  <section id="t-promo" hidden>
+    <div class="grid">
+      <div class="card"><h2>جزر الممر الرئيسي</h2><div id="prOrder"></div>
+        <label class="chk"><input type="checkbox" id="prMilk"> طاولة باندل الحليب عند المدخل</label>
+        <label class="chk"><input type="checkbox" id="prBest"> برج الأكثر طلباً</label>
+      </div>
+      <div class="card"><h2>شرائح شاشات الصيدلية</h2><div id="slides"></div><button class="btn ghost" id="slAdd">شريحة جديدة</button>
+        <p class="note">الشرائح تُعرض بالتناوب مع شرائح الصيدلية على الشاشات المعلّقة.</p></div>
+    </div>
+    <div class="row"><button class="btn" id="saveCfg2">حفظ الإعدادات</button></div>
+  </section>
+
+  <!-- team -->
+  <section id="t-team" hidden>
+    <div class="grid">
+      <div class="card" id="usersCard"><h2>أعضاء الفريق</h2><table id="users"></table>
+        <label>اسم مستخدم جديد (إنجليزي)</label><input type="text" id="nuUser" dir="ltr">
+        <label>كلمة المرور (8 أحرف على الأقل)</label><input type="password" id="nuPass" dir="ltr">
+        <label>الصلاحية</label><select id="nuRole"><option value="editor">محرر</option><option value="admin">مدير</option></select>
+        <div class="row" style="margin-top:10px"><button class="btn" id="nuAdd">إضافة</button></div></div>
+      <div class="card"><h2>سجل التعديلات</h2><table id="log"></table></div>
+    </div>
+  </section>
+</main>
+<div class="msg" id="msg" hidden></div>
+<script>/*! © iBrand Pharmacies (ibrand.com.sa) — all rights reserved. جميع الحقوق محفوظة لصيدليات اي براند */
+!function(){"use strict";const t=t=>document.querySelector(t),e=(t,e,n)=>{const a=document.createElement(t);if(e)for(const t in e)"text"===t?a.textContent=e[t]:t in a&&"list"!==t?a[t]=e[t]:a.setAttribute(t,e[t]);return(n||[]).forEach((t=>a.appendChild(t))),a},n={get(t){try{return localStorage.getItem(t)}catch(t){return null}},set(t,e){try{null===e?localStorage.removeItem(t):localStorage.setItem(t,e)}catch(t){}}},a=window.__DEMO||(/[?&]demo=1\b/.test(location.search)?{}:null);let o="",s="",i="",c={},r=null,l=new Map,d=null,u=!1,h=!1,p=0;const f={A:["عند الكاشير","#9c27b0"],B:["الميك أب","#e0447f"],C:["الديرما والبريميوم","#9c27b0"],D:["العناية بالشعر والبشرة","#3f51b5"],E:["العناية الشخصية","#0097a7"],F:["الأجهزة والمستلزمات الطبية","#689f38"],G:["المكملات الغذائية","#e0a11a"],H:["الأم والطفل","#ef6c00"],I:["أدوية بدون وصفة","#c62828"],J:["أدوية الوصفة (خلف الكاونتر)","#8e1b1b"]},m={offers:"العروض",excl:"منتجات حصرية",trend:"ترند اي براند",import:"منتجات مستوردة"};function x(e,n){const a=t("#msg");a.textContent=e,a.className="msg"+(n?" bad":""),a.hidden=!1,clearTimeout(p),p=setTimeout((()=>{a.hidden=!0}),n?6e3:2600)}async function v(t,e){if(a)return"/log"===t?[{t:(new Date).toISOString(),who:"نسخة عرض",what:"الحفظ غير مفعّل في نسخة العرض"}]:"/users"===t?[]:{ok:!0};const n=e||{},i=Object.assign({},n.headers);s&&(i.authorization="Bearer "+s),n.body&&"string"==typeof n.body&&(i["content-type"]="application/json");const c=await fetch(o+t,Object.assign({},n,{headers:i}));let r=null;try{r=await c.json()}catch(t){}if(401===c.status&&s&&"/login"!==t)throw w(),new Error("انتهت الجلسة، سجّل الدخول من جديد");if(!c.ok)throw new Error(r&&r.error||"خطأ "+c.status);return r}const g=async t=>{try{const e=await fetch(t,{cache:"no-cache"});return e.ok?await e.json():null}catch(t){return null}},b=()=>{t("#pgState").textContent=t("#pgState2").textContent=u?"تعديلات غير محفوظة":"",t("#cfgState").textContent=t("#evState").textContent=h?"تعديلات غير محفوظة":""},y=()=>{u=!0,b()},k=()=>{h=!0,b()};function w(){s="",n.set("ib3d-admin-token",null),t("#login").hidden=!1,t("#tabs").hidden=!0,t("#out").hidden=!0,t("#who").textContent="",document.querySelectorAll('main > section[id^="t-"]').forEach((t=>{t.hidden=!0}))}async function C(n){i=n.role,t("#who").textContent=n.user+("admin"===i?" (مدير)":""),t("#login").hidden=!0,t("#tabs").hidden=!1,t("#out").hidden=!1;const s=a?null:await g(o+"/public/config");c=Object.assign({},c,s||{}),async function(){if(a)return;try{L((await v("/check")).last)}catch(t){}}(),r=a?a.pg:await g(o+"/public/pg"),r&&Array.isArray(r.f)||(r=await g("../plan/pg.json")),r||(x("تعذّر تحميل المخطط",!0),r={v:1,W:44,D:46.1,names:[],f:[]}),a&&a.prods&&Object.keys(a.prods).forEach((t=>l.set(t,{id:t,name:a.prods[t]})));const d=a&&a.prods?null:await g("../data/products.json");d&&d.sections&&Object.values(d.sections).forEach((t=>(t.products||[]).forEach((t=>{l.has(String(t.id))||l.set(String(t.id),t)})))),t("#usersCard").hidden="admin"!==i,t("#resetPg").hidden="admin"!==i,function(){const e=c.season;t("#seOn").checked=!!e;const n=e||{tag:"",line:"",a:"#3b1d36",b:"#e8368f"};t("#seTag").value=n.tag||"",t("#seLine").value=n.line||"",t("#seA").value=n.a||"#3b1d36",t("#seB").value=n.b||"#e8368f";const a=c.treasure||{};t("#trOn").checked=!1!==a.on,t("#trCode").value=a.code||"",t("#trNote").value=void 0===a.note?"استخدم الكود عند إتمام الطلب.":a.note,t("#tour").checked=!1!==c.tour,t("#sound").checked=!1!==c.sound}(),function(){const e=c.pieces||{};t("#pcOn").checked=!0===e.on,t("#pcCount").value=Math.max(3,Math.min(7,+e.count||5)),t("#pcCode").value=e.code||"",t("#pcNote").value=void 0===e.note?O:e.note;const n=c.riddle||{};t("#rdOn").checked=!0===n.on,t("#rdCode").value=n.code||"",t("#rdNote").value=void 0===n.note?O:n.note;const a=c.steps||{},o=Array.isArray(a.codes)?a.codes:[];t("#stOn").checked=!1!==a.on,[0,1,2].forEach((e=>{t("#stC"+e).value=o[e]||""})),t("#stNote").value=void 0===a.note?O:a.note;const s=t("#rdList");s.textContent="",(Array.isArray(n.list)?n.list:[]).forEach((t=>s.appendChild(N(t))))}(),function(){const n=c.promo||{},a=(Array.isArray(n.order)?n.order:Object.keys(m)).filter((t=>m[t])),o=a.concat(Object.keys(m).filter((t=>!a.includes(t)))),s=t("#prOrder");s.textContent="",o.forEach((t=>{const n=e("div",{className:"row",style:"margin:6px 0"});n.dataset.k=t;const o=e("input",{type:"checkbox",checked:a.includes(t)});o.style.cssText="width:18px;height:18px";const i=e("button",{className:"mini",type:"button",text:"▲"}),c=e("button",{className:"mini",type:"button",text:"▼"});i.onclick=()=>{n.previousElementSibling&&s.insertBefore(n,n.previousElementSibling),k()},c.onclick=()=>{n.nextElementSibling&&s.insertBefore(n.nextElementSibling,n),k()},n.append(o,e("span",{text:m[t],style:"flex:1"}),i,c),s.appendChild(n)})),t("#prMilk").checked=!1!==n.milk,t("#prBest").checked=!1!==n.best;t("#slides").textContent="",(c.slides||[]).forEach(z)}(),F(),R(),S("settings"),!a&&/[?&]next=editor\b/.test(location.search)&&location.replace("editor.html")}function S(t){document.querySelectorAll("#tabs button").forEach((e=>e.classList.toggle("on",e.dataset.t===t))),document.querySelectorAll('main > section[id^="t-"]').forEach((e=>{e.hidden=e.id!=="t-"+t})),"team"===t&&U(),"shelves"===t&&I()}addEventListener("beforeunload",(t=>{(u||h)&&(t.preventDefault(),t.returnValue="")})),t("#go").onclick=async()=>{if(!t("#apiRow").hidden){if(o=t("#api").value.trim().replace(/\/+$/,""),!/^https?:\/\//.test(o))return x("اكتب رابط الخادم أولاً",!0);n.set("ib3d-admin-api",o)}try{const e=await v("/login",{method:"POST",body:JSON.stringify({user:t("#user").value,pass:t("#pass").value})});s=e.token,n.set("ib3d-admin-token",s),t("#pass").value="",await C(e)}catch(t){x(t.message,!0)}},t("#pass").addEventListener("keydown",(e=>{"Enter"===e.key&&t("#go").click()})),t("#out").onclick=()=>{a||w()},t("#tabs").addEventListener("click",(t=>{const e=t.target.closest("button");e&&S(e.dataset.t)}));const E=[["z_makeup","الميك أب"],["z_derma","الديرما والبريميوم"],["z_hair","العناية بالشعر والبشرة"],["z_care","العناية الشخصية"],["z_dev","الأجهزة والمستلزمات الطبية"],["z_vit","المكملات الغذائية"],["z_kids","الأم والطفل"],["z_rx","الدواء والصيدلية"]],O="استخدم الكود عند إتمام الطلب.";function N(t){const n=e("div",{class:"rdRow"});n.style.cssText="display:grid;grid-template-columns:1fr 190px 36px;gap:8px;align-items:center;margin:8px 0";const a=e("input",{type:"text",maxlength:"160",placeholder:"نص اللغز (مثال: أحمي بشرتك من الشمس، في أي قسم تجدني؟)"});a.value=t&&t.q||"";const o=e("select");E.forEach((t=>o.appendChild(e("option",{value:t[0],text:t[1]})))),o.value=t&&t.zone||E[0][0];const s=e("button",{type:"button",class:"btn ghost",text:"✕",title:"حذف اللغز"});return s.style.cssText="color:#b3261e;border-color:var(--line);padding:6px 0",s.onclick=()=>{n.remove(),k()},n.appendChild(a),n.appendChild(o),n.appendChild(s),n}async function M(){if(c.season=t("#seOn").checked?{tag:t("#seTag").value.trim(),line:t("#seLine").value.trim(),a:t("#seA").value,b:t("#seB").value}:null,c.treasure={on:t("#trOn").checked,code:t("#trCode").value.trim(),note:t("#trNote").value.trim()},c.tour=t("#tour").checked,c.sound=t("#sound").checked,function(){c.pieces={on:t("#pcOn").checked,count:Math.max(3,Math.min(7,Math.round(+t("#pcCount").value||5))),code:t("#pcCode").value.trim(),note:t("#pcNote").value.trim()};const e=[...document.querySelectorAll("#rdList .rdRow")].map((t=>({q:t.querySelector("input").value.trim(),zone:t.querySelector("select").value}))).filter((t=>t.q));c.steps={on:t("#stOn").checked,codes:[0,1,2].map((e=>t("#stC"+e).value.trim())),note:t("#stNote").value.trim()},c.riddle={on:t("#rdOn").checked,code:t("#rdCode").value.trim(),note:t("#rdNote").value.trim(),list:e}}(),c.promo={order:[...t("#prOrder").children].filter((t=>t.querySelector("input").checked)).map((t=>t.dataset.k)),milk:t("#prMilk").checked,best:t("#prBest").checked},c.slides=[...t("#slides").children].map((t=>t._get())).filter((t=>t.title)),a)return h=!1,b(),x("نسخة عرض: التعديل لا يُحفظ");const e=Object.assign({},c);delete e.api;try{await v("/config",{method:"PUT",body:JSON.stringify(e)}),h=!1,b(),x("تم حفظ الإعدادات")}catch(t){x(t.message,!0)}}t("#t-settings").addEventListener("input",k),t("#t-promo").addEventListener("input",k),t("#t-events").addEventListener("input",k),t("#rdAdd").addEventListener("click",(()=>{t("#rdList").appendChild(N(null)),k()}));const A=t=>String(t??"").replace(/[&<>"']/g,(t=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[t])));function L(e){const n=t("#chkOut");if(!n)return;if(!e||!e.at)return void(n.textContent="لم يُجرَ فحص بعد.");const a=t=>t?new Date(t).toLocaleString("ar-SA",{dateStyle:"short",timeStyle:"short"}):"—",o={price:"السعر مختلف",stock:"غير متوفر في سلة",gone:"محذوف من سلة"},s=(e.issues||[]).map((t=>"<li><b>"+o[t.kind]+'</b>: <a target="_blank" rel="noopener" href="https://s.salla.sa/products/'+A(t.id)+'">'+A(t.name)+"</a> — في الصيدلية "+A(t.shown)+("price"===t.kind?" / في سلة "+A(t.live):"")+"</li>")).join("");n.innerHTML="آخر فحص: "+a(e.at)+" · فحص "+e.checked+" منتج من "+e.total+(e.failed?" (تعذّر "+e.failed+")":"")+" · بيانات الصيدلية من "+a(e.built)+"<br>"+(e.issues&&e.issues.length?'<b style="color:#c0392b">'+e.issues.length+' اختلاف</b><ul style="margin:6px 0 0;padding-inline-start:18px">'+s+"</ul>":'<b style="color:#1f9a55">كل المنتجات المفحوصة مطابقة ✓</b>')}function z(n){const a=n||{title:"",sub:"",a:"#3b1d36",b:"#e8368f"},o=e("div",{className:"shelf"}),s=e("input",{type:"text",value:a.title||"",placeholder:"العنوان",maxLength:40}),i=e("input",{type:"text",value:a.sub||"",placeholder:"السطر الثاني (اختياري)",maxLength:60}),c=e("input",{type:"color",value:a.a||"#3b1d36"}),r=e("input",{type:"color",value:a.b||"#e8368f"}),l=e("button",{className:"btn bad",type:"button",text:"حذف"});l.onclick=()=>{o.remove(),k()},s.style.marginBottom=i.style.marginBottom="6px",o.append(s,i,e("div",{className:"row"},[c,r,l])),o._get=()=>({title:s.value.trim(),sub:i.value.trim(),a:c.value,b:r.value}),t("#slides").appendChild(o)}t("#chkNow").onclick=async()=>{if(a)return x("نسخة عرض");const e=t("#chkState");e.textContent="جارٍ الفحص… (نحو نصف دقيقة)";try{L(await v("/check",{method:"POST"})),e.textContent=""}catch(t){e.textContent="",x(t.message,!0)}},t("#buildNow").onclick=async()=>{if(a)return x("نسخة عرض");const e=t("#buildState");e.textContent="…";try{await v("/build",{method:"POST"}),e.textContent="بدأ التحديث ✓ يظهر في الصيدلية خلال 20 دقيقة تقريباً"}catch(t){e.textContent="",x(t.message,!0)}},t("#saveCfg").onclick=M,t("#saveCfg2").onclick=M,t("#saveEv").onclick=M,t("#slAdd").onclick=()=>{z(),k()};const T="http://www.w3.org/2000/svg",j=t("#svg");function F(){const n=r.W||44,a=r.D||46.1;j.setAttribute("viewBox",`-1 -1 ${n+2} ${a+2}`),j.textContent="";const o=(t,e)=>{const n=document.createElementNS(T,t);for(const t in e)n.setAttribute(t,e[t]);return j.appendChild(n),n};o("rect",{x:0,y:0,width:n,height:a,fill:"#fbf8fa",stroke:"#cbb8c6","stroke-width":.08}),o("rect",{x:n/2-9,y:2.6,width:18,height:1,fill:"#14a3b5",opacity:.5}),o("rect",{x:n/2-3,y:a-.25,width:6,height:.35,fill:"#1f9a55"});const s=(t,e,n)=>{o("text",{x:t,y:e,"font-size":.8,"text-anchor":"middle",fill:"#75607a"}).textContent=n};s(n/2,2.3,"كاونتر الصيدلي"),s(n/2,a+.9,"المدخل"),r.f.forEach((t=>t.r.forEach(((e,n)=>{const a=o("rect",{x:e[0],y:e[1],width:e[2],height:e[3],fill:(f[t.z]||["","#999"])[1],class:"fx"+(t===d?" sel":""),opacity:t.b?1:.62});a._fx=t;const s=document.createElementNS(T,"title");s.textContent=t.c+" · "+(t.b||"مشترك")+" · "+(f[t.z]||[""])[0],a.appendChild(s)}))));const i=t("#legend");i.textContent="",Object.keys(f).forEach((t=>{if("A"===t)return;const n=e("span"),a=e("i");a.style.background=f[t][1],n.append(a,document.createTextNode(f[t][0])),i.appendChild(n)})),i.appendChild(e("span",{text:"· اللون الباهت = رف مشترك، الغامق = ستاند علامة"}))}let P=null;const B=t=>{const e=j.createSVGPoint();return e.x=t.clientX,e.y=t.clientY,e.matrixTransform(j.getScreenCTM().inverse())};j.addEventListener("pointerdown",(t=>{const e=t.target._fx;if(!e)return;_(e);const n=B(t);P={fx:e,x:n.x,y:n.y,base:e.r.map((t=>[t[0],t[1]])),moved:!1},j.setPointerCapture(t.pointerId),t.preventDefault()})),j.addEventListener("pointermove",(t=>{if(!P)return;const e=B(t),n=Math.round(10*(e.x-P.x))/10,a=Math.round(10*(e.y-P.y))/10;(n||a||P.moved)&&(P.moved=!0,P.fx.r.forEach(((t,e)=>{t[0]=+(P.base[e][0]+n).toFixed(2),t[1]=+(P.base[e][1]+a).toFixed(2)})),F())}));const D=()=>{P&&P.moved&&y(),P=null};function _(e){d=e,t("#fxNone").hidden=!!e,t("#fxForm").hidden=!e,e?(t("#fxCode").value=e.c,t("#fxZone").value=e.z,t("#fxBrand").value=e.b||"",t("#fxWall").value=e.w?"1":"0",t("#fxFace").value="B"===e.f?"B":"A",t("#fxLen").value=Math.round(Math.max(e.r[0][2],e.r[0][3])),t("#fxShelves").value=e.s||5,t("#fxKind").value=String(e.k||0),F()):F()}j.addEventListener("pointerup",D),j.addEventListener("pointercancel",D);{const n=t("#fxZone");Object.keys(f).forEach((t=>n.appendChild(e("option",{value:t,text:f[t][0]}))))}async function q(){if(a)return u=!1,b(),x("نسخة عرض: التعديل لا يُحفظ");try{await v("/pg",{method:"PUT",body:JSON.stringify(r)}),u=!1,b(),x("تم حفظ المخطط")}catch(t){x(t.message,!0)}}function R(){const n=t("#shFx"),a=n.value;n.textContent="",r.f.slice().sort(((t,e)=>t.c<e.c?-1:1)).forEach((t=>n.appendChild(e("option",{value:t.c,text:t.c+" · "+(t.b||"مشترك")+" · "+(f[t.z]||[""])[0]})))),a&&(n.value=a)}t("#fxForm").addEventListener("change",(()=>{const e=d;if(!e)return;const n=t("#fxCode").value.trim();n&&n!==e.c&&!r.f.some((t=>t!==e&&t.c===n))&&(e.c=n),e.z=t("#fxZone").value,e.b=t("#fxBrand").value.trim(),e.w="1"===t("#fxWall").value?1:0,e.s=Math.max(3,Math.min(6,+t("#fxShelves").value||5)),e.k=+t("#fxKind").value;const a=e.r[0],o=a[3]>a[2],s=Math.max(1,Math.min(20,Math.round(+t("#fxLen").value||1)));o?a[3]=s:a[2]=s,e.f=e.w?"W":a[3]>a[2]?t("#fxFace").value:"",y(),F(),R()})),t("#fxRot").onclick=()=>{if(!d)return;d.r.forEach((t=>{const e=t[2];t[2]=t[3],t[3]=e}));const e=d.r[0];d.f=d.w?"W":e[3]>e[2]?t("#fxFace").value:"",y(),F()},t("#fxDel").onclick=()=>{if(!d)return;const e=t("#fxDel");if(e.dataset.sure!==d.c)return e.dataset.sure=d.c,e.textContent="اضغط مرة أخرى للتأكيد",void setTimeout((()=>{e.dataset.sure="",e.textContent="حذف"}),4e3);r.f=r.f.filter((t=>t!==d)),e.dataset.sure="",e.textContent="حذف",_(null),y(),R()},t("#fxAdd").onclick=()=>{let t,e=1;do{t="N-"+String(e++).padStart(2,"0")}while(r.f.some((e=>e.c===t)));const n={c:t,z:"E",b:"",l:-1,w:0,s:5,k:0,r:[[+((r.W||44)/2-.25).toFixed(1),+((r.D||46)/2).toFixed(1),.5,2]],f:"A",it:[]};r.f.push(n),y(),_(n),R()},t("#fxShelvesGo").onclick=()=>{d&&(t("#shFx").value=d.c,S("shelves"))},t("#savePg").onclick=q,t("#savePg2").onclick=q,t("#undoPg").onclick=async()=>{if(a)return x("نسخة عرض: لا يوجد حفظ للتراجع عنه");try{await v("/pg/undo",{method:"POST"}),r=await g(o+"/public/pg"),u=!1,b(),_(null),R(),x("تمت العودة إلى النسخة السابقة")}catch(t){x(t.message,!0)}},t("#resetPg").onclick=async()=>{const e=t("#resetPg");if(!e.dataset.sure)return e.dataset.sure="1",e.textContent="اضغط مرة أخرى للتأكيد",void setTimeout((()=>{e.dataset.sure="",e.textContent="الرجوع للمخطط الأصلي"}),4e3);if(a)return e.dataset.sure="",e.textContent="الرجوع للمخطط الأصلي",x("نسخة عرض");try{await v("/pg",{method:"DELETE"}),r=await g("../plan/pg.json"),u=!1,b(),_(null),R(),x("تمت العودة إلى المخطط الأصلي")}catch(t){x(t.message,!0)}e.dataset.sure="",e.textContent="الرجوع للمخطط الأصلي"},t("#edFile").onchange=async e=>{const n=e.target.files[0];if(!n)return;const a=t("#edState");a.textContent="جارٍ التحويل…";try{const t=JSON.parse(await n.text());if(!t||!t.fx||!t.room)throw new Error("هذا ليس ملف نسخة احتياطية من المحرر");const e=await g("../plan/pgmap.json");if(!e)throw new Error("تعذّر تحميل جدول الأصناف");const o=[],s={},i=t=>(t in s||(s[t]=o.length,o.push(t)),s[t]),c=new Set;let l=0,u=0;const h=Object.values(t.fx).sort(((t,e)=>t.code<e.code?-1:1)).map((t=>{const n=[];(t.it||[]).forEach((t=>{l++;const a=e.ids[String(t[1]).trim().slice(0,48)];if(!a)return;const o=String(t[2]||"").toLowerCase(),s=(a.find((t=>!c.has(t[0])&&t[1]===o))||a.find((t=>!c.has(t[0])))||[])[0];if(!s)return;c.add(s),u++;const r=e.cat[t[6]];n.push([t[0],s,Math.max(1,Math.round(+t[3]||1)),r?i(r):-1,Math.round(10*(+t[7]||0))/10])}));const a=String(t.dept||"").split("+").map((t=>t.trim())).map((t=>e.dept[t])).find(Boolean)||e.zname[t.zone],o=String(t.kind||""),s="حائط"===t.pos?1:0,r=/وجه (\w)/.exec(t.loc||"");return{c:t.code,z:t.zone,b:t.brand&&"Mixed"!==t.brand?t.brand:"",l:a?i(a):-1,w:s,s:t.shelves||5,k:o.includes("هوك أعلى")?2:o.includes("هوك")?1:0,r:(t.parts||[]).map((t=>[t.x,t.y,t.w,t.h].map((t=>Math.round(t/24*1e3)/1e3)))),f:s?"W":t.face||(r?r[1]:""),it:n}})).filter((t=>t.r.length)),p={};Object.keys(t.zones||{}).forEach((e=>{t.zones[e].color&&(p[e]=t.zones[e].color)})),r={v:2,W:Math.round(t.room.w/24*1e3)/1e3,D:Math.round(t.room.h/24*1e3)/1e3,names:o,zones:p,f:h};const f=(t.endcaps||[]).filter((t=>t&&isFinite(t.x)&&isFinite(t.y))).map((t=>[t.x,t.y,t.w||24].map((t=>Math.round(t/24*1e3)/1e3)).concat(["bottom"===t.end?1:0,t.zone||"",t.title||"",t.sub||"",+t.interval||8,Array.isArray(t.playlist)?t.playlist:[],Math.round((t.h||13.5)/24*1e3)/1e3])));f.length&&(r.sc=f),d=null,_(null),R(),y(),a.textContent="تم: "+h.length+" وحدة، "+u+" صنف من "+l+" تعرّفت عليه. راجع ثم احفظ."}catch(t){a.textContent="",x(t.message,!0)}e.target.value=""};const W=()=>r.f.find((e=>e.c===t("#shFx").value));function I(){const n=W(),a=t("#shelves");a.textContent="";const o=t("#shTo"),s=o.value;if(o.textContent="",!n)return;const i=n.s||5;for(let t=1;t<=i;t++)o.appendChild(e("option",{value:String(t),text:"الرف "+t+(1===t?" (الأعلى)":t===i?" (الأسفل)":"")}));s&&+s<=i&&(o.value=s);for(let t=1;t<=i;t++){const o=e("div",{className:"shelf"}),s=n.it.filter((e=>Math.min(i,e[0])===t));o.appendChild(e("h3",{text:"الرف "+t+" · "+s.length+" صنف"})),s.forEach((a=>{const s=l.get(String(a[1])),c=e("div",{className:"item"+(s?"":" off")}),r=e("input",{type:"number",min:1,max:12,value:a[2]||1,title:"عدد الأوجه"});r.onchange=()=>{a[2]=Math.max(1,Math.min(12,+r.value||1)),y()};const d=e=>()=>{const o=n.it,s=o.indexOf(a),c=o.map(((t,e)=>[t,e])).filter((e=>Math.min(i,e[0][0])===t)),r=c.findIndex((t=>t[0]===a)),l=c[r+e];if(l)o[s]=l[0],o[l[1]]=a;else{const n=t+e;if(n<1||n>i)return;a[0]=n}y(),I()},u=e("button",{className:"mini",type:"button",text:"▲",title:"قبل"}),h=e("button",{className:"mini",type:"button",text:"▼",title:"بعد"}),p=e("button",{className:"mini",type:"button",text:"✕",title:"حذف"});u.onclick=d(-1),h.onclick=d(1),p.onclick=()=>{n.it.splice(n.it.indexOf(a),1),y(),I()},c.append(e("div",{className:"nm",text:s?s.name:"صنف "+a[1]+" (غير متاح في المتجر)",title:s?s.name:""}),r,e("div",{className:"ops"},[u,h,p])),o.appendChild(c)})),a.appendChild(o)}}function J(e){const n=W();if(!n)return;const a=String(e.id),o=r.f.find((t=>t.it.some((t=>String(t[1])===a))));o&&o!==n&&x("تنبيه: المنتج موجود أيضاً في "+o.c+"، وسيظهر في المكان الأول فقط"),n.it.push([+t("#shTo").value||1,a,1,-1]),t("#shRes").hidden=!0,t("#shQ").value="",y(),I()}async function U(){try{const n=await v("/log"),a=t("#log");if(a.textContent="",n.slice(0,60).forEach((t=>a.appendChild(e("tr",null,[e("td",{text:new Date(t.t).toLocaleString("ar-SA")}),e("td",{text:t.who}),e("td",{text:t.what})])))),"admin"===i){const n=await v("/users"),a=t("#users");a.textContent="",a.appendChild(e("tr",null,[e("td",{text:"admin"}),e("td",{text:"مدير"}),e("td")])),n.forEach((t=>{const n=e("button",{className:"btn bad",type:"button",text:"حذف"});n.onclick=async()=>{try{await v("/users/"+encodeURIComponent(t.user),{method:"DELETE"}),U()}catch(t){x(t.message,!0)}},a.appendChild(e("tr",null,[e("td",{text:t.user}),e("td",{text:"admin"===t.role?"مدير":"محرر"}),e("td",null,[n])]))}))}}catch(t){x(t.message,!0)}}t("#shFx").onchange=I,t("#shQ").addEventListener("input",(()=>{const n=t("#shQ").value.trim(),a=t("#shRes");if(a.textContent="",n.length<2)return void(a.hidden=!0);const o=n.split(/\s+/);let s=0;for(const t of l.values()){const n=String(t.name||"");if(o.every((t=>n.includes(t)))){const o=e("button",{type:"button",text:n});if(o.onclick=()=>J(t),a.appendChild(o),++s>=25)break}}s||a.appendChild(e("div",{className:"note",text:"لا نتائج",style:"padding:8px"})),a.hidden=!1})),t("#nuAdd").onclick=async()=>{try{await v("/users",{method:"POST",body:JSON.stringify({user:t("#nuUser").value,pass:t("#nuPass").value,role:t("#nuRole").value})}),t("#nuUser").value=t("#nuPass").value="",x("تمت الإضافة"),U()}catch(t){x(t.message,!0)}},async function(){if(a)return c=a.cfg||await g("../config.json")||{},C({user:"نسخة عرض",role:"admin"});const e=await g("../config.json");o=(e&&e.api||n.get("ib3d-admin-api")||"").replace(/\/+$/,""),e&&e.api?t("#apiRow").hidden=!0:t("#api").value=o,c=e||{};const i=n.get("ib3d-admin-token");if(i&&o){s=i;try{const t=await v("/me");return void await C(t)}catch(t){s=""}}}()}();</script>
+</body>
+</html>
